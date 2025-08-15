@@ -1,140 +1,64 @@
-import domtoimage from "dom-to-image";
-import * as ImagePicker from "expo-image-picker";
-import { type ImageSource } from "expo-image";
-import * as MediaLibrary from "expo-media-library";
-import { useState, useRef } from "react";
-import { View, StyleSheet, Platform } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { captureRef } from "react-native-view-shot";
-
-import Button from "@/components/Button";
-import ImageViewer from "@/components/ImageViewer";
-import IconButton from "@/components/IconButton";
-import CircleButton from "@/components/CircleButton";
-import EmojiPicker from "@/components/EmojiPicker";
-import EmojiList from "@/components/EmojiList";
-import EmojiSticker from "@/components/EmojiSticker";
-
-const PlaceholderImage = require("@/assets/images/background-image.png");
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Link } from "expo-router";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Index() {
-  const [status, requestPermission] = MediaLibrary.usePermissions();
-  const imageRef = useRef<View>(null);
-  const [selectedImage, setSelectedImage] = useState<string | undefined>(
-    undefined
-  );
-  const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
-  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
-  const [pickedEmoji, setPickedEmoji] = useState<ImageSource | undefined>(
-    undefined
-  );
+  const { user } = useAuth();
 
-  if (status === null) {
-    requestPermission();
-  }
-
-  const pickImageAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-      setShowAppOptions(true);
-    } else {
-      alert("You did not select any image");
-    }
-  };
-
-  const onReset = () => {
-    setShowAppOptions(false);
-  };
-
-  const onAddSticker = () => {
-    setIsModalVisible(true);
-  };
-
-  const onSaveImageAsync = async () => {
-    if (Platform.OS !== "web") {
-      try {
-        const localUri = await captureRef(imageRef, {
-          height: 440,
-          quality: 1,
-        });
-
-        await MediaLibrary.saveToLibraryAsync(localUri);
-        if (localUri) {
-          alert("Saved!");
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    } else {
-      try {
-        const dataUrl = await domtoimage.toJpeg(imageRef.current, {
-          quality: 0.95,
-          width: 320,
-          height: 440,
-        });
-
-        let link = document.createElement("a");
-        link.download = "sticker-smash.jpeg";
-        link.href = dataUrl;
-        link.click();
-      } catch (e) {
-        console.log(e);
-      }
-    }
-  };
-
-  const onModalClose = () => {
-    setIsModalVisible(false);
-  };
-
-  return (
-    <GestureHandlerRootView style={styles.container}>
-      <View style={styles.imageContainer}>
-        <View ref={imageRef} collapsable={false}>
-          <ImageViewer
-            defaultImage={PlaceholderImage}
-            selectedImage={selectedImage}
-          />
-          {pickedEmoji && (
-            <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
-          )}
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Hyperbolic</Text>
+          <Text style={styles.subtitle}>Track your tricking journey</Text>
+          
+          <View style={styles.authButtons}>
+            <Link href="/auth/login" asChild>
+              <TouchableOpacity style={styles.primaryButton}>
+                <Text style={styles.primaryButtonText}>Sign In</Text>
+              </TouchableOpacity>
+            </Link>
+            
+            <Link href="/auth/signup" asChild>
+              <TouchableOpacity style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>Create Account</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+          
+          <Text style={styles.description}>
+            Join the community and start tracking your tricks, combos, and progress.
+          </Text>
         </View>
       </View>
-      {showAppOptions ? (
-        <View style={styles.optionsContainer}>
-          <View style={styles.optionsRow}>
-            <IconButton icon="refresh" label="Reset" onPress={onReset} />
-            <CircleButton onPress={onAddSticker} />
-            <IconButton
-              icon="save-alt"
-              label="Save"
-              onPress={onSaveImageAsync}
-            />
-          </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Welcome back!</Text>
+        <Text style={styles.subtitle}>Ready to work on some tricks?</Text>
+        
+        <View style={styles.featureButtons}>
+          <TouchableOpacity style={styles.featureButton}>
+            <Text style={styles.featureButtonText}>Browse Tricks</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.featureButton}>
+            <Text style={styles.featureButtonText}>My Arsenal</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.featureButton}>
+            <Text style={styles.featureButtonText}>Track Session</Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <View style={styles.footerContainer}>
-          <Button
-            theme="primary"
-            label="Choose a photo"
-            onPress={pickImageAsync}
-          />
-          <Button
-            label="Use this photo"
-            onPress={() => setShowAppOptions(true)}
-          />
-        </View>
-      )}
-      <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
-        <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
-      </EmojiPicker>
-    </GestureHandlerRootView>
+        
+        <Text style={styles.comingSoon}>
+          More features coming soon!
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -142,21 +66,81 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#25292e",
-    alignItems: "center",
   },
-  imageContainer: {
+  content: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  footerContainer: {
-    flex: 1 / 3,
+  title: {
+    fontSize: 48,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 18,
+    color: "#ccc",
+    marginBottom: 40,
+    textAlign: "center",
+  },
+  authButtons: {
+    width: "100%",
+    maxWidth: 300,
+    gap: 16,
+    marginBottom: 30,
+  },
+  primaryButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 12,
+    padding: 16,
     alignItems: "center",
   },
-  optionsContainer: {
-    position: "absolute",
-    bottom: 80,
+  primaryButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
   },
-  optionsRow: {
+  secondaryButton: {
+    borderWidth: 2,
+    borderColor: "#007AFF",
+    borderRadius: 12,
+    padding: 16,
     alignItems: "center",
-    flexDirection: "row",
+  },
+  secondaryButtonText: {
+    color: "#007AFF",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  description: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  featureButtons: {
+    width: "100%",
+    maxWidth: 300,
+    gap: 16,
+    marginBottom: 30,
+  },
+  featureButton: {
+    backgroundColor: "#333",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+  },
+  featureButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  comingSoon: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
   },
 });
