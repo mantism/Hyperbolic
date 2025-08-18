@@ -24,8 +24,10 @@ export default function ForgotPasswordScreen() {
     }
 
     setLoading(true);
+    // For iOS Simulator testing with Expo Go or development builds
+    // The deep link will work with the hyperbolic:// scheme
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'hyperbolic://auth/reset-password',
+      redirectTo: 'exp://localhost:8081/--/auth/reset-password',
     });
 
     if (error) {
