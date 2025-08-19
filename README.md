@@ -30,25 +30,30 @@ A training and social media app for the sport of Tricking, built with [Expo](htt
 ### Social Media Features
 
 - [ ] **Friends System**
+
   - [ ] Add/remove friends
   - [ ] View friends' profiles and content
 
 - [ ] **Tricking Crews**
+
   - [ ] Create and join crews
   - [ ] Crew profiles and member management
 
 - [ ] **Video Sharing**
+
   - [ ] Publicly share trick/combo/session videos
   - [ ] Video upvoting system
   - [ ] Community verification of trick clips
   - [ ] Community ranking of trick clips (optional when sharing)
 
 - [ ] **Gym & Location Services**
+
   - [ ] Find tricking gyms and training locations
   - [ ] User-submitted gym information
   - [ ] Gym ratings and reviews
 
 - [ ] **Session Organization**
+
   - [ ] Create and join training sessions
   - [ ] Schedule recurring sessions
   - [ ] Session participant management
@@ -61,6 +66,7 @@ A training and social media app for the sport of Tricking, built with [Expo](htt
 ### Educational & Coaching Features
 
 - [ ] **Tutorials**
+
   - [ ] Create and share trick tutorials
   - [ ] Option to make tutorials free or paid
   - [ ] Tutorial categorization and search
@@ -73,18 +79,21 @@ A training and social media app for the sport of Tricking, built with [Expo](htt
 ### Business Features
 
 - [ ] **Monetization**
+
   - [ ] In-app purchases for premium content
   - [ ] Transaction processing for paid tutorials/coaching
   - [ ] Revenue sharing system for content creators
   - [ ] Withdrawal and payout management
 
 - [ ] **Subscription Tiers**
+
   - [ ] Free tier with basic features
   - [ ] Pro tier with unlimited video uploads, advanced analytics, HD video
   - [ ] Coach/Business tier with promotional tools and priority support
   - [ ] Tier-based feature gating and access control
 
 - [ ] **Internationalization**
+
   - [ ] Multi-language support
   - [ ] Currency localization
   - [ ] Regional content filtering

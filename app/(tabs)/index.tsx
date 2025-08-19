@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Index() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
 
   // This screen should only show app content
   // Auth is handled by /auth/* screens and _layout.tsx
@@ -17,7 +19,10 @@ export default function Index() {
             <Text style={styles.primaryButtonText}>Browse Tricks</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={() => router.push("/(tabs)/arsenal")}
+          >
             <Text style={styles.secondaryButtonText}>My Arsenal</Text>
           </TouchableOpacity>
           

@@ -33,6 +33,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="arsenal"
+        options={{
+          title: "Arsenal",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "trophy" : "trophy-outline"}
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="about"
         options={{
           title: "About",

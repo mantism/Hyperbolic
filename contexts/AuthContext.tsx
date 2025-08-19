@@ -52,17 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: profile } = await supabase
           .from("UsersTable")
           .select("*")
-          .eq("user_id", session.user.id)
+          .eq("id", session.user.id)
           .single();
 
         // Create profile if it doesn't exist
         if (!profile && session.user.user_metadata?.username) {
           await supabase.from("UsersTable").insert([
             {
-              user_id: session.user.id,
-              user_name: session.user.user_metadata.username,
-              user_email: session.user.email,
-              user_created_at: new Date().toISOString(),
+              id: session.user.id,
+              username: session.user.user_metadata.username,
+              email: session.user.email!,
+              lastName: "", // Required field, using empty string for now
+              created_at: new Date().toISOString(),
             },
           ]);
         }
