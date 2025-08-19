@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,68 +9,57 @@ import {
   Platform,
   TouchableOpacity,
   ActivityIndicator,
-} from 'react-native';
-import { Link, router } from 'expo-router';
-import { supabase } from '@/lib/supabase/supabase';
+} from "react-native";
+import { Link, router } from "expo-router";
+import { supabase } from "@/lib/supabase/supabase";
 
 export default function SignUpScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
   const signUp = async () => {
-    if (!email || !password || !username) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!email || !username) {
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (username.length < 3) {
+      Alert.alert("Error", "Username must be at least 3 characters");
       return;
     }
 
     setLoading(true);
-    
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+
+    // First, sign up with magic link
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: "hyperbolic://auth", // Deep link back to app
+        data: {
+          username: username,
+        },
+      },
     });
 
-    if (authError) {
-      Alert.alert('Error', authError.message);
-      setLoading(false);
-      return;
-    }
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      // Store username temporarily so we can create profile after they verify
+      await supabase.auth
+        .updateUser({
+          data: { pending_username: username },
+        })
+        .catch(() => {
+          // Ignore error, this is just for convenience
+        });
 
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('UsersTable')
-        .insert([
-          {
-            user_id: authData.user.id,
-            user_name: username,
-            user_email: email,
-            user_created_at: new Date().toISOString(),
-          },
-        ]);
-
-      if (profileError) {
-        Alert.alert('Error', 'Failed to create user profile');
-        console.error(profileError);
-      } else {
-        Alert.alert(
-          'Success!',
-          'Please check your email to verify your account.',
-          [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
-        );
-      }
+      Alert.alert(
+        "Check Your Email",
+        `We've sent a magic link to ${email}. Click the link to complete your registration and sign in.`,
+        [{ text: "OK", onPress: () => router.replace("/auth/login") }]
+      );
     }
 
     setLoading(false);
@@ -79,11 +68,13 @@ export default function SignUpScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.content}>
         <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join the Hyperbolic community</Text>
+        <Text style={styles.subtitle}>
+          Join the Hyperbolic community with just your email
+        </Text>
 
         <View style={styles.form}>
           <TextInput
@@ -107,26 +98,6 @@ export default function SignUpScreen() {
             editable={!loading}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password-new"
-            editable={!loading}
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoComplete="password-new"
-            editable={!loading}
-          />
-
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={signUp}
@@ -147,6 +118,11 @@ export default function SignUpScreen() {
             </TouchableOpacity>
           </Link>
         </View>
+
+        <Text style={styles.disclaimer}>
+          We'll send you a 6-digit code to verify your email. No passwords
+          needed!
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );
@@ -155,59 +131,69 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   content: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
     marginBottom: 40,
-    textAlign: 'center',
+    textAlign: "center",
+    lineHeight: 22,
+    paddingHorizontal: 20,
   },
   form: {
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     borderRadius: 8,
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   linkButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 8,
   },
   linkText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 14,
+  },
+  disclaimer: {
+    fontSize: 12,
+    color: "#999",
+    textAlign: "center",
+    marginTop: 20,
+    paddingHorizontal: 40,
+    lineHeight: 18,
   },
 });

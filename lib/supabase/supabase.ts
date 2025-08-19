@@ -11,8 +11,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create a custom storage adapter that works on both web and mobile
 const customStorage = {
   getItem: async (key: string) => {
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.localStorage) {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.localStorage) {
         return window.localStorage.getItem(key);
       }
       return null;
@@ -20,8 +20,8 @@ const customStorage = {
     return AsyncStorage.getItem(key);
   },
   setItem: async (key: string, value: string) => {
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.localStorage) {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.localStorage) {
         window.localStorage.setItem(key, value);
       }
       return;
@@ -29,8 +29,8 @@ const customStorage = {
     return AsyncStorage.setItem(key, value);
   },
   removeItem: async (key: string) => {
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.localStorage) {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.localStorage) {
         window.localStorage.removeItem(key);
       }
       return;
@@ -44,6 +44,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: customStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === "web", // Only detect session in URL on web
   },
 });

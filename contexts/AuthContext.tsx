@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/supabase';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/supabase";
 
 type AuthContextType = {
   user: User | null;
@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextType>({
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
@@ -39,19 +39,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+
+      // Handle first sign in after signup
+      if (event === "SIGNED_IN" && session?.user) {
+        // Check if user profile exists
+        const { data: profile } = await supabase
+          .from("UsersTable")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .single();
+
+        // Create profile if it doesn't exist
+        if (!profile && session.user.user_metadata?.username) {
+          await supabase.from("UsersTable").insert([
+            {
+              user_id: session.user.id,
+              user_name: session.user.user_metadata.username,
+              user_email: session.user.email,
+              user_created_at: new Date().toISOString(),
+            },
+          ]);
+        }
       }
-    );
+    });
 
     // Handle app state changes (foreground/background)
     const appStateSubscription = AppState.addEventListener(
-      'change',
+      "change",
       (nextAppState: AppStateStatus) => {
-        if (nextAppState === 'active') {
+        if (nextAppState === "active") {
           // Refresh session when app comes to foreground
           supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);

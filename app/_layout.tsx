@@ -13,12 +13,6 @@ function InitialLayout() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === "auth";
-    const isResetPassword = segments[1] === "reset-password";
-
-    // Don't redirect if we're on the reset-password page
-    if (isResetPassword) {
-      return;
-    }
 
     if (!user && !inAuthGroup) {
       router.replace("/auth/login");
@@ -48,14 +42,7 @@ function InitialLayout() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="auth/login" options={{ headerShown: false }} />
       <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="auth/forgot-password"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="auth/reset-password"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="auth/verify" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
