@@ -2,33 +2,41 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Index() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // This screen should only show app content
   // Auth is handled by /auth/* screens and _layout.tsx
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome back!</Text>
+        <Text style={styles.title}>Hyperbolic</Text>
         <Text style={styles.subtitle}>Ready to work on some tricks?</Text>
         
         <View style={styles.featureButtons}>
-          <TouchableOpacity style={styles.featureButton}>
-            <Text style={styles.featureButtonText}>Browse Tricks</Text>
+          <TouchableOpacity style={styles.primaryButton}>
+            <Text style={styles.primaryButtonText}>Browse Tricks</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.featureButton}>
-            <Text style={styles.featureButtonText}>My Arsenal</Text>
+          <TouchableOpacity style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>My Arsenal</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.featureButton}>
-            <Text style={styles.featureButtonText}>Track Session</Text>
+          <TouchableOpacity style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Track Session</Text>
           </TouchableOpacity>
         </View>
         
-        <Text style={styles.comingSoon}>
-          More features coming soon!
-        </Text>
+        <View style={styles.footer}>
+          <Text style={styles.userInfo}>
+            {user?.email}
+          </Text>
+          <TouchableOpacity 
+            style={styles.linkButton}
+            onPress={signOut}
+          >
+            <Text style={styles.linkText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -37,7 +45,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#25292e",
+    backgroundColor: "#fff",
   },
   content: {
     flex: 1,
@@ -46,38 +54,62 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#000",
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 18,
-    color: "#ccc",
+    fontSize: 16,
+    color: "#666",
     marginBottom: 40,
     textAlign: "center",
   },
   featureButtons: {
     width: "100%",
     maxWidth: 300,
-    gap: 16,
+    gap: 12,
     marginBottom: 30,
   },
-  featureButton: {
-    backgroundColor: "#333",
-    borderRadius: 12,
+  primaryButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
     padding: 16,
     alignItems: "center",
   },
-  featureButtonText: {
+  primaryButtonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#007AFF",
     fontSize: 16,
     fontWeight: "500",
   },
-  comingSoon: {
+  footer: {
+    position: "absolute",
+    bottom: 40,
+    alignItems: "center",
+  },
+  userInfo: {
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 8,
+  },
+  linkButton: {
+    padding: 8,
+  },
+  linkText: {
+    color: "#007AFF",
     fontSize: 14,
-    color: "#666",
-    textAlign: "center",
   },
 });

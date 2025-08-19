@@ -17,17 +17,34 @@ export default function AboutScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>About Hyperbolic</Text>
-      <Text style={styles.text}>Track your tricking progress</Text>
-      
-      {user && (
-        <View style={styles.userInfo}>
-          <Text style={styles.text}>Logged in as: {user.email}</Text>
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
+      <View style={styles.content}>
+        <Text style={styles.title}>About Hyperbolic</Text>
+        <Text style={styles.subtitle}>
+          The ultimate app for tracking your tricking journey
+        </Text>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Version</Text>
+          <Text style={styles.sectionText}>1.0.0 (Beta)</Text>
         </View>
-      )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Features</Text>
+          <Text style={styles.sectionText}>• Track your trick progression</Text>
+          <Text style={styles.sectionText}>• Build your trick arsenal</Text>
+          <Text style={styles.sectionText}>• Log training sessions</Text>
+          <Text style={styles.sectionText}>• Connect with the community</Text>
+        </View>
+        
+        {user && (
+          <View style={styles.userSection}>
+            <Text style={styles.userEmail}>{user.email}</Text>
+            <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -35,35 +52,65 @@ export default function AboutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#25292e",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  content: {
+    flex: 1,
     padding: 20,
+    paddingTop: 40,
   },
   title: {
-    color: "#fff",
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    marginBottom: 10,
-  },
-  text: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#000",
+    marginBottom: 8,
     textAlign: "center",
   },
-  userInfo: {
-    marginTop: 40,
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 40,
+    lineHeight: 22,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sectionText: {
+    fontSize: 16,
+    color: "#666",
+    lineHeight: 24,
+  },
+  userSection: {
+    marginTop: "auto",
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
     alignItems: "center",
   },
+  userEmail: {
+    fontSize: 14,
+    color: "#999",
+    marginBottom: 12,
+  },
   signOutButton: {
-    backgroundColor: "#ff4444",
-    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: "#FF3B30",
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 8,
-    marginTop: 20,
   },
   signOutText: {
-    color: "#fff",
+    color: "#FF3B30",
     fontWeight: "600",
+    fontSize: 14,
   },
 });

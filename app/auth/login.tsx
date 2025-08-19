@@ -149,6 +149,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     fontSize: 16,
+    letterSpacing: 0, // Explicitly set to normal
+    textAlign: "left", // Explicitly set alignment
   },
   button: {
     backgroundColor: "#007AFF",
