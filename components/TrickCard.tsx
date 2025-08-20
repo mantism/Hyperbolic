@@ -30,6 +30,20 @@ export default function TrickCard({
   const categoryColor = getCategoryColor(primaryCategory);
   const categoryColorLight = getCategoryColorLight(primaryCategory);
 
+  // Determine if we should show the success band and its color
+  const hasLanded = userTrick?.landed === true;
+  const showSuccessBand = hasLanded && percentage > 0;
+  
+  // Color coding for success rate
+  const getSuccessColor = (rate: number) => {
+    if (rate >= 80) return '#10B981'; // Green
+    if (rate >= 60) return '#F59E0B'; // Amber
+    if (rate >= 40) return '#EF4444'; // Red
+    return '#6B7280'; // Gray
+  };
+
+  const successBandColor = getSuccessColor(percentage);
+
   return (
     <TouchableOpacity 
       style={[
@@ -44,6 +58,13 @@ export default function TrickCard({
       ]}>
         <Ionicons name="image-outline" size={40} color={categoryColor + 'AA'} />
       </View>
+
+      {/* Diagonal success band */}
+      {showSuccessBand ? (
+        <View style={[styles.successBand, { backgroundColor: successBandColor }]}>
+          <Text style={styles.successBandText}>Landed</Text>
+        </View>
+      ) : null}
       
       <View style={styles.cardContent}>
         <Text style={styles.trickName}>{trick.name}</Text>
@@ -54,15 +75,6 @@ export default function TrickCard({
           </Text>
         ) : null}
         
-        {showStats && userTrick ? (
-          <Text style={styles.successRate}>{percentage}% success</Text>
-        ) : null}
-        
-        {trick.rating !== null && trick.rating !== undefined ? (
-          <View style={styles.ratingContainer}>
-            <Text style={styles.rating}>Difficulty: {trick.rating}/10</Text>
-          </View>
-        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -112,17 +124,28 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textTransform: "capitalize",
   },
-  successRate: {
-    fontSize: 12,
-    color: "#007AFF",
-    fontWeight: "500",
+  successBand: {
+    position: "absolute",
+    top: 8,
+    right: -20,
+    width: 70,
+    height: 18,
+    backgroundColor: "#10B981", // Will be overridden
+    transform: [{ rotate: "45deg" }],
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
   },
-  ratingContainer: {
-    marginTop: 4,
-  },
-  rating: {
-    fontSize: 11,
-    color: "#888",
-    fontWeight: "400",
+  successBandText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "700",
+    textAlign: "center",
+    letterSpacing: 0.3,
   },
 });
