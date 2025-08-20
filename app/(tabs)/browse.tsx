@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
 import TrickCard from "@/components/TrickCard";
+import FilterDropdown from "@/components/FilterDropdown";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
@@ -61,13 +62,17 @@ export default function BrowseScreen() {
         .select("*")
         .order("name");
 
-      if (error) throw error;
-      setAllTricks(data);
+      if (error) {
+        throw error;
+      }
+      
+      const tricks = data as Trick[];
+      setAllTricks(tricks);
 
       // Extract unique categories
       const categories = new Set<string>();
-      data.forEach((trick) => {
-        trick.categories?.forEach((category) => categories.add(category));
+      tricks.forEach((trick) => {
+        trick.categories?.forEach((category: string) => categories.add(category));
       });
       setAvailableCategories(Array.from(categories).sort());
     } catch (error) {
@@ -79,15 +84,19 @@ export default function BrowseScreen() {
   };
 
   const fetchUserTricks = async () => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     try {
       const { data, error } = await supabase
         .from("UserToTricksTable")
-        .select(`
+        .select(
+          `
           *,
           trick:TricksTable(*)
-        `)
+        `
+        )
         .eq("userID", user.id);
 
       if (error) throw error;
@@ -96,6 +105,15 @@ export default function BrowseScreen() {
       console.error("Error fetching user tricks:", error);
     }
   };
+
+  // Create a lookup map for user tricks for better performance
+  const userTricksMap = useMemo(() => {
+    const map = new Map<string, UserTrick>();
+    userTricks.forEach((userTrick) => {
+      map.set(userTrick.trickID, userTrick);
+    });
+    return map;
+  }, [userTricks]);
 
   const filteredTricks = useMemo(() => {
     let filtered = allTricks.filter((trick) => {
@@ -124,11 +142,11 @@ export default function BrowseScreen() {
         }
       }
 
-      // Landed status filter
+      // Landed status filter - now O(1) lookup instead of O(n)
       if (filters.landedStatus !== "all") {
-        const userTrick = userTricks.find((ut) => ut.trickID === trick.id);
+        const userTrick = userTricksMap.get(trick.id);
         const isLanded = userTrick?.landed === true;
-        
+
         if (filters.landedStatus === "landed" && !isLanded) return false;
         if (filters.landedStatus === "not_landed" && isLanded) return false;
       }
@@ -164,7 +182,7 @@ export default function BrowseScreen() {
     });
 
     return filtered;
-  }, [allTricks, userTricks, filters]);
+  }, [allTricks, userTricksMap, filters]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -186,7 +204,7 @@ export default function BrowseScreen() {
   };
 
   const getUserTrickForTrick = (trickId: string) => {
-    return userTricks.find((ut) => ut.trickID === trickId);
+    return userTricksMap.get(trickId);
   };
 
   if (loading) {
@@ -201,169 +219,56 @@ export default function BrowseScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color="#666" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search tricks..."
-            value={filters.search}
-            onChangeText={(text) =>
-              setFilters((prev) => ({ ...prev, search: text }))
-            }
-          />
-          {filters.search.length > 0 && (
-            <TouchableOpacity
-              onPress={() =>
-                setFilters((prev) => ({ ...prev, search: "" }))
+      {/* Search Container - positioned relatively for dropdown positioning */}
+      <View style={styles.searchContainerWrapper}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={20} color="#666" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search tricks..."
+              value={filters.search}
+              onChangeText={(text) =>
+                setFilters((prev) => ({ ...prev, search: text }))
               }
-            >
-              <Ionicons name="close-circle" size={20} color="#666" />
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Ionicons name="options-outline" size={20} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Filters */}
-      {showFilters && (
-        <View style={styles.filtersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {/* Category Filter */}
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Category</Text>
-              <View style={styles.filterOptions}>
-                <TouchableOpacity
-                  style={[
-                    styles.filterChip,
-                    filters.category === "" && styles.activeFilterChip,
-                  ]}
-                  onPress={() =>
-                    setFilters((prev) => ({ ...prev, category: "" }))
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      filters.category === "" && styles.activeFilterChipText,
-                    ]}
-                  >
-                    All
-                  </Text>
-                </TouchableOpacity>
-                {availableCategories.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.filterChip,
-                      filters.category === category && styles.activeFilterChip,
-                    ]}
-                    onPress={() =>
-                      setFilters((prev) => ({ ...prev, category }))
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        filters.category === category &&
-                          styles.activeFilterChipText,
-                      ]}
-                    >
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Landed Status Filter */}
-            {user && (
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterLabel}>Status</Text>
-                <View style={styles.filterOptions}>
-                  {[
-                    { key: "all", label: "All" },
-                    { key: "landed", label: "Landed" },
-                    { key: "not_landed", label: "Not Landed" },
-                  ].map((option) => (
-                    <TouchableOpacity
-                      key={option.key}
-                      style={[
-                        styles.filterChip,
-                        filters.landedStatus === option.key &&
-                          styles.activeFilterChip,
-                      ]}
-                      onPress={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          landedStatus: option.key as any,
-                        }))
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          filters.landedStatus === option.key &&
-                            styles.activeFilterChipText,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+            />
+            {filters.search.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
+              >
+                <Ionicons name="close-circle" size={20} color="#666" />
+              </TouchableOpacity>
             )}
+          </View>
 
-            {/* Sort Options */}
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Sort</Text>
-              <View style={styles.filterOptions}>
-                {[
-                  { key: "name", label: "Name" },
-                  { key: "difficulty", label: "Difficulty" },
-                  { key: "category", label: "Category" },
-                ].map((option) => (
-                  <TouchableOpacity
-                    key={option.key}
-                    style={[
-                      styles.filterChip,
-                      filters.sortBy === option.key && styles.activeFilterChip,
-                    ]}
-                    onPress={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        sortBy: option.key as any,
-                      }))
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        filters.sortBy === option.key &&
-                          styles.activeFilterChipText,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </ScrollView>
-
-          <TouchableOpacity style={styles.resetButton} onPress={resetFilters}>
-            <Text style={styles.resetButtonText}>Reset</Text>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons name="options-outline" size={20} color="#007AFF" />
           </TouchableOpacity>
         </View>
-      )}
+
+        {/* Filters Dropdown - positioned absolutely within the wrapper */}
+        {showFilters && (
+          <>
+            {/* Overlay for tap-to-close */}
+            <TouchableOpacity
+              style={styles.filterOverlay}
+              activeOpacity={1}
+              onPress={() => setShowFilters(false)}
+            />
+            <FilterDropdown
+              filters={filters}
+              setFilters={setFilters}
+              availableCategories={availableCategories}
+              hasUser={!!user}
+              onReset={resetFilters}
+              onClose={() => setShowFilters(false)}
+            />
+          </>
+        )}
+      </View>
 
       {/* Results Header */}
       <View style={styles.resultsHeader}>
@@ -373,14 +278,31 @@ export default function BrowseScreen() {
       </View>
 
       {/* Tricks Grid */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+      <FlatList
+        data={filteredTricks}
+        renderItem={({ item: trick }) => {
+          const userTrick = getUserTrickForTrick(trick.id);
+          return (
+            <TrickCard
+              trick={trick}
+              userTrick={userTrick}
+              showStats={!!userTrick}
+              onPress={() => {
+                // TODO: Navigate to trick detail page
+                console.log("Pressed trick:", trick.name);
+              }}
+            />
+          );
+        }}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.flatListContent}
+        style={styles.flatList}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-      >
-        {filteredTricks.length === 0 ? (
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={64} color="#ccc" />
             <Text style={styles.emptyTitle}>No tricks found</Text>
@@ -388,26 +310,17 @@ export default function BrowseScreen() {
               Try adjusting your search or filters
             </Text>
           </View>
-        ) : (
-          <View style={styles.cardsGrid}>
-            {filteredTricks.map((trick) => {
-              const userTrick = getUserTrickForTrick(trick.id);
-              return (
-                <TrickCard
-                  key={trick.id}
-                  trick={trick}
-                  userTrick={userTrick}
-                  showStats={!!userTrick}
-                  onPress={() => {
-                    // TODO: Navigate to trick detail page
-                    console.log("Pressed trick:", trick.name);
-                  }}
-                />
-              );
-            })}
-          </View>
-        )}
-      </ScrollView>
+        }
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
+        getItemLayout={(data, index) => ({
+          length: 180, // Approximate height of each row
+          offset: 180 * Math.floor(index / 2),
+          index,
+        })}
+      />
     </View>
   );
 }
@@ -421,6 +334,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  searchContainerWrapper: {
+    position: "relative",
+    zIndex: 1,
   },
   searchContainer: {
     flexDirection: "row",
@@ -447,58 +364,6 @@ const styles = StyleSheet.create({
   filterButton: {
     padding: 8,
   },
-  filtersContainer: {
-    backgroundColor: "#f9f9f9",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  filterGroup: {
-    marginRight: 24,
-  },
-  filterLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#666",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
-  filterOptions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  activeFilterChip: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
-  },
-  filterChipText: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-  },
-  activeFilterChipText: {
-    color: "#fff",
-  },
-  resetButton: {
-    alignSelf: "flex-end",
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  resetButtonText: {
-    color: "#007AFF",
-    fontSize: 14,
-    fontWeight: "500",
-  },
   resultsHeader: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -508,11 +373,15 @@ const styles = StyleSheet.create({
     color: "#666",
     fontWeight: "500",
   },
-  scrollView: {
+  flatList: {
     flex: 1,
   },
-  scrollContent: {
+  flatListContent: {
     padding: 16,
+  },
+  row: {
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
   },
   emptyState: {
     flex: 1,
@@ -533,9 +402,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 40,
   },
-  cardsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+  filterOverlay: {
+    position: "absolute",
+    top: 0,
+    left: -1000, // Extend far left
+    right: -1000, // Extend far right
+    bottom: -1000, // Extend far down
+    backgroundColor: "transparent",
+    zIndex: 10,
   },
 });
