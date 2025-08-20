@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
+import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
@@ -116,57 +117,49 @@ export default function ArsenalScreen() {
             </Text>
           </View>
         ) : (
-          tricks.map((userTrick) => {
-            const { trick } = userTrick;
-            const percentage = userTrick.attempts 
-              ? Math.round(((userTrick.stomps || 0) / userTrick.attempts) * 100)
-              : 0;
+          <View style={styles.cardsGrid}>
+            {tricks.map((userTrick) => {
+              const { trick } = userTrick;
+              const percentage = userTrick.attempts 
+                ? Math.round(((userTrick.stomps || 0) / userTrick.attempts) * 100)
+                : 0;
 
-            return (
-              <TouchableOpacity key={userTrick.id} style={styles.trickCard}>
-                <View style={styles.trickHeader}>
-                  <Text style={styles.trickName}>{trick.name}</Text>
-                  {userTrick.rating && (
-                    <View style={styles.ratingBadge}>
-                      <Text style={styles.ratingText}>{userTrick.rating}/10</Text>
-                    </View>
-                  )}
-                </View>
-                
-                {trick.categories && (
-                  <View style={styles.categories}>
-                    {trick.categories.slice(0, 3).map((cat, idx) => (
-                      <Text key={idx} style={styles.categoryTag}>
-                        {cat}
+              const primaryCategory = trick.categories?.[0];
+              const categoryColor = getCategoryColor(primaryCategory);
+              const categoryColorLight = getCategoryColorLight(primaryCategory);
+
+              return (
+                <TouchableOpacity 
+                  key={userTrick.id} 
+                  style={[
+                    styles.trickCard,
+                    { backgroundColor: categoryColorLight }
+                  ]}
+                >
+                  {/* Image placeholder */}
+                  <View style={[
+                    styles.imagePlaceholder,
+                    { backgroundColor: categoryColor + '40' } // 25% opacity
+                  ]}>
+                    <Ionicons name="image-outline" size={40} color={categoryColor + 'AA'} />
+                  </View>
+                  
+                  {/* Card content overlay */}
+                  <View style={styles.cardContent}>
+                    <Text style={styles.trickName}>{trick.name}</Text>
+                    
+                    {primaryCategory && (
+                      <Text style={[styles.category, { color: categoryColor }]}>
+                        {primaryCategory}
                       </Text>
-                    ))}
+                    )}
+                    
+                    <Text style={styles.successRate}>{percentage}% success</Text>
                   </View>
-                )}
-
-                <View style={styles.statsRow}>
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>{userTrick.attempts || 0}</Text>
-                    <Text style={styles.statLabel}>Attempts</Text>
-                  </View>
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>{userTrick.stomps || 0}</Text>
-                    <Text style={styles.statLabel}>Stomps</Text>
-                  </View>
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>{percentage}%</Text>
-                    <Text style={styles.statLabel}>Success</Text>
-                  </View>
-                </View>
-
-                {activeTab === "wishlist" && (
-                  <TouchableOpacity style={styles.addToArsenalButton}>
-                    <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
-                    <Text style={styles.addToArsenalText}>Mark as Landed</Text>
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-            );
-          })
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
       </ScrollView>
 
@@ -234,90 +227,58 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 40,
   },
-  trickCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#f0f0f0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  trickHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  trickName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
-  },
-  ratingBadge: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  ratingText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  categories: {
+  cardsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginBottom: 12,
+    justifyContent: "space-between",
   },
-  categoryTag: {
-    fontSize: 12,
-    color: "#666",
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 6,
-    marginBottom: 4,
+  trickCard: {
+    width: "48%",
+    aspectRatio: 1,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: "hidden",
+    position: "relative",
+    borderWidth: 0.5,
+    borderColor: "rgba(0, 0, 0, 0.04)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-  },
-  stat: {
+  imagePlaceholder: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f0f0f0",
   },
-  statValue: {
-    fontSize: 20,
+  cardContent: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    padding: 12,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  trickName: {
+    fontSize: 16,
     fontWeight: "600",
     color: "#000",
+    marginBottom: 4,
   },
-  statLabel: {
+  category: {
     fontSize: 12,
-    color: "#999",
-    marginTop: 2,
+    color: "#666",
+    marginBottom: 4,
+    textTransform: "capitalize",
   },
-  addToArsenalButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-  },
-  addToArsenalText: {
+  successRate: {
+    fontSize: 12,
     color: "#007AFF",
-    fontSize: 14,
     fontWeight: "500",
-    marginLeft: 6,
   },
   fab: {
     position: "absolute",

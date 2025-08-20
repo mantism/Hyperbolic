@@ -6,7 +6,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase URL or Anon Key");
 }
 
-// Create client with minimal working configuration
+// Supabase client with minimal working configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
