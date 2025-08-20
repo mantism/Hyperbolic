@@ -65,14 +65,16 @@ export default function BrowseScreen() {
       if (error) {
         throw error;
       }
-      
+
       const tricks = data as Trick[];
       setAllTricks(tricks);
 
       // Extract unique categories
       const categories = new Set<string>();
       tricks.forEach((trick) => {
-        trick.categories?.forEach((category: string) => categories.add(category));
+        trick.categories?.forEach((category: string) =>
+          categories.add(category)
+        );
       });
       setAvailableCategories(Array.from(categories).sort());
     } catch (error) {
@@ -287,10 +289,6 @@ export default function BrowseScreen() {
               trick={trick}
               userTrick={userTrick}
               showStats={!!userTrick}
-              onPress={() => {
-                // TODO: Navigate to trick detail page
-                console.log("Pressed trick:", trick.name);
-              }}
             />
           );
         }}
@@ -381,7 +379,6 @@ const styles = StyleSheet.create({
   },
   row: {
     justifyContent: "space-between",
-    paddingHorizontal: 16,
   },
   emptyState: {
     flex: 1,

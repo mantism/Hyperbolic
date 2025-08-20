@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Link } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import { Database } from "@/lib/supabase/database.types";
@@ -12,14 +13,12 @@ type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"] & {
 interface TrickCardProps {
   trick: Trick;
   userTrick?: UserTrick;
-  onPress?: () => void;
   showStats?: boolean;
 }
 
 export default function TrickCard({
   trick,
   userTrick,
-  onPress,
   showStats = true,
 }: TrickCardProps) {
   const percentage = userTrick?.attempts
@@ -45,47 +44,59 @@ export default function TrickCard({
   const successBandColor = getSuccessColor(percentage);
 
   return (
-    <TouchableOpacity
-      style={[styles.trickCard, { backgroundColor: categoryColorLight }]}
-      onPress={onPress}
-    >
-      <View
-        style={[
-          styles.imagePlaceholder,
-          { backgroundColor: categoryColor + "40" },
-        ]}
+    <View style={styles.linkContainer}>
+      <TouchableOpacity
+        style={[styles.trickCard, { backgroundColor: categoryColorLight }]}
       >
-        <Ionicons name="image-outline" size={40} color={categoryColor + "AA"} />
-      </View>
-
-      {/* Diagonal success band */}
-      {showSuccessBand ? (
+        <Link
+          href={{
+            pathname: "/trick/[id]",
+            params: { id: trick.id },
+          }}
+          style={styles.linkOverlay}
+        />
+        
         <View
-          style={[styles.successBand, { backgroundColor: successBandColor }]}
+          style={[
+            styles.imagePlaceholder,
+            { backgroundColor: categoryColor + "40" },
+          ]}
         >
-          <Text style={styles.successBandText}>Landed</Text>
+          <Ionicons name="image-outline" size={40} color={categoryColor + "AA"} />
         </View>
-      ) : null}
 
-      <View style={styles.cardContent}>
-        <Text style={styles.trickName}>{trick.name}</Text>
-
-        {primaryCategory ? (
-          <Text style={[styles.category, { color: categoryColor }]}>
-            {primaryCategory}
-          </Text>
+        {/* Diagonal success band */}
+        {showSuccessBand ? (
+          <View
+            style={[styles.successBand, { backgroundColor: successBandColor }]}
+          >
+            <Text style={styles.successBandText}>Landed</Text>
+          </View>
         ) : null}
-      </View>
-    </TouchableOpacity>
+
+        <View style={styles.cardContent}>
+          <Text style={styles.trickName}>{trick.name}</Text>
+
+          {primaryCategory ? (
+            <Text style={[styles.category, { color: categoryColor }]}>
+              {primaryCategory}
+            </Text>
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  trickCard: {
+  linkContainer: {
     width: "48%",
+    marginBottom: 16,
+  },
+  trickCard: {
+    flex: 1,
     aspectRatio: 1,
     borderRadius: 16,
-    marginBottom: 16,
     overflow: "hidden",
     position: "relative",
     borderWidth: 0.5,
@@ -147,5 +158,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     letterSpacing: 0.2,
+  },
+  linkOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
   },
 });
