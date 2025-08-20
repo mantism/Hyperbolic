@@ -16,13 +16,13 @@ interface TrickCardProps {
   showStats?: boolean;
 }
 
-export default function TrickCard({ 
-  trick, 
-  userTrick, 
-  onPress, 
-  showStats = true 
+export default function TrickCard({
+  trick,
+  userTrick,
+  onPress,
+  showStats = true,
 }: TrickCardProps) {
-  const percentage = userTrick?.attempts 
+  const percentage = userTrick?.attempts
     ? Math.round(((userTrick.stomps || 0) / userTrick.attempts) * 100)
     : 0;
 
@@ -33,48 +33,48 @@ export default function TrickCard({
   // Determine if we should show the success band and its color
   const hasLanded = userTrick?.landed === true;
   const showSuccessBand = hasLanded && percentage > 0;
-  
+
   // Color coding for success rate
   const getSuccessColor = (rate: number) => {
-    if (rate >= 80) return '#10B981'; // Green
-    if (rate >= 60) return '#F59E0B'; // Amber
-    if (rate >= 40) return '#EF4444'; // Red
-    return '#6B7280'; // Gray
+    if (rate >= 80) return "#10B981"; // Green
+    if (rate >= 60) return "#F59E0B"; // Amber
+    if (rate >= 40) return "#EF4444"; // Red
+    return "#6B7280"; // Gray
   };
 
   const successBandColor = getSuccessColor(percentage);
 
   return (
-    <TouchableOpacity 
-      style={[
-        styles.trickCard,
-        { backgroundColor: categoryColorLight }
-      ]}
+    <TouchableOpacity
+      style={[styles.trickCard, { backgroundColor: categoryColorLight }]}
       onPress={onPress}
     >
-      <View style={[
-        styles.imagePlaceholder,
-        { backgroundColor: categoryColor + '40' }
-      ]}>
-        <Ionicons name="image-outline" size={40} color={categoryColor + 'AA'} />
+      <View
+        style={[
+          styles.imagePlaceholder,
+          { backgroundColor: categoryColor + "40" },
+        ]}
+      >
+        <Ionicons name="image-outline" size={40} color={categoryColor + "AA"} />
       </View>
 
       {/* Diagonal success band */}
       {showSuccessBand ? (
-        <View style={[styles.successBand, { backgroundColor: successBandColor }]}>
+        <View
+          style={[styles.successBand, { backgroundColor: successBandColor }]}
+        >
           <Text style={styles.successBandText}>Landed</Text>
         </View>
       ) : null}
-      
+
       <View style={styles.cardContent}>
         <Text style={styles.trickName}>{trick.name}</Text>
-        
+
         {primaryCategory ? (
           <Text style={[styles.category, { color: categoryColor }]}>
             {primaryCategory}
           </Text>
         ) : null}
-        
       </View>
     </TouchableOpacity>
   );
@@ -126,10 +126,10 @@ const styles = StyleSheet.create({
   },
   successBand: {
     position: "absolute",
-    top: 8,
-    right: -20,
-    width: 70,
-    height: 18,
+    top: 12,
+    right: -30,
+    width: 100,
+    height: 24,
     backgroundColor: "#10B981", // Will be overridden
     transform: [{ rotate: "45deg" }],
     justifyContent: "center",
@@ -143,9 +143,9 @@ const styles = StyleSheet.create({
   },
   successBandText: {
     color: "#fff",
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: "700",
     textAlign: "center",
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
 });
