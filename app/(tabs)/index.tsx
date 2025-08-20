@@ -15,7 +15,10 @@ export default function Index() {
         <Text style={styles.subtitle}>Ready to work on some tricks?</Text>
         
         <View style={styles.featureButtons}>
-          <TouchableOpacity style={styles.primaryButton}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => router.push("/(tabs)/browse")}
+          >
             <Text style={styles.primaryButtonText}>Browse Tricks</Text>
           </TouchableOpacity>
           

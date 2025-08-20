@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
-import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
+import TrickCard from "@/components/TrickCard";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
@@ -120,43 +120,16 @@ export default function ArsenalScreen() {
           <View style={styles.cardsGrid}>
             {tricks.map((userTrick) => {
               const { trick } = userTrick;
-              const percentage = userTrick.attempts 
-                ? Math.round(((userTrick.stomps || 0) / userTrick.attempts) * 100)
-                : 0;
-
-              const primaryCategory = trick.categories?.[0];
-              const categoryColor = getCategoryColor(primaryCategory);
-              const categoryColorLight = getCategoryColorLight(primaryCategory);
-
               return (
-                <TouchableOpacity 
-                  key={userTrick.id} 
-                  style={[
-                    styles.trickCard,
-                    { backgroundColor: categoryColorLight }
-                  ]}
-                >
-                  {/* Image placeholder */}
-                  <View style={[
-                    styles.imagePlaceholder,
-                    { backgroundColor: categoryColor + '40' } // 25% opacity
-                  ]}>
-                    <Ionicons name="image-outline" size={40} color={categoryColor + 'AA'} />
-                  </View>
-                  
-                  {/* Card content overlay */}
-                  <View style={styles.cardContent}>
-                    <Text style={styles.trickName}>{trick.name}</Text>
-                    
-                    {primaryCategory && (
-                      <Text style={[styles.category, { color: categoryColor }]}>
-                        {primaryCategory}
-                      </Text>
-                    )}
-                    
-                    <Text style={styles.successRate}>{percentage}% success</Text>
-                  </View>
-                </TouchableOpacity>
+                <TrickCard
+                  key={userTrick.id}
+                  trick={trick}
+                  userTrick={userTrick}
+                  onPress={() => {
+                    // TODO: Navigate to trick detail page
+                    console.log("Pressed trick:", trick.name);
+                  }}
+                />
               );
             })}
           </View>
@@ -231,54 +204,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-  },
-  trickCard: {
-    width: "48%",
-    aspectRatio: 1,
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: "hidden",
-    position: "relative",
-    borderWidth: 0.5,
-    borderColor: "rgba(0, 0, 0, 0.04)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  imagePlaceholder: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f0f0f0",
-  },
-  cardContent: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    padding: 12,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  trickName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
-    marginBottom: 4,
-  },
-  category: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
-    textTransform: "capitalize",
-  },
-  successRate: {
-    fontSize: 12,
-    color: "#007AFF",
-    fontWeight: "500",
   },
   fab: {
     position: "absolute",
