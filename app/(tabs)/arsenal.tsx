@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -26,13 +26,7 @@ export default function ArsenalScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchTricks();
-    }
-  }, [user, activeTab]);
-
-  const fetchTricks = async () => {
+  const fetchTricks = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -53,7 +47,13 @@ export default function ArsenalScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, activeTab]);
+
+  useEffect(() => {
+    if (user) {
+      fetchTricks();
+    }
+  }, [user, activeTab, fetchTricks]);
 
   const onRefresh = () => {
     setRefreshing(true);

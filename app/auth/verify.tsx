@@ -44,7 +44,7 @@ export default function VerifyScreen() {
         // Successfully verified, user is now logged in
         router.replace("/(tabs)");
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to verify code");
     } finally {
       setLoading(false);
@@ -67,7 +67,7 @@ export default function VerifyScreen() {
       } else {
         Alert.alert("Success", "A new code has been sent to your email");
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to resend code");
     } finally {
       setLoading(false);
@@ -116,7 +116,7 @@ export default function VerifyScreen() {
             onPress={resendCode}
             disabled={loading}
           >
-            <Text style={styles.linkText}>Didn't receive the code? Resend</Text>
+            <Text style={styles.linkText}>Didn&apos;t receive the code? Resend</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

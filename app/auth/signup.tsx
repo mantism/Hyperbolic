@@ -120,7 +120,7 @@ export default function SignUpScreen() {
         </View>
 
         <Text style={styles.disclaimer}>
-          We'll send you a 6-digit code to verify your email. No passwords
+          We&apos;ll send you a 6-digit code to verify your email. No passwords
           needed!
         </Text>
       </View>

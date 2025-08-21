@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -48,14 +48,7 @@ export default function BrowseScreen() {
     sortOrder: "asc",
   });
 
-  useEffect(() => {
-    fetchAllTricks();
-    if (user) {
-      fetchUserTricks();
-    }
-  }, [user]);
-
-  const fetchAllTricks = async () => {
+  const fetchAllTricks = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("TricksTable")
@@ -83,9 +76,9 @@ export default function BrowseScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  const fetchUserTricks = async () => {
+  const fetchUserTricks = useCallback(async () => {
     if (!user) {
       return;
     }
@@ -106,7 +99,14 @@ export default function BrowseScreen() {
     } catch (error) {
       console.error("Error fetching user tricks:", error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchAllTricks();
+    if (user) {
+      fetchUserTricks();
+    }
+  }, [user, fetchUserTricks, fetchAllTricks]);
 
   // Create a lookup map for user tricks for better performance
   const userTricksMap = useMemo(() => {

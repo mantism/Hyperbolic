@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { supabase } from "@/lib/supabase/supabase";
@@ -13,13 +13,7 @@ export default function TrickScreen() {
   const [trick, setTrick] = useState<Trick | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      fetchTrick();
-    }
-  }, [id]);
-
-  const fetchTrick = async () => {
+  const fetchTrick = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("TricksTable")
@@ -35,7 +29,13 @@ export default function TrickScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    if (id) {
+      fetchTrick();
+    }
+  }, [id, fetchTrick]);
 
   if (loading) {
     return (

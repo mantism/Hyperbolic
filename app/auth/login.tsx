@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { Link, router } from "expo-router";
 import { supabase } from "@/lib/supabase/supabase";
-import { generateWordOTP } from "@/lib/utils/wordOtp";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -27,13 +26,6 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      // Generate a word-based OTP
-      const otp = generateWordOTP();
-
-      // Store OTP in Supabase (you'll need to create a table for this)
-      // For now, we'll use Supabase's built-in OTP system with a numeric code
-      // In production, you'd want to implement your own OTP storage and email sending
-
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -58,7 +50,7 @@ export default function LoginScreen() {
           params: { email },
         });
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to send verification code");
     } finally {
       setLoading(false);
@@ -73,7 +65,7 @@ export default function LoginScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>
-          Enter your email and we'll send you a 6-digit code to sign in
+          Enter your email and we&apos;ll send you a 6-digit code to sign in
         </Text>
 
         <View style={styles.form}>
@@ -103,7 +95,7 @@ export default function LoginScreen() {
           <Link href="/auth/signup" asChild>
             <TouchableOpacity style={styles.linkButton}>
               <Text style={styles.linkText}>
-                Don't have an account? Sign Up
+                Don&apos;t have an account? Sign Up
               </Text>
             </TouchableOpacity>
           </Link>

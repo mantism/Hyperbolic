@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -42,15 +42,7 @@ export default function TrickDetailPage({
   const categoryColor = getCategoryColor(primaryCategory);
   const categoryColorLight = getCategoryColorLight(primaryCategory);
 
-  useEffect(() => {
-    if (user) {
-      fetchUserTrick();
-    } else {
-      setLoading(false);
-    }
-  }, [user, trick.id]);
-
-  const fetchUserTrick = async () => {
+  const fetchUserTrick = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -79,7 +71,15 @@ export default function TrickDetailPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, trick.id]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserTrick();
+    } else {
+      setLoading(false);
+    }
+  }, [user, trick.id, fetchUserTrick]);
 
   const saveUserTrick = async () => {
     if (!user) return;

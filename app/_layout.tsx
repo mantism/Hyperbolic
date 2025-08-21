@@ -19,7 +19,7 @@ function InitialLayout() {
     } else if (user && inAuthGroup) {
       router.replace("/(tabs)");
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, router]);
 
   // Show loading screen while checking auth state
   if (loading) {
