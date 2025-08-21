@@ -23,12 +23,15 @@ interface TrickDetailPageProps {
   onClose: () => void;
 }
 
-export default function TrickDetailPage({ trick, onClose }: TrickDetailPageProps) {
+export default function TrickDetailPage({
+  trick,
+  onClose,
+}: TrickDetailPageProps) {
   const { user } = useAuth();
   const [userTrick, setUserTrick] = useState<UserTrick | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   // Form states
   const [attempts, setAttempts] = useState("");
   const [stomps, setStomps] = useState("");
@@ -58,7 +61,8 @@ export default function TrickDetailPage({ trick, onClose }: TrickDetailPageProps
         .eq("trickID", trick.id)
         .single();
 
-      if (error && error.code !== "PGRST116") { // PGRST116 = no rows returned
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 = no rows returned
         throw error;
       }
 
@@ -117,9 +121,10 @@ export default function TrickDetailPage({ trick, onClose }: TrickDetailPageProps
       }
 
       Alert.alert("Success", "Trick updated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving trick:", error);
-      Alert.alert("Error", "Failed to save trick data");
+      const errorMessage = error?.message || "Failed to save trick data";
+      Alert.alert("Error", `Error saving trick: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -161,7 +166,7 @@ export default function TrickDetailPage({ trick, onClose }: TrickDetailPageProps
     );
   };
 
-  const successRate = userTrick?.attempts 
+  const successRate = userTrick?.attempts
     ? Math.round(((userTrick.stomps || 0) / userTrick.attempts) * 100)
     : 0;
 
@@ -177,17 +182,24 @@ export default function TrickDetailPage({ trick, onClose }: TrickDetailPageProps
 
   return (
     <View style={styles.container}>
-
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Trick Info Card */}
-        <View style={[styles.trickCard, { backgroundColor: categoryColorLight }]}>
-          <View style={[
-            styles.imagePlaceholder,
-            { backgroundColor: categoryColor + '40' }
-          ]}>
-            <Ionicons name="image-outline" size={60} color={categoryColor + 'AA'} />
+        <View
+          style={[styles.trickCard, { backgroundColor: categoryColorLight }]}
+        >
+          <View
+            style={[
+              styles.imagePlaceholder,
+              { backgroundColor: categoryColor + "40" },
+            ]}
+          >
+            <Ionicons
+              name="image-outline"
+              size={60}
+              color={categoryColor + "AA"}
+            />
           </View>
-          
+
           <View style={styles.trickInfo}>
             <Text style={styles.trickName}>{trick.name}</Text>
             {primaryCategory ? (
@@ -196,7 +208,9 @@ export default function TrickDetailPage({ trick, onClose }: TrickDetailPageProps
               </Text>
             ) : null}
             {trick.rating ? (
-              <Text style={styles.difficulty}>Difficulty: {trick.rating}/10</Text>
+              <Text style={styles.difficulty}>
+                Difficulty: {trick.rating}/10
+              </Text>
             ) : null}
             {trick.description ? (
               <Text style={styles.description}>{trick.description}</Text>
@@ -229,19 +243,21 @@ export default function TrickDetailPage({ trick, onClose }: TrickDetailPageProps
         {user ? (
           <View style={styles.actionsCard}>
             <Text style={styles.sectionTitle}>Track Progress</Text>
-            
+
             {/* Goal Toggle */}
             <View style={styles.goalToggle}>
               <TouchableOpacity
                 style={[styles.goalButton, isGoal && styles.activeGoalButton]}
                 onPress={() => setIsGoal(!isGoal)}
               >
-                <Ionicons 
-                  name={isGoal ? "star" : "star-outline"} 
-                  size={20} 
-                  color={isGoal ? "#fff" : "#007AFF"} 
+                <Ionicons
+                  name={isGoal ? "star" : "star-outline"}
+                  size={20}
+                  color={isGoal ? "#fff" : "#007AFF"}
                 />
-                <Text style={[styles.goalText, isGoal && styles.activeGoalText]}>
+                <Text
+                  style={[styles.goalText, isGoal && styles.activeGoalText]}
+                >
                   {isGoal ? "In Wishlist" : "Add to Wishlist"}
                 </Text>
               </TouchableOpacity>
