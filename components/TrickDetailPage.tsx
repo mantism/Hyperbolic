@@ -79,6 +79,44 @@ export default function TrickDetailPage({
     }
   }, [user, trick.id, fetchUserTrick]);
 
+  // Set up realtime subscription for this user's trick data
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`user-trick-${user.id}-${trick.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'UserToTricksTable',
+          filter: `userID=eq.${user.id},trickID=eq.${trick.id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const newData = payload.new as UserTrick;
+            setUserTrick(newData);
+            setAttempts(newData.attempts || 0);
+            setStomps(newData.stomps || 0);
+            setUserRating(newData.rating || 0);
+            setIsGoal(newData.isGoal || false);
+          } else if (payload.eventType === 'DELETE') {
+            setUserTrick(null);
+            setAttempts(0);
+            setStomps(0);
+            setUserRating(0);
+            setIsGoal(false);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, trick.id]);
+
   // Auto-save helper function
   const autoSave = useCallback(async (
     newAttempts: number,
@@ -103,12 +141,16 @@ export default function TrickDetailPage({
 
       if (currentUserTrick) {
         // Update existing
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("UserToTricksTable")
           .update(trickData)
-          .eq("id", currentUserTrick.id);
+          .eq("id", currentUserTrick.id)
+          .select()
+          .single();
 
         if (error) throw error;
+        // Update the userTrick state with the latest data
+        setUserTrick(data);
       } else {
         // Insert new
         const { data, error } = await supabase
