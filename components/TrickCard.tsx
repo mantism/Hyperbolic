@@ -21,8 +21,11 @@ export default function TrickCard({
   userTrick,
   showStats = true,
 }: TrickCardProps) {
-  const percentage = userTrick?.attempts
-    ? Math.round(((userTrick.stomps || 0) / userTrick.attempts) * 100)
+  // Calculate success percentage - if no attempts but has stomps, treat as 100%
+  const percentage = userTrick?.stomps && userTrick.stomps > 0
+    ? userTrick.attempts && userTrick.attempts > 0
+      ? Math.round((userTrick.stomps / userTrick.attempts) * 100)
+      : 100
     : 0;
 
   const primaryCategory = trick.categories?.[0];
@@ -31,7 +34,7 @@ export default function TrickCard({
 
   // Determine if we should show the success band and its color
   const hasLanded = userTrick?.landed === true;
-  const showSuccessBand = hasLanded && percentage > 0;
+  const showSuccessBand = hasLanded;
 
   // Color coding for success rate
   const getSuccessColor = (rate: number) => {

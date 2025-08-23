@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -30,11 +29,10 @@ export default function TrickDetailPage({
   const { user } = useAuth();
   const [userTrick, setUserTrick] = useState<UserTrick | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   // Form states
-  const [attempts, setAttempts] = useState("");
-  const [stomps, setStomps] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [stomps, setStomps] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [isGoal, setIsGoal] = useState(false);
 
@@ -60,8 +58,8 @@ export default function TrickDetailPage({
 
       if (data) {
         setUserTrick(data);
-        setAttempts(data.attempts?.toString() || "");
-        setStomps(data.stomps?.toString() || "");
+        setAttempts(data.attempts || 0);
+        setStomps(data.stomps || 0);
         setUserRating(data.rating || 0);
         setIsGoal(data.isGoal || false);
       }
@@ -81,31 +79,34 @@ export default function TrickDetailPage({
     }
   }, [user, trick.id, fetchUserTrick]);
 
-  const saveUserTrick = async () => {
+  // Auto-save helper function
+  const autoSave = useCallback(async (
+    newAttempts: number,
+    newStomps: number,
+    newRating: number,
+    newIsGoal: boolean,
+    currentUserTrick: UserTrick | null
+  ) => {
     if (!user) return;
 
-    setSaving(true);
     try {
-      const attemptsNum = parseInt(attempts) || 0;
-      const stompsNum = parseInt(stomps) || 0;
-      const landed = stompsNum > 0;
-
+      const landed = newStomps > 0;
       const trickData = {
         userID: user.id,
         trickID: trick.id,
-        attempts: attemptsNum,
-        stomps: stompsNum,
+        attempts: newAttempts,
+        stomps: newStomps,
         landed,
-        rating: userRating || null,
-        isGoal,
+        rating: newRating || null,
+        isGoal: newIsGoal,
       };
 
-      if (userTrick) {
+      if (currentUserTrick) {
         // Update existing
         const { error } = await supabase
           .from("UserToTricksTable")
           .update(trickData)
-          .eq("id", userTrick.id);
+          .eq("id", currentUserTrick.id);
 
         if (error) throw error;
       } else {
@@ -119,16 +120,43 @@ export default function TrickDetailPage({
         if (error) throw error;
         setUserTrick(data);
       }
-
-      Alert.alert("Success", "Trick updated successfully!");
     } catch (error: any) {
-      console.error("Error saving trick:", error);
-      const errorMessage = error?.message || "Failed to save trick data";
-      Alert.alert("Error", `Error saving trick: ${errorMessage}`);
-    } finally {
-      setSaving(false);
+      console.error("Error auto-saving:", error);
+      // Revert the optimistic update on error
+      Alert.alert("Sync Error", "Failed to save changes. Please try again.");
     }
+  }, [user, trick.id]);
+
+  const incrementAttempts = async () => {
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts); // Optimistic update
+    await autoSave(newAttempts, stomps, userRating, isGoal, userTrick);
   };
+
+  const incrementStomps = async () => {
+    const newStomps = stomps + 1;
+    const newAttempts = newStomps > attempts ? newStomps : attempts;
+    
+    // Optimistic updates
+    setStomps(newStomps);
+    if (newAttempts !== attempts) {
+      setAttempts(newAttempts);
+    }
+    
+    await autoSave(newAttempts, newStomps, userRating, isGoal, userTrick);
+  };
+
+  const updateRating = async (rating: number) => {
+    setUserRating(rating); // Optimistic update
+    await autoSave(attempts, stomps, rating, isGoal, userTrick);
+  };
+
+  const toggleGoal = async () => {
+    const newIsGoal = !isGoal;
+    setIsGoal(newIsGoal); // Optimistic update
+    await autoSave(attempts, stomps, userRating, newIsGoal, userTrick);
+  };
+
 
   const removeFromArsenal = async () => {
     if (!userTrick) return;
@@ -151,8 +179,8 @@ export default function TrickDetailPage({
               if (error) throw error;
 
               setUserTrick(null);
-              setAttempts("");
-              setStomps("");
+              setAttempts(0);
+              setStomps(0);
               setUserRating(0);
               setIsGoal(false);
               Alert.alert("Success", "Trick removed from arsenal");
@@ -166,8 +194,11 @@ export default function TrickDetailPage({
     );
   };
 
-  const successRate = userTrick?.attempts
-    ? Math.round(((userTrick.stomps || 0) / userTrick.attempts) * 100)
+  // Calculate success rate - if no attempts but has stomps, treat as 100%
+  const successRate = userTrick?.stomps && userTrick.stomps > 0
+    ? userTrick.attempts && userTrick.attempts > 0
+      ? Math.round((userTrick.stomps / userTrick.attempts) * 100)
+      : 100
     : 0;
 
   if (loading) {
@@ -248,7 +279,7 @@ export default function TrickDetailPage({
             <View style={styles.goalToggle}>
               <TouchableOpacity
                 style={[styles.goalButton, isGoal && styles.activeGoalButton]}
-                onPress={() => setIsGoal(!isGoal)}
+                onPress={toggleGoal}
               >
                 <Ionicons
                   name={isGoal ? "star" : "star-outline"}
@@ -264,27 +295,45 @@ export default function TrickDetailPage({
             </View>
 
             {/* Attempts & Stomps */}
-            <View style={styles.inputRow}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Attempts</Text>
-                <TextInput
-                  style={styles.numberInput}
-                  value={attempts}
-                  onChangeText={setAttempts}
-                  keyboardType="numeric"
-                  placeholder="0"
-                />
+            <View style={styles.trackingSection}>
+              <View style={styles.counterRow}>
+                <View style={styles.counterGroup}>
+                  <Text style={styles.counterLabel}>Attempts</Text>
+                  <View style={styles.counterContainer}>
+                    <Text style={styles.counterValue}>{attempts}</Text>
+                    <TouchableOpacity
+                      style={styles.incrementButton}
+                      onPress={incrementAttempts}
+                    >
+                      <Ionicons name="add-circle" size={32} color="#007AFF" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                
+                <View style={styles.counterGroup}>
+                  <Text style={styles.counterLabel}>Stomps</Text>
+                  <View style={styles.counterContainer}>
+                    <Text style={styles.counterValue}>{stomps}</Text>
+                    <TouchableOpacity
+                      style={styles.incrementButton}
+                      onPress={incrementStomps}
+                    >
+                      <Ionicons name="add-circle" size={32} color="#10B981" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Stomps/Lands</Text>
-                <TextInput
-                  style={styles.numberInput}
-                  value={stomps}
-                  onChangeText={setStomps}
-                  keyboardType="numeric"
-                  placeholder="0"
-                />
-              </View>
+              
+              {attempts > 0 && (
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill,
+                      { width: `${Math.min((stomps / attempts) * 100, 100)}%` }
+                    ]}
+                  />
+                </View>
+              )}
             </View>
 
             {/* Rating */}
@@ -295,7 +344,7 @@ export default function TrickDetailPage({
                   <TouchableOpacity
                     key={rating}
                     style={styles.starButton}
-                    onPress={() => setUserRating(rating)}
+                    onPress={() => updateRating(rating)}
                   >
                     <Ionicons
                       name={rating <= userRating ? "star" : "star-outline"}
@@ -307,31 +356,19 @@ export default function TrickDetailPage({
               </View>
             </View>
 
-            {/* Action Buttons */}
-            <View style={styles.buttonRow}>
+            {/* Remove Button Only */}
+            {userTrick ? (
               <TouchableOpacity
-                style={[styles.saveButton, saving && styles.disabledButton]}
-                onPress={saveUserTrick}
-                disabled={saving}
+                style={styles.removeButton}
+                onPress={removeFromArsenal}
               >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.saveButtonText}>
-                    {userTrick ? "Update" : "Add to Arsenal"}
-                  </Text>
-                )}
+                <Text style={styles.removeButtonText}>Remove from Arsenal</Text>
               </TouchableOpacity>
-
-              {userTrick ? (
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={removeFromArsenal}
-                >
-                  <Text style={styles.removeButtonText}>Remove</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
+            ) : (
+              <Text style={styles.autoSaveNote}>
+                Start tracking to automatically add to your arsenal
+              </Text>
+            )}
           </View>
         ) : null}
 
@@ -467,28 +504,56 @@ const styles = StyleSheet.create({
   activeGoalText: {
     color: "#fff",
   },
-  inputRow: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 20,
+  trackingSection: {
+    marginBottom: 24,
   },
-  inputGroup: {
-    flex: 1,
+  counterRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 16,
+  },
+  counterGroup: {
+    alignItems: "center",
+  },
+  counterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  counterContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  counterValue: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#000",
+    minWidth: 50,
+    textAlign: "center",
+  },
+  incrementButton: {
+    padding: 4,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#10B981",
+    borderRadius: 4,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: "500",
     color: "#000",
     marginBottom: 8,
-  },
-  numberInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    textAlign: "center",
   },
   ratingSection: {
     marginBottom: 24,
@@ -501,36 +566,26 @@ const styles = StyleSheet.create({
   starButton: {
     padding: 4,
   },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
   removeButton: {
+    marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#ff4444",
+    alignItems: "center",
   },
   removeButtonText: {
     color: "#ff4444",
     fontSize: 16,
     fontWeight: "500",
+  },
+  autoSaveNote: {
+    marginTop: 16,
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    fontStyle: "italic",
   },
   loginPrompt: {
     alignItems: "center",
