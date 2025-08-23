@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  LayoutAnimation,
+  Platform,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
@@ -35,6 +37,7 @@ export default function TrickDetailPage({
   const [stomps, setStomps] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [isGoal, setIsGoal] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
 
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
@@ -280,61 +283,105 @@ export default function TrickDetailPage({
           </View>
 
           <View style={styles.trickInfo}>
-            <Text style={styles.trickName}>{trick.name}</Text>
-            {primaryCategory ? (
-              <Text style={[styles.category, { color: categoryColor }]}>
-                {primaryCategory}
-              </Text>
-            ) : null}
-            {trick.rating ? (
-              <Text style={styles.difficulty}>
-                Difficulty: {trick.rating}/10
-              </Text>
-            ) : null}
+            {/* Two-column header layout */}
+            <View style={styles.trickHeader}>
+              {/* Left column - Name and category */}
+              <View style={styles.trickHeaderLeft}>
+                <Text style={styles.trickName}>{trick.name}</Text>
+                {primaryCategory ? (
+                  <View
+                    style={[
+                      styles.categoryBadge,
+                      { backgroundColor: categoryColor },
+                    ]}
+                  >
+                    <Text style={styles.categoryBadgeText}>
+                      {primaryCategory}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Right column - Stats */}
+              {user ? (
+                <View style={[styles.trickHeaderRight, { 
+                  backgroundColor: categoryColor + '15',
+                  borderColor: categoryColor + '30',
+                }]}>
+                  <Text style={styles.historyTitle}>YOUR HISTORY</Text>
+                  <View style={styles.headerStat}>
+                    <Ionicons name="flame-outline" size={16} color="#666" />
+                    <Text style={styles.headerStatLabel}>Stomps</Text>
+                    <Text style={styles.headerStatValue}>
+                      {userTrick?.stomps && userTrick.stomps > 0
+                        ? userTrick.stomps
+                        : "—"}
+                    </Text>
+                  </View>
+                  <View style={styles.headerStatDivider} />
+                  <View style={styles.headerStat}>
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={16}
+                      color="#666"
+                    />
+                    <Text style={styles.headerStatLabel}>Attempts</Text>
+                    <Text style={styles.headerStatValue}>
+                      {userTrick?.attempts && userTrick.attempts > 0
+                        ? userTrick.attempts
+                        : "—"}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.trickHeaderRight}>
+                  {trick.rating ? (
+                    <View style={styles.headerStat}>
+                      <Text style={styles.headerStatLabel}>Difficulty</Text>
+                      <Text style={styles.headerStatValue}>
+                        {trick.rating}/10
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </View>
+
+            {/* Collapsible Description */}
             {trick.description ? (
-              <Text style={styles.description}>{trick.description}</Text>
+              <View style={styles.descriptionSection}>
+                <TouchableOpacity
+                  style={styles.descriptionToggle}
+                  activeOpacity={1}
+                  onPress={() => {
+                    if (Platform.OS === "ios") {
+                      LayoutAnimation.configureNext(
+                        LayoutAnimation.Presets.easeInEaseOut
+                      );
+                    }
+                    setShowDescription(!showDescription);
+                  }}
+                >
+                  <View style={styles.descriptionToggleContent}>
+                    <Text style={styles.descriptionToggleText}>Description</Text>
+                    <Ionicons
+                      name={showDescription ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color="#666"
+                    />
+                  </View>
+                </TouchableOpacity>
+                {showDescription ? (
+                  <Text style={styles.description}>{trick.description}</Text>
+                ) : null}
+              </View>
             ) : null}
           </View>
         </View>
 
         {/* History and Actions Row */}
         {user ? (
-          <View style={styles.historyActionsRow}>
-            {/* Your History Panel */}
-            <View style={styles.historyCard}>
-              <Text style={styles.historyTitle}>YOUR HISTORY</Text>
-
-              {/* Sends Section */}
-              <View>
-                <View style={styles.historySectionHeader}>
-                  <Ionicons name="flame-outline" size={20} color="#999" />
-                  <Text style={styles.historySectionTitle}>STOMPS</Text>
-                  <Text style={styles.historySectionValue}>
-                    {userTrick?.stomps && userTrick.stomps > 0
-                      ? userTrick.stomps
-                      : "—"}
-                  </Text>
-                </View>
-                <View style={styles.historySectionDivider} />
-              </View>
-              {/* Attempts Section */}
-              <View>
-                <View style={styles.historySectionHeader}>
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={20}
-                    color="#999"
-                  />
-                  <Text style={styles.historySectionTitle}>ATTEMPTS</Text>
-                  <Text style={styles.historySectionValue}>
-                    {userTrick?.attempts && userTrick.attempts > 0
-                      ? userTrick.attempts
-                      : "—"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
+          <View style={styles.actionsRow}>
             {/* Action Buttons */}
             <View style={styles.actionButtonsVertical}>
               <TouchableOpacity
@@ -416,33 +463,99 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   trickInfo: {
-    alignItems: "center",
+    padding: 0,
+  },
+  trickHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  trickHeaderLeft: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  trickHeaderRight: {
+    alignItems: "flex-end",
+    gap: 4,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   trickName: {
     fontSize: 24,
     fontWeight: "700",
     color: "#000",
     marginBottom: 8,
-    textAlign: "center",
+    textAlign: "left",
   },
-  category: {
-    fontSize: 16,
+  categoryBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: "flex-start",
+  },
+  categoryBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  headerStat: {
+    flexDirection: "row",
+    gap: 4,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  headerStatLabel: {
+    fontSize: 12,
     fontWeight: "500",
-    marginBottom: 4,
-    textTransform: "capitalize",
-  },
-  difficulty: {
-    fontSize: 14,
     color: "#666",
-    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  headerStatValue: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#666",
+  },
+  headerStatDivider: {
+    height: 1,
+    backgroundColor: "#C0C0C0",
+    width: "100%",
+    marginVertical: 4,
+  },
+  descriptionSection: {
+    marginTop: 8,
+  },
+  descriptionToggle: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#C0C0C0",
+  },
+  descriptionToggleContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  descriptionToggleText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
   },
   description: {
     fontSize: 14,
     color: "#666",
-    textAlign: "center",
+    textAlign: "left",
     lineHeight: 20,
+    marginTop: 8,
+    paddingTop: 8,
   },
-  historyActionsRow: {
+  actionsRow: {
     flexDirection: "row",
     gap: 8,
     marginBottom: 16,
@@ -455,10 +568,8 @@ const styles = StyleSheet.create({
   },
   historyTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: 12,
-    letterSpacing: 1,
+    fontWeight: "700",
+    color: "#000",
   },
   historySectionHeader: {
     flexDirection: "row",
@@ -478,8 +589,8 @@ const styles = StyleSheet.create({
     color: "#999",
   },
   historySectionDivider: {
-    height: 1,
-    backgroundColor: "#444",
+    height: 2,
+    backgroundColor: "#000",
   },
   sectionTitle: {
     fontSize: 18,
@@ -523,6 +634,7 @@ const styles = StyleSheet.create({
   actionButtonsVertical: {
     flex: 1,
     gap: 8,
+    flexDirection: "row",
   },
   logStompButton: {
     backgroundColor: "#007AFF",
@@ -530,6 +642,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+    flex: 1,
   },
   logStompButtonText: {
     color: "#FFFFFF",
@@ -545,6 +658,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
+    flex: 1,
   },
   attemptButtonText: {
     color: "#666",
