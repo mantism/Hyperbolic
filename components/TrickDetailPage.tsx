@@ -86,22 +86,25 @@ export default function TrickDetailPage({
     const channel = supabase
       .channel(`user-trick-${user.id}-${trick.id}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'UserToTricksTable',
-          filter: `userID=eq.${user.id},trickID=eq.${trick.id}`
+          event: "*",
+          schema: "public",
+          table: "UserToTricksTable",
+          filter: `userID=eq.${user.id},trickID=eq.${trick.id}`,
         },
         (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          if (
+            payload.eventType === "INSERT" ||
+            payload.eventType === "UPDATE"
+          ) {
             const newData = payload.new as UserTrick;
             setUserTrick(newData);
             setAttempts(newData.attempts || 0);
             setStomps(newData.stomps || 0);
             setUserRating(newData.rating || 0);
             setIsGoal(newData.isGoal || false);
-          } else if (payload.eventType === 'DELETE') {
+          } else if (payload.eventType === "DELETE") {
             setUserTrick(null);
             setAttempts(0);
             setStomps(0);
@@ -118,56 +121,59 @@ export default function TrickDetailPage({
   }, [user, trick.id]);
 
   // Auto-save helper function
-  const autoSave = useCallback(async (
-    newAttempts: number,
-    newStomps: number,
-    newRating: number,
-    newIsGoal: boolean,
-    currentUserTrick: UserTrick | null
-  ) => {
-    if (!user) return;
+  const autoSave = useCallback(
+    async (
+      newAttempts: number,
+      newStomps: number,
+      newRating: number,
+      newIsGoal: boolean,
+      currentUserTrick: UserTrick | null
+    ) => {
+      if (!user) return;
 
-    try {
-      const landed = newStomps > 0;
-      const trickData = {
-        userID: user.id,
-        trickID: trick.id,
-        attempts: newAttempts,
-        stomps: newStomps,
-        landed,
-        rating: newRating || null,
-        isGoal: newIsGoal,
-      };
+      try {
+        const landed = newStomps > 0;
+        const trickData = {
+          userID: user.id,
+          trickID: trick.id,
+          attempts: newAttempts,
+          stomps: newStomps,
+          landed,
+          rating: newRating || null,
+          isGoal: newIsGoal,
+        };
 
-      if (currentUserTrick) {
-        // Update existing
-        const { data, error } = await supabase
-          .from("UserToTricksTable")
-          .update(trickData)
-          .eq("id", currentUserTrick.id)
-          .select()
-          .single();
+        if (currentUserTrick) {
+          // Update existing
+          const { data, error } = await supabase
+            .from("UserToTricksTable")
+            .update(trickData)
+            .eq("id", currentUserTrick.id)
+            .select()
+            .single();
 
-        if (error) throw error;
-        // Update the userTrick state with the latest data
-        setUserTrick(data);
-      } else {
-        // Insert new
-        const { data, error } = await supabase
-          .from("UserToTricksTable")
-          .insert(trickData)
-          .select()
-          .single();
+          if (error) throw error;
+          // Update the userTrick state with the latest data
+          setUserTrick(data);
+        } else {
+          // Insert new
+          const { data, error } = await supabase
+            .from("UserToTricksTable")
+            .insert(trickData)
+            .select()
+            .single();
 
-        if (error) throw error;
-        setUserTrick(data);
+          if (error) throw error;
+          setUserTrick(data);
+        }
+      } catch (error: any) {
+        console.error("Error auto-saving:", error);
+        // Revert the optimistic update on error
+        Alert.alert("Sync Error", "Failed to save changes. Please try again.");
       }
-    } catch (error: any) {
-      console.error("Error auto-saving:", error);
-      // Revert the optimistic update on error
-      Alert.alert("Sync Error", "Failed to save changes. Please try again.");
-    }
-  }, [user, trick.id]);
+    },
+    [user, trick.id]
+  );
 
   const incrementAttempts = async () => {
     const newAttempts = attempts + 1;
@@ -178,13 +184,13 @@ export default function TrickDetailPage({
   const incrementStomps = async () => {
     const newStomps = stomps + 1;
     const newAttempts = newStomps > attempts ? newStomps : attempts;
-    
+
     // Optimistic updates
     setStomps(newStomps);
     if (newAttempts !== attempts) {
       setAttempts(newAttempts);
     }
-    
+
     await autoSave(newAttempts, newStomps, userRating, isGoal, userTrick);
   };
 
@@ -198,7 +204,6 @@ export default function TrickDetailPage({
     setIsGoal(newIsGoal); // Optimistic update
     await autoSave(attempts, stomps, userRating, newIsGoal, userTrick);
   };
-
 
   const removeFromArsenal = async () => {
     if (!userTrick) return;
@@ -237,11 +242,12 @@ export default function TrickDetailPage({
   };
 
   // Calculate success rate - if no attempts but has stomps, treat as 100%
-  const successRate = userTrick?.stomps && userTrick.stomps > 0
-    ? userTrick.attempts && userTrick.attempts > 0
-      ? Math.round((userTrick.stomps / userTrick.attempts) * 100)
-      : 100
-    : 0;
+  const successRate =
+    userTrick?.stomps && userTrick.stomps > 0
+      ? userTrick.attempts && userTrick.attempts > 0
+        ? Math.round((userTrick.stomps / userTrick.attempts) * 100)
+        : 100
+      : 0;
 
   if (loading) {
     return (
@@ -291,113 +297,66 @@ export default function TrickDetailPage({
           </View>
         </View>
 
-        {/* User Stats */}
-        {userTrick ? (
-          <View style={styles.statsCard}>
-            <Text style={styles.sectionTitle}>Your Stats</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userTrick.attempts || 0}</Text>
-                <Text style={styles.statLabel}>Attempts</Text>
+        {/* History and Actions Row */}
+        {user ? (
+          <View style={styles.historyActionsRow}>
+            {/* Your History Panel */}
+            <View style={styles.historyCard}>
+              <Text style={styles.historyTitle}>YOUR HISTORY</Text>
+
+              {/* Sends Section */}
+              <View>
+                <View style={styles.historySectionHeader}>
+                  <Ionicons name="flame-outline" size={20} color="#999" />
+                  <Text style={styles.historySectionTitle}>STOMPS</Text>
+                  <Text style={styles.historySectionValue}>
+                    {userTrick?.stomps && userTrick.stomps > 0
+                      ? userTrick.stomps
+                      : "—"}
+                  </Text>
+                </View>
+                <View style={styles.historySectionDivider} />
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userTrick.stomps || 0}</Text>
-                <Text style={styles.statLabel}>Stomps</Text>
+              {/* Attempts Section */}
+              <View>
+                <View style={styles.historySectionHeader}>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color="#999"
+                  />
+                  <Text style={styles.historySectionTitle}>ATTEMPTS</Text>
+                  <Text style={styles.historySectionValue}>
+                    {userTrick?.attempts && userTrick.attempts > 0
+                      ? userTrick.attempts
+                      : "—"}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{successRate}%</Text>
-                <Text style={styles.statLabel}>Success Rate</Text>
-              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionButtonsVertical}>
+              <TouchableOpacity
+                style={styles.logStompButton}
+                onPress={incrementStomps}
+              >
+                <Text style={styles.logStompButtonText}>LOG STOMP</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.attemptButton}
+                onPress={incrementAttempts}
+              >
+                <Text style={styles.attemptButtonText}>ATTEMPT</Text>
+              </TouchableOpacity>
             </View>
           </View>
         ) : null}
 
-        {/* User Actions */}
+        {/* Remove Button */}
         {user ? (
           <View style={styles.actionsCard}>
-            <Text style={styles.sectionTitle}>Track Progress</Text>
-
-            {/* Goal Toggle */}
-            <View style={styles.goalToggle}>
-              <TouchableOpacity
-                style={[styles.goalButton, isGoal && styles.activeGoalButton]}
-                onPress={toggleGoal}
-              >
-                <Ionicons
-                  name={isGoal ? "star" : "star-outline"}
-                  size={20}
-                  color={isGoal ? "#fff" : "#007AFF"}
-                />
-                <Text
-                  style={[styles.goalText, isGoal && styles.activeGoalText]}
-                >
-                  {isGoal ? "In Wishlist" : "Add to Wishlist"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Attempts & Stomps */}
-            <View style={styles.trackingSection}>
-              <View style={styles.counterRow}>
-                <View style={styles.counterGroup}>
-                  <Text style={styles.counterLabel}>Attempts</Text>
-                  <View style={styles.counterContainer}>
-                    <Text style={styles.counterValue}>{attempts}</Text>
-                    <TouchableOpacity
-                      style={styles.incrementButton}
-                      onPress={incrementAttempts}
-                    >
-                      <Ionicons name="add-circle" size={32} color="#007AFF" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                
-                <View style={styles.counterGroup}>
-                  <Text style={styles.counterLabel}>Stomps</Text>
-                  <View style={styles.counterContainer}>
-                    <Text style={styles.counterValue}>{stomps}</Text>
-                    <TouchableOpacity
-                      style={styles.incrementButton}
-                      onPress={incrementStomps}
-                    >
-                      <Ionicons name="add-circle" size={32} color="#10B981" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-              
-              {attempts > 0 && (
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill,
-                      { width: `${Math.min((stomps / attempts) * 100, 100)}%` }
-                    ]}
-                  />
-                </View>
-              )}
-            </View>
-
-            {/* Rating */}
-            <View style={styles.ratingSection}>
-              <Text style={styles.inputLabel}>Your Rating</Text>
-              <View style={styles.ratingRow}>
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <TouchableOpacity
-                    key={rating}
-                    style={styles.starButton}
-                    onPress={() => updateRating(rating)}
-                  >
-                    <Ionicons
-                      name={rating <= userRating ? "star" : "star-outline"}
-                      size={32}
-                      color={rating <= userRating ? "#FFD700" : "#ddd"}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
             {/* Remove Button Only */}
             {userTrick ? (
               <TouchableOpacity
@@ -483,35 +442,50 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
-  statsCard: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
-    padding: 16,
+  historyActionsRow: {
+    flexDirection: "row",
+    gap: 8,
     marginBottom: 16,
+  },
+  historyCard: {
+    flex: 1,
+    backgroundColor: "#2A2A2A",
+    borderRadius: 16,
+    padding: 12,
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: 12,
+    letterSpacing: 1,
+  },
+  historySectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  historySectionTitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FFFFFF",
+    marginLeft: 10,
+    flex: 1,
+  },
+  historySectionValue: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#999",
+  },
+  historySectionDivider: {
+    height: 1,
+    backgroundColor: "#444",
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: "#000",
     marginBottom: 16,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#007AFF",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#666",
-    textAlign: "center",
   },
   actionsCard: {
     backgroundColor: "#fff",
@@ -546,50 +520,37 @@ const styles = StyleSheet.create({
   activeGoalText: {
     color: "#fff",
   },
-  trackingSection: {
-    marginBottom: 24,
+  actionButtonsVertical: {
+    flex: 1,
+    gap: 8,
   },
-  counterRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
-  },
-  counterGroup: {
+  logStompButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
   },
-  counterLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-    marginBottom: 8,
-    textTransform: "uppercase",
+  logStompButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
     letterSpacing: 1,
   },
-  counterContainer: {
-    flexDirection: "row",
+  attemptButton: {
+    backgroundColor: "transparent",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#666",
+    paddingVertical: 14,
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center",
   },
-  counterValue: {
-    fontSize: 32,
+  attemptButtonText: {
+    color: "#666",
+    fontSize: 16,
     fontWeight: "700",
-    color: "#000",
-    minWidth: 50,
-    textAlign: "center",
-  },
-  incrementButton: {
-    padding: 4,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#10B981",
-    borderRadius: 4,
+    letterSpacing: 1,
   },
   inputLabel: {
     fontSize: 14,
