@@ -10,6 +10,7 @@ import {
   LayoutAnimation,
   Platform,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
@@ -30,6 +31,7 @@ export default function TrickDetailPage({
   onClose,
 }: TrickDetailPageProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [userTrick, setUserTrick] = useState<UserTrick | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -208,6 +210,10 @@ export default function TrickDetailPage({
     const newIsGoal = !isGoal;
     setIsGoal(newIsGoal); // Optimistic update
     await autoSave(attempts, stomps, userRating, newIsGoal, userTrick);
+  };
+
+  const handleTrickNavigation = (selectedTrick: Trick) => {
+    router.push(`/trick/${selectedTrick.id}`);
   };
 
   const removeFromArsenal = async () => {
@@ -411,7 +417,10 @@ export default function TrickDetailPage({
         ) : null}
 
         {/* Trick Progression Graph */}
-        <TrickProgressionGraph trick={trick} />
+        <TrickProgressionGraph 
+          trick={trick} 
+          onTrickPress={handleTrickNavigation}
+        />
 
         {/* Remove Button */}
         {user ? (

@@ -115,6 +115,40 @@ export default function TrickProgressionGraph({
             ))}
           </View>
 
+          {/* Family Tree Branching for Prerequisites */}
+          {trick.prereqs && trick.prereqs.length > 1 && (
+            <>
+              {/* Horizontal branch line for prerequisites */}
+              <View
+                style={[
+                  styles.connectionLine,
+                  {
+                    position: "absolute",
+                    width: Math.max(120, (trick.prereqs.length - 1) * 120 + 4),
+                    height: 2,
+                    backgroundColor: "#999",
+                    left: 300 - Math.max(60, ((trick.prereqs.length - 1) * 120) / 2),
+                    top: 85,
+                  },
+                ]}
+              />
+              {/* Main vertical stem from branch to current trick */}
+              <View
+                style={[
+                  styles.connectionLine,
+                  {
+                    position: "absolute",
+                    width: 2,
+                    height: 15,
+                    backgroundColor: "#999",
+                    left: 300,
+                    top: 85,
+                  },
+                ]}
+              />
+            </>
+          )}
+
           {/* Prerequisite Nodes */}
           {(trick.prereqs || []).map((prereqName, index) => {
             const xOffset =
@@ -134,7 +168,7 @@ export default function TrickProgressionGraph({
                     {
                       position: "absolute",
                       width: 2,
-                      height: 60,
+                      height: (trick.prereqs?.length || 0) > 1 ? 15 : 30,
                       backgroundColor: "#999",
                       left: 300 + xOffset,
                       top: 70,
@@ -192,7 +226,7 @@ export default function TrickProgressionGraph({
           </TouchableOpacity>
 
           {/* Family Tree Branching for Progressions */}
-          {trick.progressions && trick.progressions.length > 0 && (
+          {trick.progressions && trick.progressions.length > 1 && (
             <>
               {/* Main vertical stem from current trick */}
               <View
@@ -251,10 +285,10 @@ export default function TrickProgressionGraph({
                     {
                       position: "absolute",
                       width: 2,
-                      height: 60,
+                      height: (trick.progressions?.length || 0) > 1 ? 60 : 90,
                       backgroundColor: "#999",
                       left: 300 + xOffset,
-                      top: 180,
+                      top: (trick.progressions?.length || 0) > 1 ? 180 : 150,
                     },
                   ]}
                 />
