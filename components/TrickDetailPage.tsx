@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import TrickProgressionGraph from "./TrickProgressionGraph";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
@@ -122,6 +123,7 @@ export default function TrickDetailPage({
       supabase.removeChannel(channel);
     };
   }, [user, trick.id]);
+
 
   // Auto-save helper function
   const autoSave = useCallback(
@@ -304,10 +306,15 @@ export default function TrickDetailPage({
 
               {/* Right column - Stats */}
               {user ? (
-                <View style={[styles.trickHeaderRight, { 
-                  backgroundColor: categoryColor + '15',
-                  borderColor: categoryColor + '30',
-                }]}>
+                <View
+                  style={[
+                    styles.trickHeaderRight,
+                    {
+                      backgroundColor: categoryColor + "15",
+                      borderColor: categoryColor + "30",
+                    },
+                  ]}
+                >
                   <Text style={styles.historyTitle}>YOUR HISTORY</Text>
                   <View style={styles.headerStat}>
                     <Ionicons name="flame-outline" size={16} color="#666" />
@@ -363,7 +370,9 @@ export default function TrickDetailPage({
                   }}
                 >
                   <View style={styles.descriptionToggleContent}>
-                    <Text style={styles.descriptionToggleText}>Description</Text>
+                    <Text style={styles.descriptionToggleText}>
+                      Description
+                    </Text>
                     <Ionicons
                       name={showDescription ? "chevron-up" : "chevron-down"}
                       size={16}
@@ -400,6 +409,9 @@ export default function TrickDetailPage({
             </View>
           </View>
         ) : null}
+
+        {/* Trick Progression Graph */}
+        <TrickProgressionGraph trick={trick} />
 
         {/* Remove Button */}
         {user ? (
