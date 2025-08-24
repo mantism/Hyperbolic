@@ -39,12 +39,12 @@ export default function TrickProgressionGraph({
   const minPadding = 100;
   const dynamicWidth = Math.max(
     baseWidth,
-    (maxTricks * nodeSpacing) + (minPadding * 2)
+    maxTricks * nodeSpacing + minPadding * 2
   );
-  
+
   // Calculate initial scroll position to center current trick
   const currentTrickX = dynamicWidth / 2;
-  const viewportWidth = 350; // approximate viewport width  
+  const viewportWidth = 350; // approximate viewport width
   const nodeWidth = 100;
   const initialScrollX = Math.max(
     0,
@@ -100,18 +100,12 @@ export default function TrickProgressionGraph({
           scrollEnabled={true}
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.graphCanvas,
-            { width: dynamicWidth }
-          ]}
+          contentContainerStyle={[styles.graphCanvas, { width: dynamicWidth }]}
           style={styles.graphScrollView}
           contentOffset={{ x: initialScrollX, y: 0 }}
         >
           {/* Grid Background */}
-          <View style={[
-            styles.graphGrid,
-            { width: dynamicWidth }
-          ]}>
+          <View style={[styles.graphGrid, { width: dynamicWidth }]}>
             {[...Array(15)].map((_, i) => (
               <View
                 key={`h-${i}`}
@@ -143,10 +137,13 @@ export default function TrickProgressionGraph({
                   styles.connectionLine,
                   {
                     position: "absolute",
-                    width: Math.max(120, (trick.prereqs.length - 1) * 120 + 4),
+                    width: (trick.prereqs.length - 1) * 120,
                     height: 2,
                     backgroundColor: "#999",
-                    left: currentTrickX + 49 - Math.max(60, ((trick.prereqs.length - 1) * 120) / 2),
+                    left:
+                      currentTrickX +
+                      50 -
+                      ((trick.prereqs.length - 1) * 120) / 2,
                     top: 85,
                   },
                 ]}
@@ -267,15 +264,13 @@ export default function TrickProgressionGraph({
                   styles.connectionLine,
                   {
                     position: "absolute",
-                    width: Math.max(
-                      120,
-                      (trick.progressions.length - 1) * 120 + 4
-                    ),
+                    width: (trick.progressions.length - 1) * 120,
                     height: 2,
                     backgroundColor: "#999",
                     left:
-                      currentTrickX + 49 -
-                      Math.max(60, ((trick.progressions.length - 1) * 120) / 2),
+                      currentTrickX +
+                      50 -
+                      ((trick.progressions.length - 1) * 120) / 2,
                     top: 180,
                   },
                 ]}
