@@ -32,10 +32,12 @@ export default function ArsenalScreen() {
     try {
       const { data, error } = await supabase
         .from("UserToTricksTable")
-        .select(`
+        .select(
+          `
           *,
           trick:TricksTable(*)
-        `)
+        `
+        )
         .eq("userID", user.id)
         .eq("isGoal", activeTab === "wishlist");
 
@@ -77,7 +79,12 @@ export default function ArsenalScreen() {
           style={[styles.tab, activeTab === "arsenal" && styles.activeTab]}
           onPress={() => setActiveTab("arsenal")}
         >
-          <Text style={[styles.tabText, activeTab === "arsenal" && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "arsenal" && styles.activeTabText,
+            ]}
+          >
             My Tricks
           </Text>
         </TouchableOpacity>
@@ -85,7 +92,12 @@ export default function ArsenalScreen() {
           style={[styles.tab, activeTab === "wishlist" && styles.activeTab]}
           onPress={() => setActiveTab("wishlist")}
         >
-          <Text style={[styles.tabText, activeTab === "wishlist" && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "wishlist" && styles.activeTabText,
+            ]}
+          >
             Wishlist
           </Text>
         </TouchableOpacity>
@@ -100,13 +112,13 @@ export default function ArsenalScreen() {
       >
         {tricks.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons 
-              name={activeTab === "arsenal" ? "trophy-outline" : "star-outline"} 
-              size={64} 
-              color="#ccc" 
+            <Ionicons
+              name={activeTab === "arsenal" ? "trophy-outline" : "star-outline"}
+              size={64}
+              color="#ccc"
             />
             <Text style={styles.emptyTitle}>
-              {activeTab === "arsenal" 
+              {activeTab === "arsenal"
                 ? "No tricks in your arsenal yet"
                 : "Your wishlist is empty"}
             </Text>
@@ -125,20 +137,12 @@ export default function ArsenalScreen() {
                   key={userTrick.id}
                   trick={trick}
                   userTrick={userTrick}
-                  onPress={() => {
-                    // TODO: Navigate to trick detail page
-                    console.log("Pressed trick:", trick.name);
-                  }}
                 />
               );
             })}
           </View>
         )}
       </ScrollView>
-
-      <TouchableOpacity style={styles.fab}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -204,21 +208,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-  },
-  fab: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
   },
 });
