@@ -15,6 +15,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
+import {
+  getTrickTier,
+  getTierColor,
+  TrickTier,
+} from "@/lib/trickProgressTiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
@@ -46,6 +51,18 @@ export default function TrickDetailPage({
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
   const categoryColorLight = getCategoryColorLight(primaryCategory);
+
+  // Get trick tier for subtle accent styling
+  const userStomps = userTrick?.stomps || 0;
+  const trickTier = getTrickTier(userStomps);
+  const tierColor =
+    trickTier === TrickTier.NONE ? "#E5E5E5" : getTierColor(trickTier);
+  const tierAccentStyle = {
+    borderLeftWidth: 4,
+    borderLeftColor: tierColor,
+    backgroundColor:
+      trickTier === TrickTier.NONE ? "#FAFAFA" : tierColor + "08",
+  };
 
   const fetchUserTrick = useCallback(async () => {
     if (!user) return;
@@ -126,7 +143,6 @@ export default function TrickDetailPage({
       supabase.removeChannel(channel);
     };
   }, [user, trick.id]);
-
 
   // Auto-save helper function
   const autoSave = useCallback(
@@ -218,11 +234,13 @@ export default function TrickDetailPage({
   };
 
   const removeFromArsenal = async () => {
-    if (!userTrick) return;
+    if (!userTrick) {
+      return;
+    }
 
     Alert.alert(
       "Remove Trick",
-      "Are you sure you want to remove this trick from your arsenal?",
+      `Are you sure you want to clear your progress on ${trick.name}? This will also remove it from your arsenal.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -275,28 +293,20 @@ export default function TrickDetailPage({
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Trick Info Card */}
-        <View
-          style={[styles.trickCard, { backgroundColor: categoryColorLight }]}
-        >
+        <View style={[styles.trickCard, tierAccentStyle]}>
           <View
             style={[
               styles.imagePlaceholder,
-              { backgroundColor: categoryColor + "40" },
+              { backgroundColor: categoryColor + "20" },
             ]}
           >
-            <Ionicons
-              name="image-outline"
-              size={60}
-              color={categoryColor + "AA"}
-            />
+            <Ionicons name="image-outline" size={48} color={categoryColor} />
           </View>
 
-          <View style={styles.trickInfo}>
-            {/* Two-column header layout */}
+          <View style={[styles.trickInfo, { padding: 16 }]}>
+            {/* Header with inline stats */}
             <View style={styles.trickHeader}>
-              {/* Left column - Name and category */}
-              <View style={styles.trickHeaderLeft}>
-                <Text style={styles.trickName}>{trick.name}</Text>
+              <View style={styles.trickHeaderTop}>
                 {primaryCategory ? (
                   <View
                     style={[
@@ -309,56 +319,37 @@ export default function TrickDetailPage({
                     </Text>
                   </View>
                 ) : null}
-              </View>
-
-              {/* Right column - Stats */}
-              {user ? (
-                <View
-                  style={[
-                    styles.trickHeaderRight,
-                    {
-                      backgroundColor: categoryColor + "15",
-                      borderColor: categoryColor + "30",
-                    },
-                  ]}
-                >
-                  <Text style={styles.historyTitle}>YOUR HISTORY</Text>
-                  <View style={styles.headerStat}>
-                    <Ionicons name="flame-outline" size={16} color="#666" />
-                    <Text style={styles.headerStatLabel}>Stomps</Text>
-                    <Text style={styles.headerStatValue}>
-                      {userTrick?.stomps && userTrick.stomps > 0
-                        ? userTrick.stomps
-                        : "—"}
-                    </Text>
-                  </View>
-                  <View style={styles.headerStatDivider} />
-                  <View style={styles.headerStat}>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={16}
-                      color="#666"
-                    />
-                    <Text style={styles.headerStatLabel}>Attempts</Text>
-                    <Text style={styles.headerStatValue}>
-                      {userTrick?.attempts && userTrick.attempts > 0
-                        ? userTrick.attempts
-                        : "—"}
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.trickHeaderRight}>
-                  {trick.rating ? (
-                    <View style={styles.headerStat}>
-                      <Text style={styles.headerStatLabel}>Difficulty</Text>
-                      <Text style={styles.headerStatValue}>
-                        {trick.rating}/10
+                {user ? (
+                  <View style={styles.inlineStats}>
+                    <View style={styles.inlineStat}>
+                      <Text style={styles.inlineStatValue}>
+                        {userTrick?.stomps || 0}
                       </Text>
+                      <Text style={styles.inlineStatLabel}>stomps</Text>
                     </View>
-                  ) : null}
-                </View>
-              )}
+                    <View
+                      style={[
+                        styles.inlineStatDivider,
+                        { backgroundColor: "#333" },
+                      ]}
+                    />
+                    <View style={styles.inlineStat}>
+                      <Text style={styles.inlineStatValue}>
+                        {userTrick?.attempts || 0}
+                      </Text>
+                      <Text style={styles.inlineStatLabel}>attempts</Text>
+                    </View>
+                  </View>
+                ) : trick.rating ? (
+                  <View style={styles.inlineStats}>
+                    <View style={styles.inlineStat}>
+                      <Text style={styles.inlineStatValue}>{trick.rating}</Text>
+                      <Text style={styles.inlineStatLabel}>difficulty</Text>
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.trickName}>{trick.name}</Text>
             </View>
 
             {/* Collapsible Description */}
@@ -395,16 +386,15 @@ export default function TrickDetailPage({
           </View>
         </View>
 
-        {/* History and Actions Row */}
+        {/* Actions Row */}
         {user ? (
           <View style={styles.actionsRow}>
-            {/* Action Buttons */}
             <View style={styles.actionButtonsVertical}>
               <TouchableOpacity
                 style={styles.logStompButton}
                 onPress={incrementStomps}
               >
-                <Text style={styles.logStompButtonText}>LOG STOMP</Text>
+                <Text style={styles.logStompButtonText}>STOMP</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -419,34 +409,29 @@ export default function TrickDetailPage({
 
         {/* Trick Logs */}
         {userTrick && (
-          <TrickLogs 
-            userTrick={userTrick} 
+          <TrickLogs
+            userTrick={userTrick}
             onLogAdded={fetchUserTrick}
+            trickName={trick.name}
           />
         )}
 
         {/* Trick Progression Graph */}
-        <TrickProgressionGraph 
-          trick={trick} 
+        <TrickProgressionGraph
+          trick={trick}
           onTrickPress={handleTrickNavigation}
         />
 
         {/* Remove Button */}
-        {user ? (
+        {user && userTrick ? (
           <View style={styles.actionsCard}>
-            {/* Remove Button Only */}
-            {userTrick ? (
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={removeFromArsenal}
-              >
-                <Text style={styles.removeButtonText}>Remove from Arsenal</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.autoSaveNote}>
-                Start tracking to automatically add to your arsenal
-              </Text>
-            )}
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={removeFromArsenal}
+            >
+              <Ionicons name="trash-outline" size={16} color="#EF4444" />
+              <Text style={styles.removeButtonText}>Clear Progress</Text>
+            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -468,7 +453,7 @@ export default function TrickDetailPage({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#FAFAFA",
   },
   loadingContainer: {
     flex: 1,
@@ -477,95 +462,90 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   trickCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 0,
+    padding: 0,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    backgroundColor: "#FAFAFA",
     overflow: "hidden",
   },
   imagePlaceholder: {
-    height: 120,
-    borderRadius: 12,
+    height: 180,
+    borderRadius: 0,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 24,
   },
   trickInfo: {
     padding: 0,
   },
   trickHeader: {
+    flexDirection: "column",
+    marginBottom: 16,
+  },
+  trickHeaderTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginBottom: 12,
   },
-  trickHeaderLeft: {
-    flex: 1,
-    alignItems: "flex-start",
+  inlineStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  trickHeaderRight: {
-    alignItems: "flex-end",
+  inlineStat: {
+    flexDirection: "row",
+    alignItems: "baseline",
     gap: 4,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+  },
+  inlineStatValue: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#000",
+  },
+  inlineStatLabel: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "#666",
+    textTransform: "lowercase",
+  },
+  inlineStatDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: "#333",
   },
   trickName: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "300",
     color: "#000",
-    marginBottom: 8,
-    textAlign: "left",
+    letterSpacing: -0.5,
   },
   categoryBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 0,
     alignSelf: "flex-start",
   },
   categoryBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "500",
     color: "#FFFFFF",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  headerStat: {
-    flexDirection: "row",
-    gap: 4,
-    alignItems: "center",
-    justifyContent: "flex-end",
-  },
-  headerStatLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#666",
-    textTransform: "uppercase",
-  },
-  headerStatValue: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#666",
-  },
-  headerStatDivider: {
-    height: 1,
-    backgroundColor: "#C0C0C0",
-    width: "100%",
-    marginVertical: 4,
+    letterSpacing: 1.5,
   },
   descriptionSection: {
-    marginTop: 8,
+    marginTop: 16,
+    marginBottom: 24,
   },
   descriptionToggle: {
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#C0C0C0",
+    borderBottomColor: "#333",
   },
   descriptionToggleContent: {
     flexDirection: "row",
@@ -573,22 +553,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   descriptionToggleText: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "500",
-    color: "#666",
+    color: "#333",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   description: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "left",
-    lineHeight: 20,
-    marginTop: 8,
-    paddingTop: 8,
+    fontSize: 15,
+    color: "#333",
+    lineHeight: 24,
+    marginTop: 12,
+    paddingTop: 0,
   },
   actionsRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 32,
   },
   historyCard: {
     flex: 1,
@@ -597,9 +578,12 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   historyTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#000",
+    fontSize: 10,
+    fontWeight: "500",
+    color: "#999",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 4,
   },
   historySectionHeader: {
     flexDirection: "row",
@@ -629,12 +613,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   actionsCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#f0f0f0",
-    marginBottom: 16,
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    padding: 0,
+    borderWidth: 0,
+    marginBottom: 32,
   },
   goalToggle: {
     marginBottom: 20,
@@ -663,38 +646,38 @@ const styles = StyleSheet.create({
   },
   actionButtonsVertical: {
     flex: 1,
-    gap: 8,
+    gap: 12,
     flexDirection: "row",
   },
   logStompButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: "#333",
+    borderRadius: 0,
+    paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
     flex: 1,
   },
   logStompButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 1.5,
   },
   attemptButton: {
     backgroundColor: "transparent",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#666",
-    paddingVertical: 14,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: "#333",
+    paddingVertical: 17,
     alignItems: "center",
     justifyContent: "center",
     flex: 1,
   },
   attemptButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 1,
+    color: "#333",
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 1.5,
   },
   inputLabel: {
     fontSize: 14,
@@ -714,40 +697,47 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   removeButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ff4444",
+    marginTop: 0,
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+    borderRadius: 0,
+    borderTopWidth: 1,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderColor: "#FEE2E2",
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
   },
   removeButtonText: {
-    color: "#ff4444",
-    fontSize: 16,
+    color: "#EF4444",
+    fontSize: 14,
     fontWeight: "500",
   },
   autoSaveNote: {
     marginTop: 16,
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
+    color: "#999",
     textAlign: "center",
-    fontStyle: "italic",
+    fontStyle: "normal",
   },
   loginPrompt: {
     alignItems: "center",
-    padding: 32,
+    padding: 48,
   },
   loginTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginTop: 16,
+    fontWeight: "400",
+    color: "#000",
+    marginTop: 24,
     marginBottom: 8,
   },
   loginSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: "#999",
     textAlign: "center",
+    lineHeight: 20,
   },
 });

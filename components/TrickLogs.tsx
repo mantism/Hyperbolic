@@ -14,7 +14,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
 import { format } from "date-fns";
-import { SurfaceType, getAllSurfaceTypes, getSurfaceTypeLabel } from "@/lib/surfaceTypes";
+import {
+  SurfaceType,
+  getAllSurfaceTypes,
+  getSurfaceTypeLabel,
+} from "@/lib/surfaceTypes";
 
 type TrickLog = Database["public"]["Tables"]["tricklogs"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
@@ -22,9 +26,14 @@ type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
 interface TrickLogsProps {
   userTrick: UserTrick;
   onLogAdded?: () => void;
+  trickName?: string;
 }
 
-export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
+export default function TrickLogs({
+  userTrick,
+  onLogAdded,
+  trickName,
+}: TrickLogsProps) {
   const [logs, setLogs] = useState<TrickLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -69,7 +78,7 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
     setSubmitting(true);
     try {
       const reps = parseInt(formData.reps);
-      
+
       // Insert the log
       const { error: logError } = await supabase.from("tricklogs").insert({
         user_trick_id: userTrick.id,
@@ -86,12 +95,12 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
       // Update the UserToTricksTable stats
       const currentAttempts = userTrick.attempts || 0;
       const currentStomps = userTrick.stomps || 0;
-      
+
       // Each rep counts as an attempt
       const newAttempts = currentAttempts + reps;
       // If landed, each rep also counts as a stomp
       const newStomps = formData.landed ? currentStomps + reps : currentStomps;
-      
+
       const { error: updateError } = await supabase
         .from("UserToTricksTable")
         .update({
@@ -129,7 +138,7 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#007AFF" />
+          <ActivityIndicator size="small" color="#333" />
         </View>
       </View>
     );
@@ -143,8 +152,8 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
         >
-          <Ionicons name="add-circle" size={24} color="#007AFF" />
-          <Text style={styles.addButtonText}>Add Log</Text>
+          <Ionicons name="add" size={20} color="#333" />
+          <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -170,7 +179,7 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
                   </View>
                 )}
               </View>
-              
+
               <View style={styles.logDetails}>
                 <View style={styles.statItem}>
                   <Text style={styles.statLabel}>Reps:</Text>
@@ -203,9 +212,7 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
                 </View>
               )}
 
-              {log.notes && (
-                <Text style={styles.notes}>{log.notes}</Text>
-              )}
+              {log.notes && <Text style={styles.notes}>{log.notes}</Text>}
             </View>
           ))}
         </View>
@@ -221,7 +228,9 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Log Trick Session</Text>
+              <Text style={styles.modalTitle}>
+            Log {trickName || "Trick"}
+          </Text>
               <TouchableOpacity
                 onPress={() => setShowAddModal(false)}
                 disabled={submitting}
@@ -388,9 +397,9 @@ export default function TrickLogs({ userTrick, onLogAdded }: TrickLogsProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    marginBottom: 32,
     overflow: "hidden",
   },
   loadingContainer: {
@@ -398,18 +407,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   header: {
-    backgroundColor: "#333",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: "transparent",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 16,
   },
   title: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 1,
+    color: "#999",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
   addButton: {
     flexDirection: "row",
@@ -417,45 +428,50 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addButtonText: {
-    color: "#007AFF",
-    fontSize: 14,
-    fontWeight: "500",
+    color: "#000",
+    fontSize: 13,
+    fontWeight: "400",
   },
   emptyState: {
-    padding: 24,
+    padding: 32,
     alignItems: "center",
+    backgroundColor: "#FAFAFA",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#D0D0D0",
   },
   emptyText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#999",
     marginBottom: 4,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#999",
+    fontSize: 13,
+    color: "#CCC",
     textAlign: "center",
   },
   logsList: {
-    padding: 12,
+    padding: 0,
   },
   logItem: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+    marginBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#D0D0D0",
   },
   logHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   logDate: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 13,
+    fontWeight: "400",
+    color: "#000",
   },
   rating: {
     flexDirection: "row",
@@ -463,42 +479,45 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
+    color: "#999",
   },
   logDetails: {
     flexDirection: "row",
-    gap: 16,
-    marginBottom: 8,
+    gap: 24,
+    marginBottom: 12,
   },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   statLabel: {
-    fontSize: 13,
-    color: "#666",
+    fontSize: 12,
+    color: "#999",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   statValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#000",
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     marginBottom: 8,
   },
   locationText: {
-    fontSize: 13,
-    color: "#666",
+    fontSize: 12,
+    color: "#999",
   },
   notes: {
     fontSize: 13,
-    color: "#333",
-    fontStyle: "italic",
+    color: "#666",
+    fontStyle: "normal",
+    lineHeight: 20,
   },
   modalOverlay: {
     flex: 1,
@@ -507,22 +526,23 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     maxHeight: "90%",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#D0D0D0",
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 16,
+    fontWeight: "400",
+    color: "#000",
+    letterSpacing: -0.3,
   },
   modalBody: {
     padding: 16,
@@ -531,18 +551,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#999",
     marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d0d0d0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#f8f8f8",
+    borderColor: "#D0D0D0",
+    borderRadius: 0,
+    padding: 14,
+    fontSize: 15,
+    backgroundColor: "#FAFAFA",
   },
   textArea: {
     minHeight: 80,
@@ -554,75 +576,78 @@ const styles = StyleSheet.create({
   },
   switchButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: "#d0d0d0",
-    borderRadius: 8,
+    borderColor: "#D0D0D0",
+    borderRadius: 0,
     alignItems: "center",
   },
   switchButtonActive: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: "#333",
+    borderColor: "#333",
   },
   switchText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#999",
   },
   switchTextActive: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "400",
   },
   surfaceScroll: {
     flexDirection: "row",
   },
   surfaceChip: {
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "#d0d0d0",
-    borderRadius: 20,
+    borderColor: "#D0D0D0",
+    borderRadius: 0,
     marginRight: 8,
   },
   surfaceChipActive: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: "#333",
+    borderColor: "#333",
   },
   surfaceChipText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
+    color: "#999",
   },
   surfaceChipTextActive: {
     color: "#fff",
   },
   modalFooter: {
     flexDirection: "row",
-    gap: 12,
-    padding: 16,
+    gap: 0,
+    padding: 0,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "#D0D0D0",
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderRadius: 0,
     alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#FAFAFA",
+    borderRightWidth: 1,
+    borderRightColor: "#D0D0D0",
   },
   cancelButtonText: {
-    fontSize: 16,
-    color: "#666",
-    fontWeight: "600",
+    fontSize: 14,
+    color: "#999",
+    fontWeight: "400",
   },
   saveButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#333",
   },
   saveButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "500",
+    letterSpacing: 0.5,
   },
   disabledButton: {
     opacity: 0.5,

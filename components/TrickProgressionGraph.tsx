@@ -139,7 +139,7 @@ export default function TrickProgressionGraph({
                     position: "absolute",
                     width: (trick.prereqs.length - 1) * 120,
                     height: 2,
-                    backgroundColor: "#999",
+                    backgroundColor: categoryColor + "30",
                     left:
                       currentTrickX +
                       50 -
@@ -185,7 +185,7 @@ export default function TrickProgressionGraph({
                       position: "absolute",
                       width: 2,
                       height: (trick.prereqs?.length || 0) > 1 ? 15 : 30,
-                      backgroundColor: "#999",
+                      backgroundColor: prereqColor + "60",
                       left: currentTrickX + xOffset + 49,
                       top: 70,
                     },
@@ -200,23 +200,16 @@ export default function TrickProgressionGraph({
                       position: "absolute",
                       left: currentTrickX + xOffset,
                       top: 20,
-                      backgroundColor: prereqData
-                        ? prereqColor + "20"
-                        : "#f0f0f0",
-                      borderColor: prereqData ? prereqColor : "#ccc",
+                      backgroundColor: prereqData ? prereqColor + "15" : "#FAFAFA",
+                      borderColor: prereqData ? prereqColor : "#E5E5E5",
                     },
                   ]}
                   onPress={() => prereqData && onTrickPress?.(prereqData)}
                   disabled={!prereqData}
                 >
-                  <Text style={styles.nodeText} numberOfLines={2}>
+                  <Text style={styles.nodeText} numberOfLines={1}>
                     {prereqName}
                   </Text>
-                  {!prereqData && (
-                    <View style={styles.loadingIndicator}>
-                      <ActivityIndicator size="small" color="#999" />
-                    </View>
-                  )}
                 </TouchableOpacity>
               </View>
             );
@@ -226,17 +219,18 @@ export default function TrickProgressionGraph({
           <TouchableOpacity
             style={[
               styles.trickNode,
-              styles.currentNode,
               {
                 position: "absolute",
                 left: currentTrickX,
                 top: 100,
                 backgroundColor: categoryColor,
+                borderColor: categoryColor,
               },
+              styles.currentNode,
             ]}
             onPress={() => onTrickPress?.(trick)}
           >
-            <Text style={[styles.nodeText, styles.currentNodeText]}>
+            <Text style={[styles.nodeText, styles.currentNodeText]} numberOfLines={1}>
               {trick.name}
             </Text>
           </TouchableOpacity>
@@ -252,7 +246,7 @@ export default function TrickProgressionGraph({
                     position: "absolute",
                     width: 2,
                     height: 30,
-                    backgroundColor: "#999",
+                    backgroundColor: categoryColor + "60",
                     left: currentTrickX + 49,
                     top: 150,
                   },
@@ -266,7 +260,7 @@ export default function TrickProgressionGraph({
                     position: "absolute",
                     width: (trick.progressions.length - 1) * 120,
                     height: 2,
-                    backgroundColor: "#999",
+                    backgroundColor: categoryColor + "30",
                     left:
                       currentTrickX +
                       50 -
@@ -300,7 +294,7 @@ export default function TrickProgressionGraph({
                       position: "absolute",
                       width: 2,
                       height: (trick.progressions?.length || 0) > 1 ? 60 : 90,
-                      backgroundColor: "#999",
+                      backgroundColor: progressionColor + "60",
                       left: currentTrickX + xOffset + 49,
                       top: (trick.progressions?.length || 0) > 1 ? 180 : 150,
                     },
@@ -317,10 +311,8 @@ export default function TrickProgressionGraph({
                       position: "absolute",
                       left: currentTrickX + xOffset,
                       top: 240,
-                      backgroundColor: progressionData
-                        ? progressionColor + "20"
-                        : "#f0f0f0",
-                      borderColor: progressionData ? progressionColor : "#ccc",
+                      backgroundColor: progressionData ? progressionColor + "15" : "#FAFAFA",
+                      borderColor: progressionData ? progressionColor : "#E5E5E5",
                     },
                   ]}
                   onPress={() =>
@@ -328,14 +320,9 @@ export default function TrickProgressionGraph({
                   }
                   disabled={!progressionData}
                 >
-                  <Text style={styles.nodeText} numberOfLines={2}>
+                  <Text style={styles.nodeText} numberOfLines={1}>
                     {progressionName}
                   </Text>
-                  {!progressionData && (
-                    <View style={styles.loadingIndicator}>
-                      <ActivityIndicator size="small" color="#999" />
-                    </View>
-                  )}
                 </TouchableOpacity>
               </View>
             );
@@ -349,25 +336,31 @@ export default function TrickProgressionGraph({
 const styles = StyleSheet.create({
   // Graph styles
   graphContainer: {
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    marginBottom: 32,
     overflow: "hidden",
   },
   graphHeader: {
-    backgroundColor: "#333",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: "transparent",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    marginBottom: 16,
   },
   graphTitle: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 1,
+    color: "#999",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
   graphViewport: {
-    height: 200,
+    height: 240,
     overflow: "hidden",
+    backgroundColor: "#FAFAFA",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#E5E5E5",
   },
   graphScrollView: {
     flex: 1,
@@ -381,6 +374,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     height: 300,
+    opacity: 0.3,
   },
   gridLine: {
     position: "absolute",
@@ -396,37 +390,33 @@ const styles = StyleSheet.create({
   },
   trickNode: {
     width: 100,
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 2,
-    padding: 6,
+    height: 44,
+    borderRadius: 0,
+    borderWidth: 1,
+    padding: 8,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
   },
   currentNode: {
-    borderWidth: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    borderWidth: 2,
   },
   nodeText: {
-    fontSize: 10,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "400",
     textAlign: "center",
     color: "#333",
   },
   currentNodeText: {
     color: "#FFFFFF",
-    fontWeight: "700",
+    fontWeight: "500",
   },
   connectionLine: {
-    backgroundColor: "#999",
+    backgroundColor: "#D0D0D0",
   },
   placeholderNode: {
-    opacity: 0.7,
+    opacity: 0.5,
+    borderStyle: "dashed",
   },
   loadedNode: {
     opacity: 1,
