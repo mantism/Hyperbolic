@@ -408,9 +408,11 @@ export default function TrickDetailPage({
         ) : null}
 
         {/* Trick Logs */}
-        {userTrick && (
+        {user && (
           <TrickLogs
             userTrick={userTrick}
+            trickId={trick.id}
+            userId={user.id}
             onLogAdded={fetchUserTrick}
             trickName={trick.name}
           />

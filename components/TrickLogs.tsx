@@ -24,13 +24,17 @@ type TrickLog = Database["public"]["Tables"]["tricklogs"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
 
 interface TrickLogsProps {
-  userTrick: UserTrick;
+  userTrick?: UserTrick | null;
+  trickId: string;
+  userId: string;
   onLogAdded?: () => void;
   trickName?: string;
 }
 
 export default function TrickLogs({
   userTrick,
+  trickId,
+  userId,
   onLogAdded,
   trickName,
 }: TrickLogsProps) {
@@ -49,9 +53,15 @@ export default function TrickLogs({
 
   useEffect(() => {
     fetchLogs();
-  }, [userTrick.id]);
+  }, [userTrick?.id]);
 
   const fetchLogs = async () => {
+    if (!userTrick?.id) {
+      setLogs([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("tricklogs")
@@ -78,10 +88,58 @@ export default function TrickLogs({
     setSubmitting(true);
     try {
       const reps = parseInt(formData.reps);
+      let currentUserTrick = userTrick;
+
+      // Create UserTrick record if it doesn't exist
+      if (!currentUserTrick) {
+        const newAttempts = reps;
+        const newStomps = formData.landed ? reps : 0;
+
+        const { data: newUserTrick, error: createError } = await supabase
+          .from("UserToTricksTable")
+          .insert({
+            userID: userId,
+            trickID: trickId,
+            attempts: newAttempts,
+            stomps: newStomps,
+            landed: newStomps > 0,
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        currentUserTrick = newUserTrick;
+      } else {
+        // Update existing UserTrick stats
+        const currentAttempts = currentUserTrick.attempts || 0;
+        const currentStomps = currentUserTrick.stomps || 0;
+
+        const newAttempts = currentAttempts + reps;
+        const newStomps = formData.landed
+          ? currentStomps + reps
+          : currentStomps;
+
+        const { error: updateError } = await supabase
+          .from("UserToTricksTable")
+          .update({
+            attempts: newAttempts,
+            stomps: newStomps,
+            landed: newStomps > 0,
+          })
+          .eq("id", currentUserTrick.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+      }
+
+      if (!currentUserTrick) {
+        throw new Error("Failed to create or retrieve UserTrick record");
+      }
 
       // Insert the log
       const { error: logError } = await supabase.from("tricklogs").insert({
-        user_trick_id: userTrick.id,
+        user_trick_id: currentUserTrick.id,
         reps: reps,
         rating: formData.rating ? parseInt(formData.rating) : null,
         notes: formData.notes || null,
@@ -90,27 +148,9 @@ export default function TrickLogs({
         landed: formData.landed,
       });
 
-      if (logError) throw logError;
-
-      // Update the UserToTricksTable stats
-      const currentAttempts = userTrick.attempts || 0;
-      const currentStomps = userTrick.stomps || 0;
-
-      // Each rep counts as an attempt
-      const newAttempts = currentAttempts + reps;
-      // If landed, each rep also counts as a stomp
-      const newStomps = formData.landed ? currentStomps + reps : currentStomps;
-
-      const { error: updateError } = await supabase
-        .from("UserToTricksTable")
-        .update({
-          attempts: newAttempts,
-          stomps: newStomps,
-          landed: newStomps > 0, // Update landed status if they've stomped it
-        })
-        .eq("id", userTrick.id);
-
-      if (updateError) throw updateError;
+      if (logError) {
+        throw logError;
+      }
 
       // Reset form and refresh
       setFormData({
@@ -228,9 +268,7 @@ export default function TrickLogs({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-            Log {trickName || "Trick"}
-          </Text>
+              <Text style={styles.modalTitle}>Log {trickName || "Trick"}</Text>
               <TouchableOpacity
                 onPress={() => setShowAddModal(false)}
                 disabled={submitting}
