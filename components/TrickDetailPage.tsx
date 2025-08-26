@@ -17,6 +17,7 @@ import { Database } from "@/lib/supabase/database.types";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
+import TrickLogs from "./TrickLogs";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
@@ -415,6 +416,14 @@ export default function TrickDetailPage({
             </View>
           </View>
         ) : null}
+
+        {/* Trick Logs */}
+        {userTrick && (
+          <TrickLogs 
+            userTrick={userTrick} 
+            onLogAdded={fetchUserTrick}
+          />
+        )}
 
         {/* Trick Progression Graph */}
         <TrickProgressionGraph 
