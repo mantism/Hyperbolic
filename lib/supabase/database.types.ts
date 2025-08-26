@@ -7,13 +7,72 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "10.2.0 (e07807d)"
   }
   public: {
     Tables: {
+      tricklogs: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          landed: boolean | null
+          location_name: string | null
+          logged_at: string
+          notes: string | null
+          rating: number | null
+          reps: number | null
+          surface_type: string | null
+          thumbnail_url: string | null
+          user_trick_id: string
+          video_urls: string[] | null
+          weather_conditions: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          landed?: boolean | null
+          location_name?: string | null
+          logged_at?: string
+          notes?: string | null
+          rating?: number | null
+          reps?: number | null
+          surface_type?: string | null
+          thumbnail_url?: string | null
+          user_trick_id: string
+          video_urls?: string[] | null
+          weather_conditions?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          landed?: boolean | null
+          location_name?: string | null
+          logged_at?: string
+          notes?: string | null
+          rating?: number | null
+          reps?: number | null
+          surface_type?: string | null
+          thumbnail_url?: string | null
+          user_trick_id?: string
+          video_urls?: string[] | null
+          weather_conditions?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tricklogs_user_trick_id_fkey"
+            columns: ["user_trick_id"]
+            isOneToOne: false
+            referencedRelation: "UserToTricksTable"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       TricksTable: {
         Row: {
           aliases: string[] | null
@@ -141,13 +200,6 @@ export type Database = {
             columns: ["trickID"]
             isOneToOne: false
             referencedRelation: "TricksTable"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "UserToTricksTable_userID_fkey"
-            columns: ["userID"]
-            isOneToOne: false
-            referencedRelation: "UsersTable"
             referencedColumns: ["id"]
           },
         ]
