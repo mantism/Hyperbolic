@@ -19,10 +19,13 @@ import {
   getTrickTier,
   getTierColor,
   TrickTier,
+  getProgressToNextTier,
+  getTierName,
 } from "@/lib/trickProgressTiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
+import CircularProgress from "./CircularProgress";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
@@ -63,6 +66,15 @@ export default function TrickDetailPage({
     backgroundColor:
       trickTier === TrickTier.NONE ? "#FAFAFA" : tierColor + "08",
   };
+
+  // Calculate progress to next tier
+  const tierProgress = getProgressToNextTier(userStomps, trickTier);
+  const nextTierName = tierProgress.nextTier
+    ? getTierName(tierProgress.nextTier)
+    : null;
+  const nextTierColor = tierProgress.nextTier
+    ? getTierColor(tierProgress.nextTier)
+    : tierColor;
 
   const fetchUserTrick = useCallback(async () => {
     if (!user) return;
@@ -304,9 +316,10 @@ export default function TrickDetailPage({
           </View>
 
           <View style={[styles.trickInfo, { padding: 16 }]}>
-            {/* Header with inline stats */}
+            {/* Header with two-column layout */}
             <View style={styles.trickHeader}>
-              <View style={styles.trickHeaderTop}>
+              {/* Left column: Badge and Name */}
+              <View style={styles.trickHeaderLeft}>
                 {primaryCategory ? (
                   <View
                     style={[
@@ -319,7 +332,12 @@ export default function TrickDetailPage({
                     </Text>
                   </View>
                 ) : null}
-                {user ? (
+                <Text style={styles.trickName}>{trick.name}</Text>
+              </View>
+              
+              {/* Right column: Stats and Progress */}
+              {user ? (
+                <View style={styles.trickHeaderRight}>
                   <View style={styles.inlineStats}>
                     <View style={styles.inlineStat}>
                       <Text style={styles.inlineStatValue}>
@@ -340,16 +358,39 @@ export default function TrickDetailPage({
                       <Text style={styles.inlineStatLabel}>attempts</Text>
                     </View>
                   </View>
-                ) : trick.rating ? (
+                  {/* Progress Indicator - under stats */}
+                  {tierProgress.nextTier && (
+                    <View style={styles.progressSection}>
+                      <CircularProgress
+                        size={50}
+                        strokeWidth={3}
+                        progress={tierProgress.progress}
+                        progressColor={nextTierColor}
+                        backgroundColor="#E5E5E5"
+                        centerContent={
+                          <View style={styles.progressContent}>
+                            <Text style={styles.progressPercentage}>
+                              {Math.round(tierProgress.progress)}%
+                            </Text>
+                          </View>
+                        }
+                      />
+                      <Text style={styles.progressLabel}>
+                        to {nextTierName}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : trick.rating ? (
+                <View style={styles.trickHeaderRight}>
                   <View style={styles.inlineStats}>
                     <View style={styles.inlineStat}>
                       <Text style={styles.inlineStatValue}>{trick.rating}</Text>
                       <Text style={styles.inlineStatLabel}>difficulty</Text>
                     </View>
                   </View>
-                ) : null}
-              </View>
-              <Text style={styles.trickName}>{trick.name}</Text>
+                </View>
+              ) : null}
             </View>
 
             {/* Collapsible Description */}
@@ -486,14 +527,20 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   trickHeader: {
-    flexDirection: "column",
-    marginBottom: 16,
-  },
-  trickHeaderTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  trickHeaderLeft: {
+    flex: 1,
+    flexDirection: "column",
+    gap: 12,
+  },
+  trickHeaderRight: {
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 8,
   },
   inlineStats: {
     flexDirection: "row",
@@ -526,6 +573,7 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     color: "#000",
     letterSpacing: -0.5,
+    marginTop: 4,
   },
   categoryBadge: {
     paddingHorizontal: 8,
@@ -539,6 +587,30 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     textTransform: "uppercase",
     letterSpacing: 1.5,
+  },
+  progressSection: {
+    alignItems: "center",
+    marginTop: 4,
+  },
+  progressContent: {
+    alignItems: "center",
+  },
+  progressPercentage: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#000",
+  },
+  progressLabel: {
+    fontSize: 10,
+    color: "#666",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
+  progressRemaining: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
   },
   descriptionSection: {
     marginTop: 16,
