@@ -1,39 +1,30 @@
 export enum SurfaceType {
+  SPRING_FLOOR = "spring_floor",
   GRASS = "grass",
   CONCRETE = "concrete",
-  MAT = "mat",
+  PUZZLE_MAT = "puzzle_mat",
   SAND = "sand",
-  WOOD = "wood",
   TURF = "turf",
-  CARPET = "carpet",
-  DIRT = "dirt",
-  RUBBER = "rubber",
   OTHER = "other",
 }
 
 export const SURFACE_TYPE_LABELS: Record<SurfaceType, string> = {
+  [SurfaceType.SPRING_FLOOR]: "Spring Floor",
   [SurfaceType.GRASS]: "Grass",
   [SurfaceType.CONCRETE]: "Concrete",
-  [SurfaceType.MAT]: "Mat",
+  [SurfaceType.PUZZLE_MAT]: "Puzzle Mat",
   [SurfaceType.SAND]: "Sand",
-  [SurfaceType.WOOD]: "Wood",
   [SurfaceType.TURF]: "Turf",
-  [SurfaceType.CARPET]: "Carpet",
-  [SurfaceType.DIRT]: "Dirt",
-  [SurfaceType.RUBBER]: "Rubber",
   [SurfaceType.OTHER]: "Other",
 };
 
 export const SURFACE_TYPE_COLORS: Record<SurfaceType, string> = {
+  [SurfaceType.SPRING_FLOOR]: "#FBBF24", // Yellow
   [SurfaceType.GRASS]: "#10B981", // Green
   [SurfaceType.CONCRETE]: "#6B7280", // Gray
-  [SurfaceType.MAT]: "#3B82F6", // Blue
+  [SurfaceType.PUZZLE_MAT]: "#3B82F6", // Blue
   [SurfaceType.SAND]: "#F59E0B", // Amber
-  [SurfaceType.WOOD]: "#92400E", // Brown
   [SurfaceType.TURF]: "#16A34A", // Darker Green
-  [SurfaceType.CARPET]: "#8B5CF6", // Purple
-  [SurfaceType.DIRT]: "#78350F", // Dark Brown
-  [SurfaceType.RUBBER]: "#1F2937", // Dark Gray
   [SurfaceType.OTHER]: "#9CA3AF", // Light Gray
 };
 
@@ -68,7 +59,9 @@ export function isValidSurfaceType(type: string): type is SurfaceType {
 /**
  * Convert a string to a SurfaceType safely
  */
-export function toSurfaceType(type: string | null | undefined): SurfaceType | null {
+export function toSurfaceType(
+  type: string | null | undefined
+): SurfaceType | null {
   if (!type) return null;
   if (isValidSurfaceType(type)) return type;
   return null;
