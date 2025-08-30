@@ -22,6 +22,11 @@ import {
   getProgressToNextTier,
   getTierName,
 } from "@/lib/trickProgressTiers";
+import {
+  SurfaceType,
+  getSurfaceTypeColor,
+  getSurfaceTypeLabel,
+} from "@/lib/surfaceTypes";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
@@ -29,6 +34,7 @@ import CircularProgress from "./CircularProgress";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
+type TrickLog = Database["public"]["Tables"]["tricklogs"]["Row"];
 
 interface TrickDetailPageProps {
   trick: Trick;
@@ -50,6 +56,7 @@ export default function TrickDetailPage({
   const [userRating, setUserRating] = useState(0);
   const [isGoal, setIsGoal] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [landedSurfaces, setLandedSurfaces] = useState<Set<string>>(new Set());
 
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
@@ -98,6 +105,9 @@ export default function TrickDetailPage({
         setStomps(data.stomps || 0);
         setUserRating(data.rating || 0);
         setIsGoal(data.isGoal || false);
+        
+        // Fetch surfaces from trick logs
+        fetchLandedSurfaces(data.id);
       }
     } catch (error) {
       console.error("Error fetching user trick:", error);
@@ -106,6 +116,31 @@ export default function TrickDetailPage({
       setLoading(false);
     }
   }, [user, trick.id]);
+
+  const fetchLandedSurfaces = async (userTrickId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("tricklogs")
+        .select("surface_type")
+        .eq("user_trick_id", userTrickId)
+        .eq("landed", true)
+        .not("surface_type", "is", null);
+
+      if (error) throw error;
+
+      if (data) {
+        const surfaces = new Set<string>();
+        data.forEach((log) => {
+          if (log.surface_type) {
+            surfaces.add(log.surface_type);
+          }
+        });
+        setLandedSurfaces(surfaces);
+      }
+    } catch (error) {
+      console.error("Error fetching landed surfaces:", error);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -140,6 +175,8 @@ export default function TrickDetailPage({
             setStomps(newData.stomps || 0);
             setUserRating(newData.rating || 0);
             setIsGoal(newData.isGoal || false);
+            // Refresh surfaces when user trick is updated
+            fetchLandedSurfaces(newData.id);
           } else if (payload.eventType === "DELETE") {
             setUserTrick(null);
             setAttempts(0);
@@ -393,6 +430,36 @@ export default function TrickDetailPage({
               ) : null}
             </View>
 
+            {/* Surfaces Section */}
+            {user ? (
+              <View style={styles.surfacesSection}>
+                <Text style={styles.surfacesTitle}>SURFACES</Text>
+                {landedSurfaces.size > 0 ? (
+                  <View style={styles.surfaceBadges}>
+                    {Array.from(landedSurfaces).map((surfaceType) => (
+                      <View key={surfaceType} style={styles.surfaceBadgeContainer}>
+                        <View
+                          style={[
+                            styles.surfaceBadge,
+                            { backgroundColor: getSurfaceTypeColor(surfaceType as SurfaceType) },
+                          ]}
+                        >
+                          {/* TODO: Add icons for each surface type */}
+                        </View>
+                        <Text style={styles.surfaceBadgeLabel}>
+                          {getSurfaceTypeLabel(surfaceType as SurfaceType)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.surfacesEmptyText}>
+                    Log a trick in detail to earn your first surface badge
+                  </Text>
+                )}
+              </View>
+            ) : null}
+
             {/* Collapsible Description */}
             {trick.description ? (
               <View style={styles.descriptionSection}>
@@ -454,7 +521,12 @@ export default function TrickDetailPage({
             userTrick={userTrick}
             trickId={trick.id}
             userId={user.id}
-            onLogAdded={fetchUserTrick}
+            onLogAdded={() => {
+              fetchUserTrick();
+              if (userTrick) {
+                fetchLandedSurfaces(userTrick.id);
+              }
+            }}
             trickName={trick.name}
           />
         )}
@@ -813,5 +885,44 @@ const styles = StyleSheet.create({
     color: "#999",
     textAlign: "center",
     lineHeight: 20,
+  },
+  surfacesSection: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  surfacesTitle: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#333",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  surfaceBadges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  surfaceBadgeContainer: {
+    alignItems: "center",
+    gap: 4,
+  },
+  surfaceBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  surfaceBadgeLabel: {
+    fontSize: 9,
+    color: "#666",
+    textAlign: "center",
+    maxWidth: 50,
+  },
+  surfacesEmptyText: {
+    fontSize: 13,
+    color: "#999",
+    fontStyle: "italic",
   },
 });
