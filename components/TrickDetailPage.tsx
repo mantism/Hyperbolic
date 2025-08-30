@@ -595,23 +595,23 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   trickCard: {
     borderRadius: 0,
     padding: 0,
-    marginBottom: 32,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: "#E5E5E5",
     backgroundColor: "#FAFAFA",
     overflow: "hidden",
   },
   imagePlaceholder: {
-    height: 180,
+    height: 240,
     borderRadius: 0,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   trickInfo: {
     padding: 0,
@@ -620,12 +620,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   trickHeaderLeft: {
     flex: 1,
     flexDirection: "column",
-    gap: 12,
+    gap: 8,
   },
   trickHeaderRight: {
     flexDirection: "column",
@@ -659,11 +659,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#333",
   },
   trickName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "300",
     color: "#000",
     letterSpacing: -0.5,
-    marginTop: 4,
+    marginTop: 2,
   },
   categoryBadge: {
     paddingHorizontal: 8,
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
   },
   progressSection: {
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 2,
   },
   progressContent: {
     alignItems: "center",
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 32,
+    marginBottom: 20,
   },
   historyCard: {
     flex: 1,
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     padding: 0,
     borderWidth: 0,
-    marginBottom: 32,
+    marginBottom: 20,
   },
   goalToggle: {
     marginBottom: 20,
@@ -905,8 +905,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   surfacesSection: {
-    marginTop: 24,
-    marginBottom: 16,
+    marginTop: 16,
+    marginBottom: 12,
   },
   surfacesTitle: {
     fontSize: 11,
