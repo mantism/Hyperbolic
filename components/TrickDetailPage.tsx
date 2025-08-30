@@ -57,6 +57,7 @@ export default function TrickDetailPage({
   const [isGoal, setIsGoal] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [landedSurfaces, setLandedSurfaces] = useState<Set<string>>(new Set());
+  const [showSurfaceLabels, setShowSurfaceLabels] = useState(false);
 
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
@@ -105,7 +106,7 @@ export default function TrickDetailPage({
         setStomps(data.stomps || 0);
         setUserRating(data.rating || 0);
         setIsGoal(data.isGoal || false);
-        
+
         // Fetch surfaces from trick logs
         fetchLandedSurfaces(data.id);
       }
@@ -371,7 +372,7 @@ export default function TrickDetailPage({
                 ) : null}
                 <Text style={styles.trickName}>{trick.name}</Text>
               </View>
-              
+
               {/* Right column: Stats and Progress */}
               {user ? (
                 <View style={styles.trickHeaderRight}>
@@ -432,23 +433,40 @@ export default function TrickDetailPage({
 
             {/* Surfaces Section */}
             {user ? (
-              <View style={styles.surfacesSection}>
+              <TouchableOpacity
+                style={styles.surfacesSection}
+                activeOpacity={1}
+                onPress={() => {
+                  if (landedSurfaces.size > 0) {
+                    setShowSurfaceLabels(!showSurfaceLabels);
+                  }
+                }}
+              >
                 <Text style={styles.surfacesTitle}>SURFACES</Text>
                 {landedSurfaces.size > 0 ? (
                   <View style={styles.surfaceBadges}>
                     {Array.from(landedSurfaces).map((surfaceType) => (
-                      <View key={surfaceType} style={styles.surfaceBadgeContainer}>
+                      <View
+                        key={surfaceType}
+                        style={styles.surfaceBadgeContainer}
+                      >
                         <View
                           style={[
                             styles.surfaceBadge,
-                            { backgroundColor: getSurfaceTypeColor(surfaceType as SurfaceType) },
+                            {
+                              backgroundColor: getSurfaceTypeColor(
+                                surfaceType as SurfaceType
+                              ),
+                            },
                           ]}
                         >
                           {/* TODO: Add icons for each surface type */}
                         </View>
-                        <Text style={styles.surfaceBadgeLabel}>
-                          {getSurfaceTypeLabel(surfaceType as SurfaceType)}
-                        </Text>
+                        {showSurfaceLabels && (
+                          <Text style={styles.surfaceBadgeLabel}>
+                            {getSurfaceTypeLabel(surfaceType as SurfaceType)}
+                          </Text>
+                        )}
                       </View>
                     ))}
                   </View>
@@ -457,7 +475,7 @@ export default function TrickDetailPage({
                     Log a trick in detail to earn your first surface badge
                   </Text>
                 )}
-              </View>
+              </TouchableOpacity>
             ) : null}
 
             {/* Collapsible Description */}
@@ -685,8 +703,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   descriptionSection: {
-    marginTop: 16,
-    marginBottom: 24,
+    marginTop: 0,
+    marginBottom: 12,
   },
   descriptionToggle: {
     paddingVertical: 12,
@@ -905,12 +923,12 @@ const styles = StyleSheet.create({
   },
   surfaceBadgeContainer: {
     alignItems: "center",
-    gap: 4,
+    minHeight: 40,
   },
   surfaceBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -918,7 +936,10 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: "#666",
     textAlign: "center",
-    maxWidth: 50,
+    maxWidth: 30,
+    marginTop: 0,
+    position: "absolute",
+    bottom: -15,
   },
   surfacesEmptyText: {
     fontSize: 13,
