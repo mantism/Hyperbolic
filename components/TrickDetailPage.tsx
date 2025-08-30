@@ -257,15 +257,8 @@ export default function TrickDetailPage({
 
   const incrementStomps = async () => {
     const newStomps = stomps + 1;
-    const newAttempts = newStomps > attempts ? newStomps : attempts;
-
-    // Optimistic updates
-    setStomps(newStomps);
-    if (newAttempts !== attempts) {
-      setAttempts(newAttempts);
-    }
-
-    await autoSave(newAttempts, newStomps, userRating, isGoal, userTrick);
+    setStomps(newStomps); // Optimistic update
+    await autoSave(attempts, newStomps, userRating, isGoal, userTrick);
   };
 
   const updateRating = async (rating: number) => {
