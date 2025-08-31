@@ -200,7 +200,9 @@ export default function TrickProgressionGraph({
                       position: "absolute",
                       left: currentTrickX + xOffset,
                       top: 20,
-                      backgroundColor: prereqData ? prereqColor + "15" : "#FAFAFA",
+                      backgroundColor: prereqData
+                        ? prereqColor + "15"
+                        : "#FAFAFA",
                       borderColor: prereqData ? prereqColor : "#E5E5E5",
                     },
                   ]}
@@ -228,9 +230,11 @@ export default function TrickProgressionGraph({
               },
               styles.currentNode,
             ]}
-            onPress={() => onTrickPress?.(trick)}
           >
-            <Text style={[styles.nodeText, styles.currentNodeText]} numberOfLines={1}>
+            <Text
+              style={[styles.nodeText, styles.currentNodeText]}
+              numberOfLines={1}
+            >
               {trick.name}
             </Text>
           </TouchableOpacity>
@@ -311,8 +315,12 @@ export default function TrickProgressionGraph({
                       position: "absolute",
                       left: currentTrickX + xOffset,
                       top: 240,
-                      backgroundColor: progressionData ? progressionColor + "15" : "#FAFAFA",
-                      borderColor: progressionData ? progressionColor : "#E5E5E5",
+                      backgroundColor: progressionData
+                        ? progressionColor + "15"
+                        : "#FAFAFA",
+                      borderColor: progressionData
+                        ? progressionColor
+                        : "#E5E5E5",
                     },
                   ]}
                   onPress={() =>
