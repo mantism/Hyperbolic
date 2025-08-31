@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   LayoutAnimation,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -333,7 +334,14 @@ export default function TrickDetailPage({
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={onClose}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="chevron-back" size={20} color="#000" />
+      </TouchableOpacity>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Trick Info Card */}
         <View style={[styles.trickCard, tierAccentStyle]}>
@@ -572,7 +580,7 @@ export default function TrickDetailPage({
           </View>
         ) : null}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -580,6 +588,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FAFAFA",
+  },
+  fab: {
+    position: "absolute",
+    top: 64,
+    left: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   loadingContainer: {
     flex: 1,

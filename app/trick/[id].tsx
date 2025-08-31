@@ -51,16 +51,14 @@ export default function TrickScreen() {
 
   return (
     <>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
-          headerBackTitle: "Back",
-          headerTitle: ""
-        }} 
+          headerShown: false,
+          animation: "slide_from_right",
+          animationDuration: 200,
+        }}
       />
-      <TrickDetailPage 
-        trick={trick} 
-        onClose={() => router.back()} 
-      />
+      <TrickDetailPage trick={trick} onClose={() => router.back()} />
     </>
   );
 }
