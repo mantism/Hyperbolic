@@ -29,6 +29,8 @@ interface TrickLogsProps {
   userId: string;
   onLogAdded?: () => void;
   trickName?: string;
+  showAddModal?: boolean;
+  onCloseModal?: () => void;
 }
 
 export default function TrickLogs({
@@ -37,10 +39,21 @@ export default function TrickLogs({
   userId,
   onLogAdded,
   trickName,
+  showAddModal: externalShowModal,
+  onCloseModal,
 }: TrickLogsProps) {
   const [logs, setLogs] = useState<TrickLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [internalShowModal, setInternalShowModal] = useState(false);
+  
+  const showAddModal = externalShowModal !== undefined ? externalShowModal : internalShowModal;
+  const setShowAddModal = (value: boolean) => {
+    if (externalShowModal !== undefined && onCloseModal) {
+      if (!value) onCloseModal();
+    } else {
+      setInternalShowModal(value);
+    }
+  };
   const [formData, setFormData] = useState({
     reps: "1",
     rating: "",

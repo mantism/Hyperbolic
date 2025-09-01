@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   LayoutAnimation,
   Platform,
   SafeAreaView,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +51,8 @@ export default function TrickDetailPage({
   const router = useRouter();
   const [userTrick, setUserTrick] = useState<UserTrick | null>(null);
   const [loading, setLoading] = useState(true);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [showLogModal, setShowLogModal] = useState(false);
 
   // Form states
   const [attempts, setAttempts] = useState(0);
@@ -69,12 +72,6 @@ export default function TrickDetailPage({
   const trickTier = getTrickTier(userStomps);
   const tierColor =
     trickTier === TrickTier.NONE ? "#E5E5E5" : getTierColor(trickTier);
-  const tierAccentStyle = {
-    borderLeftWidth: 4,
-    borderLeftColor: tierColor,
-    backgroundColor:
-      trickTier === TrickTier.NONE ? "#FAFAFA" : tierColor + "08",
-  };
 
   // Calculate progress to next tier
   const tierProgress = getProgressToNextTier(userStomps, trickTier);
@@ -277,6 +274,31 @@ export default function TrickDetailPage({
     router.push(`/trick/${selectedTrick.id}`);
   };
 
+  const handleShare = () => {
+    // TODO: Implement share functionality
+    Alert.alert("Share", "Share functionality coming soon!");
+  };
+
+  const handleLogPress = () => {
+    if (!user) {
+      Alert.alert("Sign In Required", "Please sign in to log tricks");
+      return;
+    }
+    if (!userTrick) {
+      Alert.alert(
+        "Add to Arsenal",
+        "Add this trick to your arsenal first by logging an attempt or stomp"
+      );
+      return;
+    }
+    setShowLogModal(true);
+  };
+
+  const handleUploadVideo = () => {
+    // TODO: Implement video upload functionality
+    Alert.alert("Upload Video", "Video upload functionality coming soon!");
+  };
+
   const removeFromArsenal = async () => {
     if (!userTrick) {
       return;
@@ -334,7 +356,28 @@ export default function TrickDetailPage({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* Fixed background image */}
+      <Animated.View
+        style={[
+          styles.fixedImageContainer,
+          {
+            backgroundColor: categoryColor + "20",
+            transform: [
+              {
+                translateY: scrollY.interpolate({
+                  inputRange: [0, 300],
+                  outputRange: [0, -100],
+                  extrapolate: "clamp",
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <Ionicons name="image-outline" size={48} color={categoryColor} />
+      </Animated.View>
+
       <TouchableOpacity
         style={styles.fab}
         onPress={onClose}
@@ -342,19 +385,59 @@ export default function TrickDetailPage({
       >
         <Ionicons name="chevron-back" size={20} color="#000" />
       </TouchableOpacity>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Trick Info Card */}
-        <View style={[styles.trickCard, tierAccentStyle]}>
-          <View
-            style={[
-              styles.imagePlaceholder,
-              { backgroundColor: categoryColor + "20" },
-            ]}
-          >
-            <Ionicons name="image-outline" size={48} color={categoryColor} />
-          </View>
 
-          <View style={[styles.trickInfo, { padding: 16 }]}>
+      {/* Right side FABs */}
+      <View style={styles.rightFabs}>
+        <TouchableOpacity
+          style={styles.fabSmall}
+          onPress={handleShare}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="share-outline" size={18} color="#000" />
+        </TouchableOpacity>
+
+        {user && (
+          <TouchableOpacity
+            style={styles.fabSmall}
+            onPress={handleLogPress}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={20} color="#000" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <Animated.ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* Image spacer with upload FAB */}
+        <View style={styles.imageSpacerContainer}>
+          <View style={styles.imageSpacer} />
+
+          {/* Upload video FAB */}
+          <TouchableOpacity
+            style={styles.uploadVideoFab}
+            onPress={handleUploadVideo}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="videocam-outline" size={18} color="#000" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Content overlay card */}
+        <View
+          style={[
+            styles.contentCard,
+            { borderTopColor: tierColor, borderTopWidth: 4 },
+          ]}
+        >
+          <View style={styles.trickInfo}>
             {/* Header with two-column layout */}
             <View style={styles.trickHeader}>
               {/* Left column: Badge and Name */}
@@ -511,76 +594,79 @@ export default function TrickDetailPage({
               </View>
             ) : null}
           </View>
-        </View>
 
-        {/* Actions Row */}
-        {user ? (
-          <View style={styles.actionsRow}>
-            <View style={styles.actionButtonsVertical}>
-              <TouchableOpacity
-                style={styles.logStompButton}
-                onPress={incrementStomps}
-              >
-                <Text style={styles.logStompButtonText}>STOMP</Text>
-              </TouchableOpacity>
+          {/* Actions Row */}
+          {user ? (
+            <View style={styles.actionsRow}>
+              <View style={styles.actionButtonsVertical}>
+                <TouchableOpacity
+                  style={styles.logStompButton}
+                  onPress={incrementStomps}
+                >
+                  <Text style={styles.logStompButtonText}>STOMP</Text>
+                </TouchableOpacity>
 
+                <TouchableOpacity
+                  style={styles.attemptButton}
+                  onPress={incrementAttempts}
+                >
+                  <Text style={styles.attemptButtonText}>ATTEMPT</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Trick Logs */}
+          {user && (
+            <TrickLogs
+              userTrick={userTrick}
+              trickId={trick.id}
+              userId={user.id}
+              onLogAdded={() => {
+                fetchUserTrick();
+                if (userTrick) {
+                  fetchLandedSurfaces(userTrick.id);
+                }
+                setShowLogModal(false);
+              }}
+              trickName={trick.name}
+              showAddModal={showLogModal}
+              onCloseModal={() => setShowLogModal(false)}
+            />
+          )}
+
+          {/* Trick Progression Graph */}
+          <TrickProgressionGraph
+            trick={trick}
+            onTrickPress={handleTrickNavigation}
+          />
+
+          {/* Remove Button */}
+          {user && userTrick ? (
+            <View style={styles.actionsCard}>
               <TouchableOpacity
-                style={styles.attemptButton}
-                onPress={incrementAttempts}
+                style={styles.removeButton}
+                onPress={removeFromArsenal}
               >
-                <Text style={styles.attemptButtonText}>ATTEMPT</Text>
+                <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                <Text style={styles.removeButtonText}>Clear Progress</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {/* Trick Logs */}
-        {user && (
-          <TrickLogs
-            userTrick={userTrick}
-            trickId={trick.id}
-            userId={user.id}
-            onLogAdded={() => {
-              fetchUserTrick();
-              if (userTrick) {
-                fetchLandedSurfaces(userTrick.id);
-              }
-            }}
-            trickName={trick.name}
-          />
-        )}
-
-        {/* Trick Progression Graph */}
-        <TrickProgressionGraph
-          trick={trick}
-          onTrickPress={handleTrickNavigation}
-        />
-
-        {/* Remove Button */}
-        {user && userTrick ? (
-          <View style={styles.actionsCard}>
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={removeFromArsenal}
-            >
-              <Ionicons name="trash-outline" size={16} color="#EF4444" />
-              <Text style={styles.removeButtonText}>Clear Progress</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
-        {/* Login Prompt */}
-        {!user ? (
-          <View style={styles.loginPrompt}>
-            <Ionicons name="person-outline" size={48} color="#ccc" />
-            <Text style={styles.loginTitle}>Sign in to track this trick</Text>
-            <Text style={styles.loginSubtitle}>
-              Log attempts, rate tricks, and build your arsenal
-            </Text>
-          </View>
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+          {/* Login Prompt */}
+          {!user ? (
+            <View style={styles.loginPrompt}>
+              <Ionicons name="person-outline" size={48} color="#ccc" />
+              <Text style={styles.loginTitle}>Sign in to track this trick</Text>
+              <Text style={styles.loginSubtitle}>
+                Log attempts, rate tricks, and build your arsenal
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
@@ -609,33 +695,94 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  rightFabs: {
+    position: "absolute",
+    top: 64,
+    right: 16,
+    flexDirection: "row",
+    gap: 12,
+    zIndex: 1000,
+  },
+  fabSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  content: {
+  scrollView: {
     flex: 1,
-    padding: 16,
   },
-  trickCard: {
-    borderRadius: 0,
-    padding: 0,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
-    backgroundColor: "#FAFAFA",
-    overflow: "hidden",
-  },
-  imagePlaceholder: {
-    height: 240,
-    borderRadius: 0,
+  fixedImageContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 400,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    zIndex: 0,
+  },
+  imageSpacerContainer: {
+    position: "relative",
+    height: 276,
+  },
+  imageSpacer: {
+    height: "100%",
+  },
+  uploadVideoFab: {
+    position: "absolute",
+    bottom: 32,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 10,
+  },
+  contentCard: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
+    paddingTop: 24,
+    paddingHorizontal: 16,
+    minHeight: 500,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   trickInfo: {
-    padding: 0,
+    paddingBottom: 16,
   },
   trickHeader: {
     flexDirection: "row",
@@ -755,6 +902,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginBottom: 20,
+    marginTop: 16,
   },
   historyCard: {
     flex: 1,
