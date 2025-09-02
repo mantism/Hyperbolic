@@ -33,6 +33,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
 import CircularProgress from "./CircularProgress";
+import VideoUploadModal from "./VideoUploadModal";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
@@ -53,6 +54,7 @@ export default function TrickDetailPage({
   const [loading, setLoading] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showVideoUploadModal, setShowVideoUploadModal] = useState(false);
 
   // Form states
   const [attempts, setAttempts] = useState(0);
@@ -295,8 +297,11 @@ export default function TrickDetailPage({
   };
 
   const handleUploadVideo = () => {
-    // TODO: Implement video upload functionality
-    Alert.alert("Upload Video", "Video upload functionality coming soon!");
+    if (!user) {
+      Alert.alert("Sign In Required", "Please sign in to upload videos");
+      return;
+    }
+    setShowVideoUploadModal(true);
   };
 
   const removeFromArsenal = async () => {
@@ -666,6 +671,16 @@ export default function TrickDetailPage({
           ) : null}
         </View>
       </Animated.ScrollView>
+      
+      {/* Video Upload Modal */}
+      {user && (
+        <VideoUploadModal
+          visible={showVideoUploadModal}
+          onClose={() => setShowVideoUploadModal(false)}
+          trick={trick}
+          userId={user.id}
+        />
+      )}
     </View>
   );
 }
