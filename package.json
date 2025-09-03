@@ -9,7 +9,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "mobile": "turbo run dev --filter=mobile",
-    "api": "turbo run dev --filter=api",
+    "api": "turbo run dev --filter=dolos-web-service",
     "clean": "turbo run clean",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },

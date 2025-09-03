@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hyperbolic/api/handlers"
-	"github.com/hyperbolic/api/middleware"
+	"github.com/hyperbolic/dolos-web-service/handlers"
+	"github.com/hyperbolic/dolos-web-service/middleware"
 	"github.com/joho/godotenv"
 )
 

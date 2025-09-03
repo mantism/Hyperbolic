@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as ImagePicker from 'expo-image-picker';
+import { Video } from 'expo-av';
 import { Database } from "@/lib/supabase/database.types";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
@@ -27,13 +29,53 @@ export default function VideoUploadModal({
   trick,
   userId,
 }: VideoUploadModalProps) {
-  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [selectedVideo, setSelectedVideo] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleSelectVideo = async () => {
-    // TODO: Implement video selection with expo-image-picker
-    Alert.alert("Select Video", "Video selection coming soon!");
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your media library to select videos'
+        );
+        return;
+      }
+
+      // Launch video picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        quality: 0.8,
+        videoMaxDuration: 10, // 10 seconds max
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      
+      // Validate video
+      if (asset.fileSize && asset.fileSize > 100 * 1024 * 1024) {
+        Alert.alert('File Too Large', 'Video must be less than 100MB');
+        return;
+      }
+
+      if (asset.duration && asset.duration > 10000) {
+        Alert.alert('Video Too Long', 'Video must be less than 10 seconds');
+        return;
+      }
+
+      setSelectedVideo(asset);
+    } catch (error) {
+      console.error('Error selecting video:', error);
+      Alert.alert('Error', 'Failed to select video. Please try again.');
+    }
   };
 
   const handleUpload = async () => {
@@ -63,6 +105,29 @@ export default function VideoUploadModal({
   const handleRemoveVideo = () => {
     setSelectedVideo(null);
     setUploadProgress(0);
+  };
+
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes) return 'Unknown size';
+    
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 Bytes';
+    
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const formatDuration = (milliseconds?: number): string => {
+    if (!milliseconds) return 'Unknown duration';
+    
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes > 0) {
+      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+    return `${seconds}s`;
   };
 
   return (
@@ -105,9 +170,21 @@ export default function VideoUploadModal({
             </TouchableOpacity>
           ) : (
             <View style={styles.videoPreview}>
-              <View style={styles.videoPlaceholder}>
-                <Ionicons name="film-outline" size={48} color="#666" />
-                <Text style={styles.videoName}>Selected Video</Text>
+              <Video
+                source={{ uri: selectedVideo.uri }}
+                style={styles.videoPlayer}
+                resizeMode="cover"
+                shouldPlay={false}
+                isLooping={false}
+                useNativeControls
+              />
+              <View style={styles.videoInfo}>
+                <Text style={styles.videoName}>
+                  {selectedVideo.fileName || 'Selected Video'}
+                </Text>
+                <Text style={styles.videoDetails}>
+                  {formatDuration(selectedVideo.duration)} • {formatFileSize(selectedVideo.fileSize)}
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.removeButton}
@@ -253,14 +330,24 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     position: "relative",
   },
-  videoPlaceholder: {
-    alignItems: "center",
-    paddingVertical: 32,
+  videoPlayer: {
+    width: "100%",
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: "#000",
+  },
+  videoInfo: {
+    marginTop: 12,
   },
   videoName: {
     fontSize: 14,
+    fontWeight: "500",
     color: "#000",
-    marginTop: 8,
+  },
+  videoDetails: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
   },
   removeButton: {
     position: "absolute",
