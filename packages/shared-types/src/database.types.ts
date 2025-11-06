@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      tricklogs: {
+      TrickLogs: {
         Row: {
           created_at: string | null
           id: string
@@ -73,12 +73,76 @@ export type Database = {
           },
         ]
       }
+      TrickMediaTable: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number | null
+          file_size_bytes: number | null
+          id: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          metadata: Json | null
+          mime_type: string | null
+          thumbnail_url: string | null
+          tricklog_id: string | null
+          updated_at: string | null
+          upload_status: Database["public"]["Enums"]["upload_status"]
+          url: string
+          user_trick_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          metadata?: Json | null
+          mime_type?: string | null
+          thumbnail_url?: string | null
+          tricklog_id?: string | null
+          updated_at?: string | null
+          upload_status?: Database["public"]["Enums"]["upload_status"]
+          url: string
+          user_trick_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          metadata?: Json | null
+          mime_type?: string | null
+          thumbnail_url?: string | null
+          tricklog_id?: string | null
+          updated_at?: string | null
+          upload_status?: Database["public"]["Enums"]["upload_status"]
+          url?: string
+          user_trick_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "TrickMediaTable_tricklog_id_fkey"
+            columns: ["tricklog_id"]
+            isOneToOne: false
+            referencedRelation: "TrickLogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "TrickMediaTable_user_trick_id_fkey"
+            columns: ["user_trick_id"]
+            isOneToOne: false
+            referencedRelation: "UserToTricksTable"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       TricksTable: {
         Row: {
           aliases: string[] | null
           categories: string[] | null
           created_at: string | null
           description: string | null
+          featured_video_id: string | null
           id: string
           lastUpdated: string | null
           name: string
@@ -91,6 +155,7 @@ export type Database = {
           categories?: string[] | null
           created_at?: string | null
           description?: string | null
+          featured_video_id?: string | null
           id: string
           lastUpdated?: string | null
           name: string
@@ -103,6 +168,7 @@ export type Database = {
           categories?: string[] | null
           created_at?: string | null
           description?: string | null
+          featured_video_id?: string | null
           id?: string
           lastUpdated?: string | null
           name?: string
@@ -110,7 +176,15 @@ export type Database = {
           progressions?: string[] | null
           rating?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "TricksTable_featured_video_id_fkey"
+            columns: ["featured_video_id"]
+            isOneToOne: false
+            referencedRelation: "TrickMediaTable"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       UsersTable: {
         Row: {
@@ -212,7 +286,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      media_type: "video" | "image"
+      upload_status: "pending" | "processing" | "completed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -339,6 +414,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      media_type: ["video", "image"],
+      upload_status: ["pending", "processing", "completed", "failed"],
+    },
   },
 } as const
