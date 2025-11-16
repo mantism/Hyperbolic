@@ -1,9 +1,15 @@
 {
-  "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "build/**",
+        ".expo/**",
+        "!.expo/cache/**"
+      ]
     },
     "dev": {
       "cache": false,

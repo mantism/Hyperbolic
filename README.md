@@ -93,12 +93,27 @@ SUPABASE_SERVICE_KEY=...  # Server-only secret
 ### Available Scripts
 
 ```bash
+# Development
 pnpm dev        # Run all apps in development mode
-pnpm build      # Build all apps
+pnpm mobile     # Run mobile app only
+pnpm api        # Run Go backend only
+
+# Building
+pnpm build      # Build all apps (mobile export + Go binary)
+
+# Quality
 pnpm lint       # Lint all apps
 pnpm test       # Run all tests
+
+# Cleanup
 pnpm clean      # Clean all build artifacts
 ```
+
+### Build Outputs
+
+After running `pnpm build`, you'll find:
+- **Mobile app**: `apps/mobile/dist/` (web export)
+- **Go service**: `apps/dolos-web-service/dist/dolos-web-service` (binary)
 
 ## Tech Stack
 
