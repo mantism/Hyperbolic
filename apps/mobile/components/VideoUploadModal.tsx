@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as ImagePicker from 'expo-image-picker';
-import { Video } from 'expo-av';
+import * as ImagePicker from "expo-image-picker";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { Database } from "@/lib/supabase/database.types";
 
 type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
@@ -29,26 +29,42 @@ export default function VideoUploadModal({
   trick,
   userId,
 }: VideoUploadModalProps) {
-  const [selectedVideo, setSelectedVideo] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [selectedVideo, setSelectedVideo] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const player = useVideoPlayer(selectedVideo?.uri ?? "", (player) => {
+    player.loop = false;
+    player.pause();
+  });
+
+  // Update player source when video changes
+  useEffect(() => {
+    if (selectedVideo?.uri) {
+      player.replaceAsync(selectedVideo.uri).then(() => {
+        player.pause();
+      });
+    }
+  }, [selectedVideo?.uri]);
 
   const handleSelectVideo = async () => {
     try {
       // Request permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
         Alert.alert(
-          'Permission Required',
-          'Please allow access to your media library to select videos'
+          "Permission Required",
+          "Please allow access to your media library to select videos"
         );
         return;
       }
 
       // Launch video picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: "videos",
         allowsEditing: true,
         quality: 0.8,
         videoMaxDuration: 10, // 10 seconds max
@@ -59,22 +75,22 @@ export default function VideoUploadModal({
       }
 
       const asset = result.assets[0];
-      
+
       // Validate video
       if (asset.fileSize && asset.fileSize > 100 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Video must be less than 100MB');
+        Alert.alert("File Too Large", "Video must be less than 100MB");
         return;
       }
 
       if (asset.duration && asset.duration > 10000) {
-        Alert.alert('Video Too Long', 'Video must be less than 10 seconds');
+        Alert.alert("Video Too Long", "Video must be less than 10 seconds");
         return;
       }
 
       setSelectedVideo(asset);
     } catch (error) {
-      console.error('Error selecting video:', error);
-      Alert.alert('Error', 'Failed to select video. Please try again.');
+      console.error("Error selecting video:", error);
+      Alert.alert("Error", "Failed to select video. Please try again.");
     }
   };
 
@@ -108,24 +124,24 @@ export default function VideoUploadModal({
   };
 
   const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return 'Unknown size';
-    
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    if (bytes === 0) return '0 Bytes';
-    
+    if (!bytes) return "Unknown size";
+
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    if (bytes === 0) return "0 Bytes";
+
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
   };
 
   const formatDuration = (milliseconds?: number): string => {
-    if (!milliseconds) return 'Unknown duration';
-    
+    if (!milliseconds) return "Unknown duration";
+
     const seconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    
+
     if (minutes > 0) {
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+      return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
     }
     return `${seconds}s`;
   };
@@ -170,20 +186,23 @@ export default function VideoUploadModal({
             </TouchableOpacity>
           ) : (
             <View style={styles.videoPreview}>
-              <Video
-                source={{ uri: selectedVideo.uri }}
+              <VideoView
                 style={styles.videoPlayer}
-                resizeMode="cover"
-                shouldPlay={false}
-                isLooping={false}
-                useNativeControls
+                player={player}
+                fullscreenOptions={{
+                  enable: true,
+                }}
+                allowsPictureInPicture
+                nativeControls
+                contentFit="cover"
               />
               <View style={styles.videoInfo}>
                 <Text style={styles.videoName}>
-                  {selectedVideo.fileName || 'Selected Video'}
+                  {selectedVideo.fileName || "Selected Video"}
                 </Text>
                 <Text style={styles.videoDetails}>
-                  {formatDuration(selectedVideo.duration)} • {formatFileSize(selectedVideo.fileSize)}
+                  {formatDuration(selectedVideo.duration ?? undefined)} •{" "}
+                  {formatFileSize(selectedVideo.fileSize)}
                 </Text>
               </View>
               <TouchableOpacity

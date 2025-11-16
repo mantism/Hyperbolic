@@ -121,7 +121,7 @@ export default function TrickDetailPage({
   const fetchLandedSurfaces = async (userTrickId: string) => {
     try {
       const { data, error } = await supabase
-        .from("tricklogs")
+        .from("TrickLogs")
         .select("surface_type")
         .eq("user_trick_id", userTrickId)
         .eq("landed", true)
@@ -671,7 +671,7 @@ export default function TrickDetailPage({
           ) : null}
         </View>
       </Animated.ScrollView>
-      
+
       {/* Video Upload Modal */}
       {user && (
         <VideoUploadModal

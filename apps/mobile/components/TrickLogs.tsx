@@ -45,8 +45,9 @@ export default function TrickLogs({
   const [logs, setLogs] = useState<TrickLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [internalShowModal, setInternalShowModal] = useState(false);
-  
-  const showAddModal = externalShowModal !== undefined ? externalShowModal : internalShowModal;
+
+  const showAddModal =
+    externalShowModal !== undefined ? externalShowModal : internalShowModal;
   const setShowAddModal = (value: boolean) => {
     if (externalShowModal !== undefined && onCloseModal) {
       if (!value) onCloseModal();
@@ -77,7 +78,7 @@ export default function TrickLogs({
 
     try {
       const { data, error } = await supabase
-        .from("tricklogs")
+        .from("TrickLogs")
         .select("*")
         .eq("user_trick_id", userTrick.id)
         .order("logged_at", { ascending: false })
