@@ -4,12 +4,12 @@ import "time"
 
 // VideoUploadRequest matches TypeScript interface
 type VideoUploadRequest struct {
-	TrickID   string `json:"trickId" binding:"required"`
-	UserID    string `json:"userId" binding:"required"`
-	FileName  string `json:"fileName" binding:"required"`
-	FileSize  int64  `json:"fileSize" binding:"required"`
-	MimeType  string `json:"mimeType" binding:"required"`
-	Duration  *int   `json:"duration,omitempty"` // in milliseconds
+	TrickID   string   `json:"trickId" binding:"required"`
+	UserID    string   `json:"userId" binding:"required"`
+	FileName  string   `json:"fileName" binding:"required"`
+	FileSize  int64    `json:"fileSize" binding:"required"`
+	MimeType  string   `json:"mimeType" binding:"required"`
+	Duration  *float64 `json:"duration,omitempty"` // in milliseconds
 }
 
 // VideoUploadResponse matches TypeScript interface

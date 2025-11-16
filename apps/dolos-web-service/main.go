@@ -16,6 +16,9 @@ func main() {
 		log.Println("No .env file found")
 	}
 
+	// Initialize clients (must be after loading env vars)
+	handlers.InitClients()
+
 	// Initialize Gin router
 	r := gin.Default()
 

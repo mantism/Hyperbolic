@@ -20,16 +20,21 @@ import (
 )
 
 var (
-	s3Client *s3.Client
+	s3Client       *s3.Client
 	supabaseClient *supabase.Client
 )
 
-func init() {
+// InitClients initializes S3 and Supabase clients (call after loading env vars)
+func InitClients() {
 	// Initialize S3 client for Cloudflare R2
 	accountId := os.Getenv("CLOUDFLARE_ACCOUNT_ID")
 	accessKeyId := os.Getenv("CLOUDFLARE_R2_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("CLOUDFLARE_R2_SECRET_ACCESS_KEY")
-	
+
+	if accountId == "" || accessKeyId == "" || secretAccessKey == "" {
+		log.Fatal("R2 credentials not set. Check CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY")
+	}
+
 	r2Resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		return aws.Endpoint{
 			URL: fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountId),
@@ -47,6 +52,7 @@ func init() {
 
 	s3Client = s3.NewFromConfig(cfg)
 	supabaseClient = supabase.NewClient()
+	log.Println("R2 and Supabase clients initialized successfully")
 }
 
 // RequestVideoUpload generates a presigned URL for video upload
@@ -84,29 +90,74 @@ func RequestVideoUpload(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL"})
+		log.Printf("Failed to generate presigned URL: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL", "details": err.Error()})
 		return
+	}
+
+	// First, get or create UserToTricks record
+	// Query for existing user_trick record
+	userTrickQuery := fmt.Sprintf("?userID=eq.%s&trickID=eq.%s&select=id", req.UserID, req.TrickID)
+	userTrickResp, err := supabaseClient.Select("UserToTricks", userTrickQuery)
+	if err != nil {
+		log.Printf("Failed to query UserToTricks: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to lookup user trick", "details": err.Error()})
+		return
+	}
+
+	var userTricks []map[string]interface{}
+	if err := json.Unmarshal(userTrickResp, &userTricks); err != nil {
+		log.Printf("Failed to parse user tricks: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user trick data"})
+		return
+	}
+
+	var userTrickID string
+	if len(userTricks) > 0 {
+		// Use existing record
+		userTrickID = userTricks[0]["id"].(string)
+	} else {
+		// Create new UserToTricks record
+		newUserTrick := map[string]interface{}{
+			"userID":  req.UserID,
+			"trickID": req.TrickID,
+			"landed":  false,
+		}
+		userTrickCreateResp, err := supabaseClient.Insert("UserToTricks", newUserTrick)
+		if err != nil {
+			log.Printf("Failed to create UserToTricks record: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user trick record", "details": err.Error()})
+			return
+		}
+
+		var createdUserTricks []map[string]interface{}
+		if err := json.Unmarshal(userTrickCreateResp, &createdUserTricks); err != nil || len(createdUserTricks) == 0 {
+			log.Printf("Failed to parse created user trick: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user trick record"})
+			return
+		}
+		userTrickID = createdUserTricks[0]["id"].(string)
 	}
 
 	// Save pending upload record to database
 	pendingVideo := map[string]interface{}{
-		"id":              videoId,
-		"trick_id":        req.TrickID,
-		"user_id":         req.UserID,
-		"url":             fmt.Sprintf("https://pub-%s.r2.dev/%s", os.Getenv("CLOUDFLARE_R2_BUCKET_NAME"), key),
-		"file_size_bytes": req.FileSize,
-		"mime_type":       req.MimeType,
-		"media_type":      "video",
-		"upload_status":   "pending",
+		"id":               videoId,
+		"user_trick_id":    userTrickID,
+		"url":              fmt.Sprintf("%s/%s", os.Getenv("CLOUDFLARE_R2_PUBLIC_URL"), key),
+		"file_size_bytes":  req.FileSize,
+		"mime_type":        req.MimeType,
+		"media_type":       "video",
+		"upload_status":    "pending",
 	}
 
 	if req.Duration != nil {
-		pendingVideo["duration_seconds"] = *req.Duration / 1000
+		pendingVideo["duration_seconds"] = int(*req.Duration / 1000)
 	}
 
-	_, err = supabaseClient.Insert("trick_media", pendingVideo)
+	_, err = supabaseClient.Insert("TrickMedia", pendingVideo)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload record"})
+		log.Printf("Failed to insert video record: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload record", "details": err.Error()})
 		return
 	}
 
@@ -131,12 +182,13 @@ func CompleteVideoUpload(c *gin.Context) {
 	// Update upload status in database
 	updateData := map[string]interface{}{
 		"upload_status": "completed",
-		"uploaded_at":   time.Now().Format(time.RFC3339),
+		"updated_at":    time.Now().Format(time.RFC3339),
 	}
 
-	_, err := supabaseClient.Update("trick_media", fmt.Sprintf("?id=eq.%s", req.VideoId), updateData)
+	_, err := supabaseClient.Update("TrickMedia", fmt.Sprintf("?id=eq.%s", req.VideoId), updateData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete upload"})
+		log.Printf("Failed to update TrickMedia: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete upload", "details": err.Error()})
 		return
 	}
 
@@ -151,8 +203,8 @@ func CompleteVideoUpload(c *gin.Context) {
 // GetTrickVideos returns all videos for a trick
 func GetTrickVideos(c *gin.Context) {
 	trickId := c.Param("trickId")
-	
-	respData, err := supabaseClient.Select("trick_media", fmt.Sprintf("?trick_id=eq.%s&media_type=eq.video&order=created_at.desc", trickId))
+
+	respData, err := supabaseClient.Select("TrickMedia", fmt.Sprintf("?trick_id=eq.%s&media_type=eq.video&order=created_at.desc", trickId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch videos"})
 		return
@@ -173,7 +225,7 @@ func DeleteVideo(c *gin.Context) {
 	userId := c.GetString("userId") // From auth middleware
 
 	// Get video metadata and verify ownership
-	respData, err := supabaseClient.Select("trick_media", fmt.Sprintf("?id=eq.%s&select=*", videoId))
+	respData, err := supabaseClient.Select("TrickMedia", fmt.Sprintf("?id=eq.%s&select=*", videoId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video"})
 		return
@@ -204,7 +256,7 @@ func DeleteVideo(c *gin.Context) {
 	}
 
 	// Delete from database
-	_, err = supabaseClient.Delete("trick_media", fmt.Sprintf("?id=eq.%s", videoId))
+	_, err = supabaseClient.Delete("TrickMedia", fmt.Sprintf("?id=eq.%s", videoId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete video"})
 		return

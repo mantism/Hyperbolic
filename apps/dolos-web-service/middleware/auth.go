@@ -61,21 +61,46 @@ func fetchJWKS() (*JWKS, error) {
 		return nil, fmt.Errorf("SUPABASE_URL not configured")
 	}
 
-	jwksURL := fmt.Sprintf("%s/auth/v1/jwks", supabaseURL)
-	resp, err := http.Get(jwksURL)
+	jwksURL := fmt.Sprintf("%s/auth/v1/.well-known/jwks.json", supabaseURL)
+	fmt.Printf("Fetching JWKS from: %s\n", jwksURL)
+
+	// Create request with API key header
+	req, err := http.NewRequest("GET", jwksURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JWKS request: %w", err)
+	}
+
+	// Supabase requires apikey header (can use anon key since JWKS is public)
+	serviceKey := os.Getenv("SUPABASE_SERVICE_KEY")
+	if serviceKey != "" {
+		req.Header.Set("apikey", serviceKey)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
 	}
 	defer resp.Body.Close()
+
+	fmt.Printf("JWKS response status: %d\n", resp.StatusCode)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read JWKS response: %w", err)
 	}
 
+	fmt.Printf("JWKS response body: %s\n", string(body))
+
 	var jwks JWKS
 	if err := json.Unmarshal(body, &jwks); err != nil {
 		return nil, fmt.Errorf("failed to parse JWKS: %w", err)
+	}
+
+	// Log fetched keys for debugging
+	fmt.Printf("Fetched %d keys from JWKS:\n", len(jwks.Keys))
+	for _, key := range jwks.Keys {
+		fmt.Printf("  - kid: %s, kty: %s, crv: %s\n", key.Kid, key.Kty, key.Crv)
 	}
 
 	// Cache the JWKS
@@ -144,7 +169,7 @@ func Auth() gin.HandlerFunc {
 		token, err := jwt.ParseWithClaims(tokenString, &SupabaseClaims{}, func(token *jwt.Token) (interface{}, error) {
 			// Verify signing method is ES256
 			if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				return nil, fmt.Errorf("unexpected signing method: %v (expecting ES256). If using HS256, please sign out and sign back in to get a new token", token.Header["alg"])
 			}
 
 			// Get kid from token header
