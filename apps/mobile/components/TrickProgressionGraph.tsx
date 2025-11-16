@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
 import { getCategoryColor } from "@/lib/categoryColors";
 
-type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
+type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 
 interface TrickProgressionGraphProps {
   trick: Trick;
@@ -58,7 +58,7 @@ export default function TrickProgressionGraph({
         // Fetch prerequisites if they exist
         if (trick.prereqs && trick.prereqs.length > 0) {
           const { data: prereqs } = await supabase
-            .from("TricksTable")
+            .from("Tricks")
             .select("*")
             .in("name", trick.prereqs);
           if (prereqs) setPrereqTricks(prereqs);
@@ -67,7 +67,7 @@ export default function TrickProgressionGraph({
         // Fetch progressions if they exist
         if (trick.progressions && trick.progressions.length > 0) {
           const { data: progressions } = await supabase
-            .from("TricksTable")
+            .from("Tricks")
             .select("*")
             .in("name", trick.progressions);
           if (progressions) setProgressionTricks(progressions);

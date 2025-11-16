@@ -16,8 +16,8 @@ import TrickCard from "@/components/TrickCard";
 import FilterDropdown from "@/components/FilterDropdown";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"] & {
+type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
+type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"] & {
   trick: Trick;
 };
 
@@ -51,7 +51,7 @@ export default function BrowseScreen() {
   const fetchAllTricks = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("TricksTable")
+        .from("Tricks")
         .select("*")
         .order("name");
 
@@ -85,11 +85,11 @@ export default function BrowseScreen() {
 
     try {
       const { data, error } = await supabase
-        .from("UserToTricksTable")
+        .from("UserToTricks")
         .select(
           `
           *,
-          trick:TricksTable(*)
+          trick:Tricks(*)
         `
         )
         .eq("userID", user.id);

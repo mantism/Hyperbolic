@@ -10,8 +10,8 @@ import {
   TrickTier,
 } from "@/lib/trickProgressTiers";
 
-type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"] & {
+type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
+type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"] & {
   trick: Trick;
 };
 

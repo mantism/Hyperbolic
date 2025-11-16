@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase/supabase";
 import { Database } from "@/lib/supabase/database.types";
 import TrickDetailPage from "@/components/TrickDetailPage";
 
-type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
+type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 
 export default function TrickScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,7 +16,7 @@ export default function TrickScreen() {
   const fetchTrick = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("TricksTable")
+        .from("Tricks")
         .select("*")
         .eq("id", id)
         .single();

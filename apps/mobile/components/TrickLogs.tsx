@@ -20,8 +20,8 @@ import {
   getSurfaceTypeLabel,
 } from "@/lib/surfaceTypes";
 
-type TrickLog = Database["public"]["Tables"]["tricklogs"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
+type TrickLog = Database["public"]["Tables"]["TrickLogs"]["Row"];
+type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"];
 
 interface TrickLogsProps {
   userTrick?: UserTrick | null;
@@ -110,7 +110,7 @@ export default function TrickLogs({
         const newStomps = formData.landed ? reps : 0;
 
         const { data: newUserTrick, error: createError } = await supabase
-          .from("UserToTricksTable")
+          .from("UserToTricks")
           .insert({
             userID: userId,
             trickID: trickId,
@@ -134,7 +134,7 @@ export default function TrickLogs({
           : currentStomps;
 
         const { error: updateError } = await supabase
-          .from("UserToTricksTable")
+          .from("UserToTricks")
           .update({
             attempts: newAttempts,
             stomps: newStomps,

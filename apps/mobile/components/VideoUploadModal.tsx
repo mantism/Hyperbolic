@@ -12,9 +12,10 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { uploadVideo } from "@/lib/services/videoUploadService";
 import { Database } from "@/lib/supabase/database.types";
 
-type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
+type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 
 interface VideoUploadModalProps {
   visible: boolean;
@@ -101,21 +102,32 @@ export default function VideoUploadModal({
     }
 
     setUploading(true);
-    // TODO: Implement actual upload to Cloudflare R2
+    setUploadProgress(0);
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          Alert.alert("Success", "Video uploaded successfully!");
-          setUploading(false);
-          onClose();
-          return 100;
+    try {
+      await uploadVideo(
+        selectedVideo.uri,
+        selectedVideo.fileName || "video.mp4",
+        selectedVideo.fileSize || 0,
+        selectedVideo.mimeType || "video/mp4",
+        trick.id,
+        userId,
+        selectedVideo.duration || 0,
+        (progress) => {
+          setUploadProgress(Math.round(progress));
         }
-        return prev + 10;
-      });
-    }, 300);
+      );
+
+      Alert.alert("Success", "Video uploaded successfully!");
+      setSelectedVideo(null);
+      setUploadProgress(0);
+      onClose();
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      Alert.alert("Failed to upload video. Please try again.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleRemoveVideo = () => {

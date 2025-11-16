@@ -14,8 +14,8 @@ import { Database } from "@/lib/supabase/database.types";
 import TrickCard from "@/components/TrickCard";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"] & {
+type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
+type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"] & {
   trick: Trick;
 };
 
@@ -31,11 +31,11 @@ export default function ArsenalScreen() {
 
     try {
       const { data, error } = await supabase
-        .from("UserToTricksTable")
+        .from("UserToTricks")
         .select(
           `
           *,
-          trick:TricksTable(*)
+          trick:Tricks(*)
         `
         )
         .eq("userID", user.id)

@@ -35,9 +35,8 @@ import TrickLogs from "./TrickLogs";
 import CircularProgress from "./CircularProgress";
 import VideoUploadModal from "./VideoUploadModal";
 
-type Trick = Database["public"]["Tables"]["TricksTable"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricksTable"]["Row"];
-type TrickLog = Database["public"]["Tables"]["tricklogs"]["Row"];
+type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
+type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"];
 
 interface TrickDetailPageProps {
   trick: Trick;
@@ -89,7 +88,7 @@ export default function TrickDetailPage({
 
     try {
       const { data, error } = await supabase
-        .from("UserToTricksTable")
+        .from("UserToTricks")
         .select("*")
         .eq("userID", user.id)
         .eq("trickID", trick.id)
@@ -162,7 +161,7 @@ export default function TrickDetailPage({
         {
           event: "*",
           schema: "public",
-          table: "UserToTricksTable",
+          table: "UserToTricks",
           filter: `userID=eq.${user.id},trickID=eq.${trick.id}`,
         },
         (payload) => {
@@ -220,7 +219,7 @@ export default function TrickDetailPage({
         if (currentUserTrick) {
           // Update existing
           const { data, error } = await supabase
-            .from("UserToTricksTable")
+            .from("UserToTricks")
             .update(trickData)
             .eq("id", currentUserTrick.id)
             .select()
@@ -232,7 +231,7 @@ export default function TrickDetailPage({
         } else {
           // Insert new
           const { data, error } = await supabase
-            .from("UserToTricksTable")
+            .from("UserToTricks")
             .insert(trickData)
             .select()
             .single();
@@ -320,7 +319,7 @@ export default function TrickDetailPage({
           onPress: async () => {
             try {
               const { error } = await supabase
-                .from("UserToTricksTable")
+                .from("UserToTricks")
                 .delete()
                 .eq("id", userTrick.id);
 

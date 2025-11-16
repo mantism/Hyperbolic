@@ -50,14 +50,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === "SIGNED_IN" && session?.user) {
         // Check if user profile exists
         const { data: profile } = await supabase
-          .from("UsersTable")
+          .from("Users")
           .select("*")
           .eq("id", session.user.id)
           .single();
 
         // Create profile if it doesn't exist
         if (!profile && session.user.user_metadata?.username) {
-          await supabase.from("UsersTable").insert([
+          await supabase.from("Users").insert([
             {
               id: session.user.id,
               username: session.user.user_metadata.username,
