@@ -3,13 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
   LayoutAnimation,
   Platform,
-  SafeAreaView,
   Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -34,6 +32,10 @@ import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
 import CircularProgress from "./CircularProgress";
 import VideoUploadModal from "./VideoUploadModal";
+import VideoHero from "./VideoHero";
+import VideoGallery from "./VideoGallery";
+import VideoPlayerModal from "./VideoPlayerModal";
+import { getTrickVideos, TrickVideo } from "@/lib/services/videoService";
 
 type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"];
@@ -54,6 +56,13 @@ export default function TrickDetailPage({
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showLogModal, setShowLogModal] = useState(false);
   const [showVideoUploadModal, setShowVideoUploadModal] = useState(false);
+
+  // Video states
+  const [videos, setVideos] = useState<TrickVideo[]>([]);
+  const [videoTab, setVideoTab] = useState<"my" | "community">("my");
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<TrickVideo | null>(null);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
 
   // Form states
   const [attempts, setAttempts] = useState(0);
@@ -142,13 +151,36 @@ export default function TrickDetailPage({
     }
   };
 
+  const fetchVideos = useCallback(async () => {
+    if (!user) return;
+
+    setLoadingVideos(true);
+    try {
+      const userId = videoTab === "my" ? user.id : undefined;
+      const fetchedVideos = await getTrickVideos(trick.id, userId);
+      setVideos(fetchedVideos);
+    } catch (error) {
+      console.error("Error fetching videos:", error);
+    } finally {
+      setLoadingVideos(false);
+    }
+  }, [user, trick.id, videoTab]);
+
   useEffect(() => {
     if (user) {
       fetchUserTrick();
+      fetchVideos();
     } else {
       setLoading(false);
     }
   }, [user, trick.id, fetchUserTrick]);
+
+  // Refetch videos when tab changes
+  useEffect(() => {
+    if (user) {
+      fetchVideos();
+    }
+  }, [videoTab]);
 
   // Set up realtime subscription for this user's trick data
   useEffect(() => {
@@ -303,6 +335,22 @@ export default function TrickDetailPage({
     setShowVideoUploadModal(true);
   };
 
+  const handleVideoUploadClose = () => {
+    setShowVideoUploadModal(false);
+    // Refresh videos after upload
+    fetchVideos();
+  };
+
+  const handlePlayVideo = (video: TrickVideo) => {
+    setSelectedVideo(video);
+    setShowVideoPlayer(true);
+  };
+
+  const handleCloseVideoPlayer = () => {
+    setShowVideoPlayer(false);
+    setSelectedVideo(null);
+  };
+
   const removeFromArsenal = async () => {
     if (!userTrick) {
       return;
@@ -359,28 +407,19 @@ export default function TrickDetailPage({
     );
   }
 
+  const featuredVideo = videos.length > 0 ? videos[0] : null;
+
   return (
     <View style={styles.container}>
-      {/* Fixed background image */}
-      <Animated.View
-        style={[
-          styles.fixedImageContainer,
-          {
-            backgroundColor: categoryColor + "20",
-            transform: [
-              {
-                translateY: scrollY.interpolate({
-                  inputRange: [0, 300],
-                  outputRange: [0, -100],
-                  extrapolate: "clamp",
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <Ionicons name="image-outline" size={48} color={categoryColor} />
-      </Animated.View>
+      {/* Video Hero */}
+      <VideoHero
+        video={featuredVideo}
+        categoryColor={categoryColor}
+        scrollY={scrollY}
+        onPlayPress={
+          featuredVideo ? () => handlePlayVideo(featuredVideo) : undefined
+        }
+      />
 
       <TouchableOpacity
         style={styles.fab}
@@ -599,6 +638,61 @@ export default function TrickDetailPage({
             ) : null}
           </View>
 
+          {/* Video Gallery with Tabs */}
+          {user && (
+            <View style={styles.videoSection}>
+              {/* Tabs */}
+              <View style={styles.videoTabs}>
+                <TouchableOpacity
+                  style={[
+                    styles.videoTab,
+                    videoTab === "my" && styles.videoTabActive,
+                  ]}
+                  onPress={() => setVideoTab("my")}
+                >
+                  <Text
+                    style={[
+                      styles.videoTabText,
+                      videoTab === "my" && styles.videoTabTextActive,
+                    ]}
+                  >
+                    My Videos
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.videoTab,
+                    videoTab === "community" && styles.videoTabActive,
+                  ]}
+                  onPress={() => setVideoTab("community")}
+                >
+                  <Text
+                    style={[
+                      styles.videoTabText,
+                      videoTab === "community" && styles.videoTabTextActive,
+                    ]}
+                  >
+                    Community
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Video Gallery */}
+              {loadingVideos ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#999" />
+                </View>
+              ) : (
+                <VideoGallery
+                  videos={videos}
+                  onVideoPress={handlePlayVideo}
+                  onVideoDeleted={fetchVideos}
+                  showDeleteOption={videoTab === "my"}
+                />
+              )}
+            </View>
+          )}
+
           {/* Actions Row */}
           {user ? (
             <View style={styles.actionsRow}>
@@ -675,11 +769,18 @@ export default function TrickDetailPage({
       {user && (
         <VideoUploadModal
           visible={showVideoUploadModal}
-          onClose={() => setShowVideoUploadModal(false)}
+          onClose={handleVideoUploadClose}
           trick={trick}
           userId={user.id}
         />
       )}
+
+      {/* Video Player Modal */}
+      <VideoPlayerModal
+        visible={showVideoPlayer}
+        video={selectedVideo}
+        onClose={handleCloseVideoPlayer}
+      />
     </View>
   );
 }
@@ -1128,5 +1229,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#999",
     fontStyle: "italic",
+  },
+  videoSection: {
+    marginTop: 24,
+  },
+  videoTabs: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 12,
+  },
+  videoTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "#F5F5F5",
+  },
+  videoTabActive: {
+    backgroundColor: "#000",
+  },
+  videoTabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+  },
+  videoTabTextActive: {
+    color: "#FFF",
   },
 });

@@ -14,6 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { uploadVideo } from "@/lib/services/videoUploadService";
 import { Database } from "@/lib/supabase/database.types";
+import { VideoThumbnailSelector } from "./VideoThumbnailSelector";
 
 type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 
@@ -34,6 +35,8 @@ export default function VideoUploadModal({
     useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedVideoId, setUploadedVideoId] = useState<string | null>(null);
+  const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
 
   const player = useVideoPlayer(selectedVideo?.uri ?? "", (player) => {
     player.loop = false;
@@ -105,7 +108,7 @@ export default function VideoUploadModal({
     setUploadProgress(0);
 
     try {
-      await uploadVideo(
+      const videoId = await uploadVideo(
         selectedVideo.uri,
         selectedVideo.fileName || "video.mp4",
         selectedVideo.fileSize || 0,
@@ -118,16 +121,33 @@ export default function VideoUploadModal({
         }
       );
 
-      Alert.alert("Success", "Video uploaded successfully!");
-      setSelectedVideo(null);
-      setUploadProgress(0);
-      onClose();
+      // Show thumbnail selector after successful upload
+      setUploadedVideoId(videoId);
+      setShowThumbnailSelector(true);
     } catch (error: any) {
       console.error("Upload error:", error);
-      Alert.alert("Failed to upload video. Please try again.");
+      Alert.alert("Upload Failed", "Failed to upload video. Please try again.");
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleThumbnailComplete = (thumbnailUrl: string) => {
+    setShowThumbnailSelector(false);
+    Alert.alert("Success", "Video and thumbnail uploaded successfully!");
+    setSelectedVideo(null);
+    setUploadProgress(0);
+    setUploadedVideoId(null);
+    onClose();
+  };
+
+  const handleThumbnailCancel = () => {
+    setShowThumbnailSelector(false);
+    Alert.alert("Success", "Video uploaded successfully!");
+    setSelectedVideo(null);
+    setUploadProgress(0);
+    setUploadedVideoId(null);
+    onClose();
   };
 
   const handleRemoveVideo = () => {
@@ -159,13 +179,14 @@ export default function VideoUploadModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
+    <>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
+        <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -285,6 +306,19 @@ export default function VideoUploadModal({
         </View>
       </View>
     </Modal>
+
+    {/* Thumbnail Selector Modal */}
+    {showThumbnailSelector && selectedVideo && uploadedVideoId && (
+      <VideoThumbnailSelector
+        visible={showThumbnailSelector}
+        videoUri={selectedVideo.uri}
+        videoId={uploadedVideoId}
+        videoDuration={selectedVideo.duration || 0}
+        onComplete={handleThumbnailComplete}
+        onCancel={handleThumbnailCancel}
+      />
+    )}
+    </>
   );
 }
 
