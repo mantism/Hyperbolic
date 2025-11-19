@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -168,6 +170,101 @@ func RequestVideoUpload(c *gin.Context) {
 	})
 }
 
+// UploadThumbnail handles thumbnail image upload for a video
+func UploadThumbnail(c *gin.Context) {
+	videoId := c.Param("videoId")
+	userId := c.GetString("userId") // From auth middleware
+
+	// Get video to verify ownership
+	respData, err := supabaseClient.Select("TrickMedia", fmt.Sprintf("?id=eq.%s&select=*,user_trick_id(*)", videoId))
+	if err != nil {
+		log.Printf("Failed to fetch video: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video"})
+		return
+	}
+
+	var videos []map[string]interface{}
+	if err := json.Unmarshal(respData, &videos); err != nil || len(videos) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
+		return
+	}
+
+	// Parse multipart form
+	file, err := c.FormFile("thumbnail")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No thumbnail file provided"})
+		return
+	}
+
+	// Validate file type
+	contentType := file.Header.Get("Content-Type")
+	if contentType != "image/jpeg" && contentType != "image/jpg" && contentType != "image/png" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format. Only JPEG and PNG are supported"})
+		return
+	}
+
+	// Open uploaded file
+	src, err := file.Open()
+	if err != nil {
+		log.Printf("Failed to open uploaded file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process upload"})
+		return
+	}
+	defer src.Close()
+
+	// Read file content
+	fileContent, err := io.ReadAll(src)
+	if err != nil {
+		log.Printf("Failed to read file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+
+	// Get video metadata to construct thumbnail path
+	video := videos[0]
+	userTrick := video["user_trick_id"].(map[string]interface{})
+	trickID := userTrick["trickID"].(string)
+
+	// Construct thumbnail key
+	extension := "jpg"
+	if contentType == "image/png" {
+		extension = "png"
+	}
+	thumbnailKey := fmt.Sprintf("tricks/%s/videos/%s/%s/thumbnail.%s", trickID, userId, videoId, extension)
+
+	// Upload to R2
+	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket:      aws.String(os.Getenv("CLOUDFLARE_R2_BUCKET_NAME")),
+		Key:         aws.String(thumbnailKey),
+		Body:        bytes.NewReader(fileContent),
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		log.Printf("Failed to upload thumbnail to R2: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload thumbnail"})
+		return
+	}
+
+	// Update TrickMedia record with thumbnail URL
+	thumbnailURL := fmt.Sprintf("%s/%s", os.Getenv("CLOUDFLARE_R2_PUBLIC_URL"), thumbnailKey)
+	updateData := map[string]interface{}{
+		"thumbnail_url": thumbnailURL,
+		"updated_at":    time.Now().Format(time.RFC3339),
+	}
+
+	_, err = supabaseClient.Update("TrickMedia", fmt.Sprintf("?id=eq.%s", videoId), updateData)
+	if err != nil {
+		log.Printf("Failed to update thumbnail URL: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save thumbnail"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"thumbnailUrl": thumbnailURL,
+	})
+}
+
 // CompleteVideoUpload confirms upload completion and saves metadata
 func CompleteVideoUpload(c *gin.Context) {
 	var req struct {
@@ -200,18 +297,73 @@ func CompleteVideoUpload(c *gin.Context) {
 	})
 }
 
-// GetTrickVideos returns all videos for a trick
+// GetTrickVideos returns all videos for a trick, optionally filtered by user
 func GetTrickVideos(c *gin.Context) {
 	trickId := c.Param("trickId")
+	userId := c.Query("userId") // Optional user filter
 
-	respData, err := supabaseClient.Select("TrickMedia", fmt.Sprintf("?trick_id=eq.%s&media_type=eq.video&order=created_at.desc", trickId))
+	// Step 1: Get UserToTricks IDs for this trick (and optionally user)
+	var userTrickQuery string
+	if userId != "" {
+		userTrickQuery = fmt.Sprintf("?trickID=eq.%s&userID=eq.%s&select=id", trickId, userId)
+	} else {
+		userTrickQuery = fmt.Sprintf("?trickID=eq.%s&select=id", trickId)
+	}
+
+	userTrickResp, err := supabaseClient.Select("UserToTricks", userTrickQuery)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch videos"})
+		log.Printf("Failed to query UserToTricks: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user tricks", "details": err.Error()})
+		return
+	}
+
+	var userTricks []map[string]interface{}
+	if err := json.Unmarshal(userTrickResp, &userTricks); err != nil {
+		log.Printf("Failed to parse user tricks: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user tricks"})
+		return
+	}
+
+	// If no user tricks found, return empty array
+	if len(userTricks) == 0 {
+		c.JSON(http.StatusOK, []models.VideoMetadata{})
+		return
+	}
+
+	// Step 2: Build list of user_trick_ids
+	userTrickIds := make([]string, 0, len(userTricks))
+	for _, ut := range userTricks {
+		if id, ok := ut["id"].(string); ok {
+			userTrickIds = append(userTrickIds, id)
+		}
+	}
+
+	// Step 3: Query TrickMedia for these user_trick_ids
+	var query string
+	if len(userTrickIds) == 1 {
+		query = fmt.Sprintf("?user_trick_id=eq.%s&media_type=eq.video&upload_status=eq.completed&order=created_at.desc&select=*", userTrickIds[0])
+	} else {
+		// Build an "or" query for multiple IDs
+		orConditions := ""
+		for i, id := range userTrickIds {
+			if i > 0 {
+				orConditions += ","
+			}
+			orConditions += fmt.Sprintf("user_trick_id.eq.%s", id)
+		}
+		query = fmt.Sprintf("?or=(%s)&media_type=eq.video&upload_status=eq.completed&order=created_at.desc&select=*", orConditions)
+	}
+
+	respData, err := supabaseClient.Select("TrickMedia", query)
+	if err != nil {
+		log.Printf("Failed to fetch videos: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch videos", "details": err.Error()})
 		return
 	}
 
 	var videos []models.VideoMetadata
 	if err := json.Unmarshal(respData, &videos); err != nil {
+		log.Printf("Failed to parse videos: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse videos"})
 		return
 	}
