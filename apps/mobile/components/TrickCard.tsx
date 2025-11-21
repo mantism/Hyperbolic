@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
-import { Database } from "@/lib/supabase/database.types";
+import { Database } from "@hyperbolic/shared-types";
 import {
   getTrickTier,
   getTierBorderStyle,

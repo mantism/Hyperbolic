@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@/lib/supabase/database.types";
+import { Database } from "@hyperbolic/shared-types";
 import { format } from "date-fns";
 import {
   SurfaceType,
@@ -152,7 +152,7 @@ export default function TrickLogs({
       }
 
       // Insert the log
-      const { error: logError } = await supabase.from("tricklogs").insert({
+      const { error: logError } = await supabase.from("TrickLogs").insert({
         user_trick_id: currentUserTrick.id,
         reps: reps,
         rating: formData.rating ? parseInt(formData.rating) : null,

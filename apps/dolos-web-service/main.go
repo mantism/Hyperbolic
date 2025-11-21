@@ -41,6 +41,7 @@ func main() {
 		{
 			videos.POST("/upload/request", handlers.RequestVideoUpload)
 			videos.POST("/upload/complete", handlers.CompleteVideoUpload)
+			videos.POST("/:videoId/thumbnail", handlers.UploadThumbnail)
 			videos.GET("/trick/:trickId", handlers.GetTrickVideos)
 			videos.DELETE("/:videoId", handlers.DeleteVideo)
 		}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@/lib/supabase/database.types";
+import { Database } from "@hyperbolic/shared-types";
 import TrickDetailPage from "@/components/TrickDetailPage";
 
 type Trick = Database["public"]["Tables"]["Tricks"]["Row"];

@@ -13,7 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@/lib/supabase/database.types";
+import { Database } from "@hyperbolic/shared-types";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import {
   getTrickTier,

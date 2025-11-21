@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@/lib/supabase/database.types";
+import { Database } from "@hyperbolic/shared-types";
 import { getCategoryColor } from "@/lib/categoryColors";
 
 type Trick = Database["public"]["Tables"]["Tricks"]["Row"];

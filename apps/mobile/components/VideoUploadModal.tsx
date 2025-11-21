@@ -13,7 +13,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { uploadVideo } from "@/lib/services/videoUploadService";
-import { Database } from "@/lib/supabase/database.types";
+import { Database } from "@hyperbolic/shared-types";
 import { VideoThumbnailSelector } from "./VideoThumbnailSelector";
 
 type Trick = Database["public"]["Tables"]["Tricks"]["Row"];

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@/lib/supabase/database.types";
+import { Database } from "@hyperbolic/shared-types";
 import TrickCard from "@/components/TrickCard";
 import FilterDropdown from "@/components/FilterDropdown";
 import Ionicons from "@expo/vector-icons/Ionicons";
