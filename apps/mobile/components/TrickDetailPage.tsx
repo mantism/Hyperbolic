@@ -31,7 +31,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
 import CircularProgress from "./CircularProgress";
-import VideoUploadModal from "./VideoUploadModal";
 import VideoHero from "./VideoHero";
 import VideoGallery from "./VideoGallery";
 import VideoPlayerModal from "./VideoPlayerModal";
@@ -55,7 +54,6 @@ export default function TrickDetailPage({
   const [loading, setLoading] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showLogModal, setShowLogModal] = useState(false);
-  const [showVideoUploadModal, setShowVideoUploadModal] = useState(false);
 
   // Video states
   const [videos, setVideos] = useState<TrickVideo[]>([]);
@@ -181,6 +179,8 @@ export default function TrickDetailPage({
       fetchVideos();
     }
   }, [videoTab]);
+
+  // TODO: Add useFocusEffect to refresh videos when returning from upload page
 
   // Set up realtime subscription for this user's trick data
   useEffect(() => {
@@ -332,13 +332,7 @@ export default function TrickDetailPage({
       Alert.alert("Sign In Required", "Please sign in to upload videos");
       return;
     }
-    setShowVideoUploadModal(true);
-  };
-
-  const handleVideoUploadClose = () => {
-    setShowVideoUploadModal(false);
-    // Refresh videos after upload
-    fetchVideos();
+    router.push(`/upload-video/${trick.id}`);
   };
 
   const handlePlayVideo = (video: TrickVideo) => {
@@ -764,16 +758,6 @@ export default function TrickDetailPage({
           ) : null}
         </View>
       </Animated.ScrollView>
-
-      {/* Video Upload Modal */}
-      {user && (
-        <VideoUploadModal
-          visible={showVideoUploadModal}
-          onClose={handleVideoUploadClose}
-          trick={trick}
-          userId={user.id}
-        />
-      )}
 
       {/* Video Player Modal */}
       <VideoPlayerModal

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Modal,
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
@@ -39,7 +38,9 @@ export default function VideoPlayerModal({
     setIsPlaying(!isPlaying);
   };
 
-  if (!video) return null;
+  if (!video) {
+    return null;
+  }
 
   return (
     <Modal
@@ -80,41 +81,9 @@ export default function VideoPlayerModal({
             )}
           </TouchableOpacity>
         </View>
-
-        {/* Video Info */}
-        <View style={styles.infoContainer}>
-          {video.duration_seconds && (
-            <Text style={styles.infoText}>
-              Duration: {formatDuration(video.duration_seconds)}
-            </Text>
-          )}
-          {video.file_size_bytes && (
-            <Text style={styles.infoText}>
-              Size: {formatFileSize(video.file_size_bytes)}
-            </Text>
-          )}
-        </View>
       </SafeAreaView>
     </Modal>
   );
-}
-
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-
-  if (mins > 0) {
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${secs}s`;
-}
-
-function formatFileSize(bytes: number): string {
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  if (bytes === 0) return "0 Bytes";
-
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
 }
 
 const styles = StyleSheet.create({

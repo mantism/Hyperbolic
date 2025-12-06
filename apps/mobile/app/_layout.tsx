@@ -48,7 +48,18 @@ function InitialLayout() {
       <Stack.Screen name="auth/login" options={{ headerShown: false }} />
       <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
       <Stack.Screen name="auth/verify" options={{ headerShown: false }} />
-      <Stack.Screen name="trick/[id]" options={{ headerShown: false, presentation: "card" }} />
+      <Stack.Screen
+        name="trick/[id]"
+        options={{ headerShown: false, presentation: "card" }}
+      />
+      <Stack.Screen
+        name="upload-video/[trickId]"
+        options={{
+          headerShown: true,
+          presentation: "card",
+          animation: "fade",
+        }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

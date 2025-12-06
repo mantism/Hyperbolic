@@ -13,35 +13,30 @@ export default function Index() {
       <View style={styles.content}>
         <Text style={styles.title}>Hyperbolic</Text>
         <Text style={styles.subtitle}>Ready to work on some tricks?</Text>
-        
+
         <View style={styles.featureButtons}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => router.push("/(tabs)/browse")}
           >
             <Text style={styles.primaryButtonText}>Browse Tricks</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => router.push("/(tabs)/arsenal")}
           >
             <Text style={styles.secondaryButtonText}>My Arsenal</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.secondaryButton}>
             <Text style={styles.secondaryButtonText}>Track Session</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.footer}>
-          <Text style={styles.userInfo}>
-            {user?.email}
-          </Text>
-          <TouchableOpacity 
-            style={styles.linkButton}
-            onPress={signOut}
-          >
+          <Text style={styles.userInfo}>{user?.email}</Text>
+          <TouchableOpacity style={styles.linkButton} onPress={signOut}>
             <Text style={styles.linkText}>Sign Out</Text>
           </TouchableOpacity>
         </View>

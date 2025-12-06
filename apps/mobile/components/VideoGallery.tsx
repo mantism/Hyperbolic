@@ -105,15 +105,6 @@ export default function VideoGallery({
               </View>
             </View>
 
-            {/* Duration badge */}
-            {video.duration_seconds && (
-              <View style={styles.durationBadge}>
-                <Text style={styles.durationText}>
-                  {formatDuration(video.duration_seconds)}
-                </Text>
-              </View>
-            )}
-
             {/* Upload status indicator */}
             {video.upload_status === "processing" && (
               <View style={styles.statusBadge}>

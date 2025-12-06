@@ -59,7 +59,7 @@ export default function VideoHero({
       ]}
     >
       <Image
-        source={{ uri: video.thumbnail_url }}
+        source={{ uri: video.thumbnail_url || undefined }}
         style={styles.thumbnail}
         resizeMode="cover"
       />
