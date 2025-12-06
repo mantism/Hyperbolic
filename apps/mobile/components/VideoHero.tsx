@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Image, Animated } from "react-native";
+import React from "react";
+import { View, StyleSheet, Image, Animated } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { TrickVideo } from "@/lib/services/videoService";
 
@@ -7,14 +7,12 @@ interface VideoHeroProps {
   video: TrickVideo | null;
   categoryColor: string;
   scrollY: Animated.Value;
-  onPlayPress?: () => void;
 }
 
 export default function VideoHero({
   video,
   categoryColor,
   scrollY,
-  onPlayPress,
 }: VideoHeroProps) {
   if (!video || !video.thumbnail_url) {
     // Fallback to category color with icon
@@ -65,29 +63,13 @@ export default function VideoHero({
       />
       {/* Gradient overlay */}
       <View style={styles.gradient} />
-
-      {/* Play button */}
-      {onPlayPress && (
-        <TouchableOpacity
-          style={styles.playButton}
-          onPress={onPlayPress}
-          activeOpacity={0.8}
-        >
-          <View style={styles.playButtonInner}>
-            <Ionicons name="play" size={32} color="#FFF" />
-          </View>
-        </TouchableOpacity>
-      )}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    width: "100%",
     height: 360,
     alignItems: "center",
     justifyContent: "center",
@@ -100,19 +82,5 @@ const styles = StyleSheet.create({
   gradient: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.15)",
-  },
-  playButton: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  playButtonInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingLeft: 4, // Optical alignment for play icon
   },
 });

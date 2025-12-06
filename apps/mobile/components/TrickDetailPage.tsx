@@ -405,16 +405,6 @@ export default function TrickDetailPage({
 
   return (
     <View style={styles.container}>
-      {/* Video Hero */}
-      <VideoHero
-        video={featuredVideo}
-        categoryColor={categoryColor}
-        scrollY={scrollY}
-        onPlayPress={
-          featuredVideo ? () => handlePlayVideo(featuredVideo) : undefined
-        }
-      />
-
       <TouchableOpacity
         style={styles.fab}
         onPress={onClose}
@@ -442,6 +432,23 @@ export default function TrickDetailPage({
             <Ionicons name="add" size={20} color="#000" />
           </TouchableOpacity>
         )}
+        {/* Upload video FAB */}
+        <TouchableOpacity
+          style={styles.fabSmall}
+          onPress={handleUploadVideo}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="videocam-outline" size={18} color="#000" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Video Hero - not clickable, just visual */}
+      <View style={styles.videoHeroWrapper}>
+        <VideoHero
+          video={featuredVideo}
+          categoryColor={categoryColor}
+          scrollY={scrollY}
+        />
       </View>
 
       <Animated.ScrollView
@@ -453,19 +460,35 @@ export default function TrickDetailPage({
         )}
         scrollEventThrottle={16}
       >
-        {/* Image spacer with upload FAB */}
-        <View style={styles.imageSpacerContainer}>
-          <View style={styles.imageSpacer} />
+        {/* Transparent spacer */}
+        <View style={styles.videoSpacer} />
 
-          {/* Upload video FAB */}
-          <TouchableOpacity
-            style={styles.uploadVideoFab}
-            onPress={handleUploadVideo}
-            activeOpacity={0.8}
+        {/* Play button overlaying the VideoHero */}
+        {featuredVideo && (
+          <Animated.View
+            style={[
+              styles.playButton,
+              {
+                opacity: scrollY.interpolate({
+                  inputRange: [0, 50],
+                  outputRange: [1, 0],
+                  extrapolate: "clamp",
+                }),
+              },
+            ]}
           >
-            <Ionicons name="videocam-outline" size={18} color="#000" />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => {
+                handlePlayVideo(featuredVideo);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.playButtonInner}>
+                <Ionicons name="play" size={32} color="#FFF" />
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
 
         {/* Content overlay card */}
         <View
@@ -823,45 +846,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  scrollView: {
-    flex: 1,
-  },
-  fixedImageContainer: {
+  videoHeroWrapper: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 400,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 0,
+    height: 360,
+    zIndex: 1,
   },
-  imageSpacerContainer: {
-    position: "relative",
-    height: 276,
-  },
-  imageSpacer: {
-    height: "100%",
-  },
-  uploadVideoFab: {
-    position: "absolute",
-    bottom: 32,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 5,
+  scrollView: {
+    flex: 1,
     zIndex: 10,
+  },
+  videoSpacer: {
+    height: 336, // VideoHero height (360) - overlap (24)
+  },
+  playButton: {
+    position: "absolute",
+    top: 150, // Center vertically in VideoHero visible area
+    left: "50%",
+    marginLeft: -40, // Half of button size for centering
+    zIndex: 100,
+  },
+  playButtonInner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#FFF",
   },
   contentCard: {
     backgroundColor: "#FFFFFF",
