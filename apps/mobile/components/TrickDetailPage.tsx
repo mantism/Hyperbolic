@@ -9,7 +9,10 @@ import {
   LayoutAnimation,
   Platform,
   Animated,
+  ScrollView,
 } from "react-native";
+
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
@@ -403,6 +406,22 @@ export default function TrickDetailPage({
 
   const featuredVideo = videos.length > 0 ? videos[0] : null;
 
+  const inlineStats = () => {
+    return (
+      <View style={styles.inlineStats}>
+        <View style={styles.inlineStat}>
+          <Text style={styles.inlineStatValue}>{userTrick?.stomps || 0}</Text>
+          <Text style={styles.inlineStatLabel}>stomps</Text>
+        </View>
+        <View style={[styles.inlineStatDivider, { backgroundColor: "#333" }]} />
+        <View style={styles.inlineStat}>
+          <Text style={styles.inlineStatValue}>{userTrick?.attempts || 0}</Text>
+          <Text style={styles.inlineStatLabel}>attempts</Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -449,9 +468,78 @@ export default function TrickDetailPage({
           categoryColor={categoryColor}
           scrollY={scrollY}
         />
+        {/* Dim overlay that appears on scroll */}
+        <Animated.View
+          style={[
+            styles.videoDimOverlay,
+            {
+              opacity: scrollY.interpolate({
+                inputRange: [0, 200],
+                outputRange: [0, 0.6],
+                extrapolate: "clamp",
+              }),
+            },
+          ]}
+        />
       </View>
 
-      <Animated.ScrollView
+      {/* Sticky header - appears when scrolling */}
+      <Animated.View
+        style={[
+          styles.stickyHeader,
+          {
+            opacity: scrollY.interpolate({
+              inputRange: [200, 250],
+              outputRange: [0, 1],
+              extrapolate: "clamp",
+            }),
+            transform: [
+              {
+                translateY: scrollY.interpolate({
+                  inputRange: [200, 250],
+                  outputRange: [-20, 0],
+                  extrapolate: "clamp",
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Text style={styles.stickyHeaderText} numberOfLines={1}>
+          {trick.name}
+        </Text>
+        {userTrick ? inlineStats() : null}
+      </Animated.View>
+
+      {/* Play button overlaying the VideoHero */}
+      {featuredVideo && (
+        <Animated.View
+          style={[
+            styles.playButton,
+            {
+              opacity: scrollY.interpolate({
+                inputRange: [0, 50],
+                outputRange: [1, 0],
+                extrapolate: "clamp",
+              }),
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              handlePlayVideo(featuredVideo);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.playButtonInner}>
+              <Ionicons name="play" size={32} color="#FFF" />
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      <AnimatedScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
@@ -462,33 +550,6 @@ export default function TrickDetailPage({
       >
         {/* Transparent spacer */}
         <View style={styles.videoSpacer} />
-
-        {/* Play button overlaying the VideoHero */}
-        {featuredVideo && (
-          <Animated.View
-            style={[
-              styles.playButton,
-              {
-                opacity: scrollY.interpolate({
-                  inputRange: [0, 50],
-                  outputRange: [1, 0],
-                  extrapolate: "clamp",
-                }),
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => {
-                handlePlayVideo(featuredVideo);
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.playButtonInner}>
-                <Ionicons name="play" size={32} color="#FFF" />
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
 
         {/* Content overlay card */}
         <View
@@ -502,6 +563,7 @@ export default function TrickDetailPage({
             <View style={styles.trickHeader}>
               {/* Left column: Badge and Name */}
               <View style={styles.trickHeaderLeft}>
+                <Text style={styles.trickName}>{trick.name}</Text>
                 {primaryCategory ? (
                   <View
                     style={[
@@ -514,32 +576,12 @@ export default function TrickDetailPage({
                     </Text>
                   </View>
                 ) : null}
-                <Text style={styles.trickName}>{trick.name}</Text>
               </View>
 
               {/* Right column: Stats and Progress */}
               {user ? (
                 <View style={styles.trickHeaderRight}>
-                  <View style={styles.inlineStats}>
-                    <View style={styles.inlineStat}>
-                      <Text style={styles.inlineStatValue}>
-                        {userTrick?.stomps || 0}
-                      </Text>
-                      <Text style={styles.inlineStatLabel}>stomps</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.inlineStatDivider,
-                        { backgroundColor: "#333" },
-                      ]}
-                    />
-                    <View style={styles.inlineStat}>
-                      <Text style={styles.inlineStatValue}>
-                        {userTrick?.attempts || 0}
-                      </Text>
-                      <Text style={styles.inlineStatLabel}>attempts</Text>
-                    </View>
-                  </View>
+                  {userTrick ? inlineStats() : null}
                   {/* Progress Indicator - under stats */}
                   {tierProgress.nextTier && (
                     <View style={styles.progressSection}>
@@ -780,7 +822,7 @@ export default function TrickDetailPage({
             </View>
           ) : null}
         </View>
-      </Animated.ScrollView>
+      </AnimatedScrollView>
 
       {/* Video Player Modal */}
       <VideoPlayerModal
@@ -853,6 +895,37 @@ const styles = StyleSheet.create({
     right: 0,
     height: 360,
     zIndex: 1,
+  },
+  videoDimOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#000",
+  },
+  stickyHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FAFAFA",
+    paddingTop: 110, // Space for FABs
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    zIndex: 999,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+    display: "flex",
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  stickyHeaderText: {
+    fontSize: 28,
+    fontWeight: "300",
+    color: "#000",
+    letterSpacing: -0.5,
   },
   scrollView: {
     flex: 1,
