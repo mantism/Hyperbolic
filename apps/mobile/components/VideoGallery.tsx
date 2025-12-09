@@ -144,8 +144,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   videoCard: {
-    width: 160,
-    height: 120,
+    width: 108,
+    height: 192,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#F5F5F5",
