@@ -12,17 +12,21 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { TrickVideo, deleteVideo } from "@/lib/services/videoService";
 
 interface VideoGalleryProps {
+  title?: string;
   videos: TrickVideo[];
   onVideoPress?: (video: TrickVideo) => void;
   onVideoDeleted?: () => void;
   showDeleteOption?: boolean; // Only allow delete for user's own videos
+  showMetadata?: boolean; // Show trick name and upload date below thumbnail
 }
 
 export default function VideoGallery({
+  title,
   videos,
   onVideoPress,
   onVideoDeleted,
   showDeleteOption = false,
+  showMetadata = false,
 }: VideoGalleryProps) {
   const handleLongPress = (video: TrickVideo) => {
     if (!showDeleteOption) return;
@@ -72,60 +76,94 @@ export default function VideoGallery({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>VIDEOS</Text>
+      <Text style={styles.title}>{title ?? "VIDEOS"}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {videos.map((video) => (
-          <TouchableOpacity
+          <View
             key={video.id}
-            style={styles.videoCard}
-            onPress={() => onVideoPress?.(video)}
-            onLongPress={() => handleLongPress(video)}
-            activeOpacity={0.8}
+            style={showMetadata ? styles.videoCardContainer : undefined}
           >
-            {video.thumbnail_url ? (
-              <Image
-                source={{ uri: video.thumbnail_url }}
-                style={styles.thumbnail}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.placeholderThumbnail}>
-                <Ionicons name="videocam-outline" size={32} color="#999" />
+            <TouchableOpacity
+              style={styles.videoCard}
+              onPress={() => onVideoPress?.(video)}
+              onLongPress={() => handleLongPress(video)}
+              activeOpacity={0.8}
+            >
+              {video.thumbnail_url ? (
+                <Image
+                  source={{ uri: video.thumbnail_url }}
+                  style={styles.thumbnail}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.placeholderThumbnail}>
+                  <Ionicons name="videocam-outline" size={32} color="#999" />
+                </View>
+              )}
+
+              {/* Play button overlay */}
+              <View style={styles.playOverlay}>
+                <View style={styles.playButton}>
+                  <Ionicons name="play" size={20} color="#FFF" />
+                </View>
+              </View>
+
+              {/* Upload status indicator */}
+              {video.upload_status === "processing" && (
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>Processing...</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Metadata section */}
+            {showMetadata && (
+              <View style={styles.metadataContainer}>
+                {video.trick_name && (
+                  <Text style={styles.trickName} numberOfLines={1}>
+                    {video.trick_name}
+                  </Text>
+                )}
+                {video.created_at && (
+                  <Text style={styles.uploadDate} numberOfLines={1}>
+                    {formatUploadDate(video.created_at)}
+                  </Text>
+                )}
               </View>
             )}
-
-            {/* Play button overlay */}
-            <View style={styles.playOverlay}>
-              <View style={styles.playButton}>
-                <Ionicons name="play" size={20} color="#FFF" />
-              </View>
-            </View>
-
-            {/* Upload status indicator */}
-            {video.upload_status === "processing" && (
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Processing...</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          </View>
         ))}
       </ScrollView>
     </View>
   );
 }
 
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+function formatUploadDate(dateString: string | null): string {
+  if (!dateString) return "";
 
-  if (mins > 0) {
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "Yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    // Format as "Dec 9, 2025"
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   }
-  return `${secs}s`;
 }
 
 const styles = StyleSheet.create({
@@ -143,6 +181,9 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     gap: 12,
   },
+  videoCardContainer: {
+    width: 108,
+  },
   videoCard: {
     width: 108,
     height: 192,
@@ -150,6 +191,20 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#F5F5F5",
     position: "relative",
+  },
+  metadataContainer: {
+    marginTop: 8,
+    paddingHorizontal: 2,
+  },
+  trickName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 2,
+  },
+  uploadDate: {
+    fontSize: 11,
+    color: "#666",
   },
   thumbnail: {
     width: "100%",
@@ -185,11 +240,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-  },
-  durationText: {
-    color: "#FFF",
-    fontSize: 10,
-    fontWeight: "600",
   },
   statusBadge: {
     position: "absolute",

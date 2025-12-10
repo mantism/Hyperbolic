@@ -34,6 +34,7 @@ export interface TrickVideo {
   upload_status: "pending" | "processing" | "completed" | "failed";
   created_at: string | null;
   updated_at: string | null;
+  trick_name?: string; // Optional - populated when fetching user videos
 }
 
 /**
@@ -77,6 +78,79 @@ export async function getTrickVideos(
   }
 
   return trickMedia || [];
+}
+
+/**
+ * Fetch all videos for a user across all tricks
+ */
+export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
+  // First, get all UserToTricks for this user
+  const { data: userTricks, error: userTricksError } = await supabase
+    .from("UserToTricks")
+    .select("id, trickID")
+    .eq("userID", userId);
+
+  if (userTricksError) {
+    console.error("getUserVideos - userTricksError:", userTricksError);
+    throw new Error(
+      `Failed to fetch user tricks: ${userTricksError.message}`
+    );
+  }
+
+  if (!userTricks || userTricks.length === 0) {
+    return [];
+  }
+
+  // Get all user_trick_ids
+  const userTrickIds = userTricks.map((ut) => ut.id);
+
+  // Create a map of user_trick_id -> trick_id for later lookup
+  const trickIdMap = new Map(
+    userTricks.map((ut) => [ut.id, ut.trickID])
+  );
+
+  // Fetch TrickMedia for these user_trick_ids
+  const { data: trickMedia, error: mediaError } = await supabase
+    .from("TrickMedia")
+    .select("*")
+    .in("user_trick_id", userTrickIds)
+    .eq("upload_status", "completed")
+    .order("created_at", { ascending: false });
+
+  if (mediaError) {
+    throw new Error(`Failed to fetch trick media: ${mediaError.message}`);
+  }
+
+  if (!trickMedia || trickMedia.length === 0) {
+    return [];
+  }
+
+  // Get unique trick IDs from the media
+  const uniqueTrickIds = Array.from(
+    new Set(trickMedia.map((media) => trickIdMap.get(media.user_trick_id)))
+  ).filter((id): id is string => id !== undefined);
+
+  // Fetch trick names
+  const { data: tricks, error: tricksError } = await supabase
+    .from("Tricks")
+    .select("id, name")
+    .in("id", uniqueTrickIds);
+
+  if (tricksError) {
+    console.error("getUserVideos - tricksError:", tricksError);
+    // Don't throw - we can still return videos without trick names
+  }
+
+  // Create a map of trick_id -> trick_name
+  const trickNameMap = new Map(
+    tricks?.map((trick) => [trick.id, trick.name]) || []
+  );
+
+  // Add trick names to videos
+  return trickMedia.map((media) => ({
+    ...media,
+    trick_name: trickNameMap.get(trickIdMap.get(media.user_trick_id) || ""),
+  }));
 }
 
 /**
