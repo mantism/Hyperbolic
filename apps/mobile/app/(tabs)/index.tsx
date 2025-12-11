@@ -8,10 +8,13 @@ import {
   RefreshControl,
   TextInput,
 } from "react-native";
+
+import { TrickVideo } from "@hyperbolic/shared-types";
+
 import { useAuth } from "@/contexts/AuthContext";
 import VideoGallery from "@/components/VideoGallery";
 import VideoPlayerModal from "@/components/VideoPlayerModal";
-import { getUserVideos, TrickVideo } from "@/lib/services/videoService";
+import { getUserVideos } from "@/lib/services/videoService";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function Index() {

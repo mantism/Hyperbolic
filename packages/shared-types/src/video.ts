@@ -14,17 +14,19 @@ export interface VideoUploadResponse {
   expiresAt: string;
 }
 
-export interface VideoMetadata {
+export interface TrickVideo {
   id: string;
-  trickId: string;
-  userId: string;
+  user_trick_id: string;
   url: string;
-  thumbnailUrl?: string;
-  duration?: number;
-  fileSize: number;
-  mimeType: string;
-  uploadedAt: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  thumbnail_url: string | null;
+  duration_seconds: number | null;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+  media_type: "video" | "image";
+  upload_status: "pending" | "processing" | "completed" | "failed";
+  created_at: string | null;
+  updated_at: string | null;
+  trick_name?: string; // Optional - populated when fetching user videos
 }
 
 export interface PresignedUrlRequest {
@@ -42,7 +44,7 @@ export interface PresignedUrlResponse {
 
 export interface VideoProcessingStatus {
   videoId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   progress?: number;
   error?: string;
   outputs?: {

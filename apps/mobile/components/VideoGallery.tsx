@@ -9,7 +9,8 @@ import {
   Alert,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { TrickVideo, deleteVideo } from "@/lib/services/videoService";
+import { TrickVideo } from "@hyperbolic/shared-types";
+import { deleteVideo } from "@/lib/services/videoService";
 
 interface VideoGalleryProps {
   title?: string;

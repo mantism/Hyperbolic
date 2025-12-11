@@ -1,41 +1,13 @@
 import { File } from "expo-file-system";
 import { supabase } from "../supabase/supabase";
 
+import {
+  TrickVideo,
+  VideoUploadRequest,
+  VideoUploadResponse,
+} from "@hyperbolic/shared-types";
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface VideoUploadRequest {
-  trickId: string;
-  userId: string;
-  fileName: string;
-  fileSize: number;
-  mimeType: string;
-  duration?: number; // milliseconds
-}
-
-interface VideoUploadResponse {
-  uploadUrl: string;
-  videoId: string;
-  expiresAt: string;
-}
-
-export interface TrickVideo {
-  id: string;
-  user_trick_id: string;
-  url: string;
-  thumbnail_url: string | null;
-  duration_seconds: number | null;
-  file_size_bytes: number | null;
-  mime_type: string | null;
-  media_type: "video" | "image";
-  upload_status: "pending" | "processing" | "completed" | "failed";
-  created_at: string | null;
-  updated_at: string | null;
-  trick_name?: string; // Optional - populated when fetching user videos
-}
 
 /**
  * Fetch all videos for a trick, optionally filtered by user
@@ -92,9 +64,7 @@ export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
 
   if (userTricksError) {
     console.error("getUserVideos - userTricksError:", userTricksError);
-    throw new Error(
-      `Failed to fetch user tricks: ${userTricksError.message}`
-    );
+    throw new Error(`Failed to fetch user tricks: ${userTricksError.message}`);
   }
 
   if (!userTricks || userTricks.length === 0) {
@@ -105,9 +75,7 @@ export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
   const userTrickIds = userTricks.map((ut) => ut.id);
 
   // Create a map of user_trick_id -> trick_id for later lookup
-  const trickIdMap = new Map(
-    userTricks.map((ut) => [ut.id, ut.trickID])
-  );
+  const trickIdMap = new Map(userTricks.map((ut) => [ut.id, ut.trickID]));
 
   // Fetch TrickMedia for these user_trick_ids
   const { data: trickMedia, error: mediaError } = await supabase
