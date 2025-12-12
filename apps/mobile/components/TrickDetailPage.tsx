@@ -25,11 +25,6 @@ import {
   getProgressToNextTier,
   getTierName,
 } from "@/lib/trickProgressTiers";
-import {
-  SurfaceType,
-  getSurfaceTypeColor,
-  getSurfaceTypeLabel,
-} from "@/lib/surfaceTypes";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
@@ -37,6 +32,7 @@ import CircularProgress from "./CircularProgress";
 import VideoHero from "./VideoHero";
 import VideoGallery from "./VideoGallery";
 import VideoPlayerModal from "./VideoPlayerModal";
+import SurfaceBadges from "./SurfaceBadges";
 import { getTrickVideos } from "@/lib/services/videoService";
 
 type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
@@ -72,7 +68,6 @@ export default function TrickDetailPage({
   const [isGoal, setIsGoal] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [landedSurfaces, setLandedSurfaces] = useState<Set<string>>(new Set());
-  const [showSurfaceLabels, setShowSurfaceLabels] = useState(false);
 
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
@@ -619,49 +614,11 @@ export default function TrickDetailPage({
 
             {/* Surfaces Section */}
             {user ? (
-              <TouchableOpacity
-                style={styles.surfacesSection}
-                activeOpacity={1}
-                onPress={() => {
-                  if (landedSurfaces.size > 0) {
-                    setShowSurfaceLabels(!showSurfaceLabels);
-                  }
-                }}
-              >
-                <Text style={styles.surfacesTitle}>SURFACES</Text>
-                {landedSurfaces.size > 0 ? (
-                  <View style={styles.surfaceBadges}>
-                    {Array.from(landedSurfaces).map((surfaceType) => (
-                      <View
-                        key={surfaceType}
-                        style={styles.surfaceBadgeContainer}
-                      >
-                        <View
-                          style={[
-                            styles.surfaceBadge,
-                            {
-                              backgroundColor: getSurfaceTypeColor(
-                                surfaceType as SurfaceType
-                              ),
-                            },
-                          ]}
-                        >
-                          {/* TODO: Add icons for each surface type */}
-                        </View>
-                        {showSurfaceLabels && (
-                          <Text style={styles.surfaceBadgeLabel}>
-                            {getSurfaceTypeLabel(surfaceType as SurfaceType)}
-                          </Text>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.surfacesEmptyText}>
-                    Log a trick in detail to earn your first surface badge
-                  </Text>
-                )}
-              </TouchableOpacity>
+              <SurfaceBadges
+                landedSurfaces={landedSurfaces}
+                showTitle={true}
+                interactive={true}
+              />
             ) : null}
 
             {/* Collapsible Description */}
@@ -1259,48 +1216,6 @@ const styles = StyleSheet.create({
     color: "#999",
     textAlign: "center",
     lineHeight: 20,
-  },
-  surfacesSection: {
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  surfacesTitle: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#333",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  surfaceBadges: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  surfaceBadgeContainer: {
-    alignItems: "center",
-    minHeight: 40,
-  },
-  surfaceBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  surfaceBadgeLabel: {
-    fontSize: 9,
-    color: "#666",
-    textAlign: "center",
-    maxWidth: 30,
-    marginTop: 0,
-    position: "absolute",
-    bottom: -15,
-  },
-  surfacesEmptyText: {
-    fontSize: 13,
-    color: "#999",
-    fontStyle: "italic",
   },
   videoSection: {
     marginTop: 24,
