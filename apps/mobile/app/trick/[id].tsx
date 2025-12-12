@@ -2,10 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@hyperbolic/shared-types";
+import { Trick } from "@hyperbolic/shared-types";
 import TrickDetailPage from "@/components/TrickDetailPage";
-
-type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 
 export default function TrickScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

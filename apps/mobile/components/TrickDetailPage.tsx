@@ -16,7 +16,7 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database, TrickVideo } from "@hyperbolic/shared-types";
+import { TrickVideo, Trick, UserTrick } from "@hyperbolic/shared-types";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import {
   getTrickTier,
@@ -34,9 +34,6 @@ import VideoGallery from "./VideoGallery";
 import VideoPlayerModal from "./VideoPlayerModal";
 import SurfaceBadges from "./SurfaceBadges";
 import { getTrickVideos } from "@/lib/services/videoService";
-
-type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"];
 
 interface TrickDetailPageProps {
   trick: Trick;

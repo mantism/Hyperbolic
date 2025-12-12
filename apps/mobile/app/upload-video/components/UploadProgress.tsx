@@ -3,10 +3,8 @@ import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import { File } from "expo-file-system";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Database } from "@hyperbolic/shared-types";
+import { Trick } from "@hyperbolic/shared-types";
 import { uploadVideo, uploadThumbnail } from "@/lib/services/videoService";
-
-type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 
 interface UploadProgressProps {
   trick: Trick;

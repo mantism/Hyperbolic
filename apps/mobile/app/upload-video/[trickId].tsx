@@ -8,13 +8,11 @@ import { View, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import * as MediaLibrary from "expo-media-library";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@hyperbolic/shared-types";
+import { Trick } from "@hyperbolic/shared-types";
 import { useAuth } from "@/contexts/AuthContext";
 import MediaSelector from "./components/MediaSelector";
 import VideoDetails from "./components/VideoDetails";
 import UploadProgress from "./components/UploadProgress";
-
-type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
 
 type UploadStep = "select" | "details" | "upload";
 

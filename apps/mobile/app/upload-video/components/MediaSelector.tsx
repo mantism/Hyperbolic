@@ -13,9 +13,7 @@ import {
 import * as MediaLibrary from "expo-media-library";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Database } from "@hyperbolic/shared-types";
-
-type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
+import { Trick } from "@hyperbolic/shared-types";
 
 interface MediaSelectorProps {
   trick: Trick;

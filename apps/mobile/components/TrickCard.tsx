@@ -2,12 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
-import { Database } from "@hyperbolic/shared-types";
-
-type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"] & {
-  trick: Trick;
-};
+import { Trick, UserTrick } from "@hyperbolic/shared-types";
+import SurfaceBadges from "./SurfaceBadges";
 
 interface TrickCardProps {
   trick: Trick;
@@ -27,6 +23,11 @@ export default function TrickCard({
   // Determine border tier based on stomps count
   const stompsCount = userTrick?.stomps || 0;
 
+  // Get landed surfaces from userTrick
+  const landedSurfaces = userTrick?.landedSurfaces
+    ? new Set(userTrick.landedSurfaces)
+    : new Set<string>();
+
   return (
     <View style={styles.linkContainer}>
       <TouchableOpacity style={styles.trickCard}>
@@ -39,12 +40,24 @@ export default function TrickCard({
         />
         <View style={styles.cardContent}>
           <Text style={styles.trickName}>{trick.name}</Text>
-          <View
-            style={[styles.category, { backgroundColor: categoryColorLight }]}
-          >
-            <Text style={[styles.categoryLabel]}>
-              {trick.categories?.join(", ")}
-            </Text>
+          <View style={styles.bottomRow}>
+            <View
+              style={[styles.category, { backgroundColor: categoryColorLight }]}
+            >
+              <Text style={[styles.categoryLabel]}>
+                {trick.categories?.join(", ")}
+              </Text>
+            </View>
+            {landedSurfaces.size > 0 && (
+              <View style={styles.surfaceBadgesContainer}>
+                <SurfaceBadges
+                  landedSurfaces={landedSurfaces}
+                  showTitle={false}
+                  interactive={false}
+                  showLabels={false}
+                />
+              </View>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -88,8 +101,12 @@ const styles = StyleSheet.create({
     color: "#000",
     marginBottom: 4,
   },
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   category: {
-    alignSelf: "flex-start",
     borderRadius: 12,
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -99,6 +116,9 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 4,
     textTransform: "capitalize",
+  },
+  surfaceBadgesContainer: {
+    flex: 1,
   },
   linkOverlay: {
     position: "absolute",

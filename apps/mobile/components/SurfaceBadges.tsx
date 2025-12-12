@@ -22,7 +22,7 @@ export default function SurfaceBadges({
   const [showLabels, setShowLabels] = useState(initialShowLabels);
 
   const content = (
-    <View style={styles.container}>
+    <View style={[styles.container, !showTitle && styles.containerNoMargin]}>
       {showTitle && <Text style={styles.title}>SURFACES</Text>}
       {landedSurfaces.size > 0 ? (
         <View style={styles.badges}>
@@ -74,6 +74,10 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
     marginBottom: 12,
+  },
+  containerNoMargin: {
+    marginTop: 0,
+    marginBottom: 0,
   },
   title: {
     fontSize: 11,

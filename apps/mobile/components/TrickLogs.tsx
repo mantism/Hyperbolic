@@ -21,6 +21,8 @@ import {
 } from "@/lib/surfaceTypes";
 
 type TrickLog = Database["public"]["Tables"]["TrickLogs"]["Row"];
+
+// Note: UserTrick here is just the database row, not the augmented version with landedSurfaces
 type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"];
 
 interface TrickLogsProps {

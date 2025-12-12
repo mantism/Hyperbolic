@@ -10,14 +10,9 @@ import {
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@hyperbolic/shared-types";
+import { UserTrick } from "@hyperbolic/shared-types";
 import TrickCard from "@/components/TrickCard";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
-type Trick = Database["public"]["Tables"]["Tricks"]["Row"];
-type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"] & {
-  trick: Trick;
-};
 
 export default function ArsenalScreen() {
   const { user } = useAuth();
@@ -42,7 +37,29 @@ export default function ArsenalScreen() {
         .eq("isGoal", activeTab === "wishlist");
 
       if (error) throw error;
-      setTricks(data as UserTrick[]);
+
+      // Fetch landed surfaces for each trick
+      const tricksWithSurfaces = await Promise.all(
+        (data || []).map(async (userTrick) => {
+          const { data: surfaceData } = await supabase
+            .from("TrickLogs")
+            .select("surface_type")
+            .eq("user_trick_id", userTrick.id)
+            .eq("landed", true)
+            .not("surface_type", "is", null);
+
+          const surfaces = surfaceData
+            ? Array.from(new Set(surfaceData.map((log) => log.surface_type).filter(Boolean)))
+            : [];
+
+          return {
+            ...userTrick,
+            landedSurfaces: surfaces,
+          } as UserTrick;
+        })
+      );
+
+      setTricks(tricksWithSurfaces);
     } catch (error) {
       console.error("Error fetching tricks:", error);
     } finally {
