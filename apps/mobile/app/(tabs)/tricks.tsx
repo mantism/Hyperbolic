@@ -25,7 +25,10 @@ type FilterOptions = {
   sortOrder: "asc" | "desc";
 };
 
-export default function BrowseScreen() {
+// Height of each TrickCard including margins for FlatList optimization
+const TRICK_CARD_HEIGHT = 140;
+
+export default function TricksScreen() {
   const { user } = useAuth();
   const [allTricks, setAllTricks] = useState<Trick[]>([]);
   const [userTricks, setUserTricks] = useState<UserTrick[]>([]);
@@ -274,7 +277,7 @@ export default function BrowseScreen() {
         </Text>
       </View>
 
-      {/* Tricks Grid */}
+      {/* Tricks List */}
       <FlatList
         data={filteredTricks}
         renderItem={({ item: trick }) => {
@@ -282,8 +285,6 @@ export default function BrowseScreen() {
           return <TrickCard trick={trick} userTrick={userTrick} />;
         }}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.flatListContent}
         style={styles.flatList}
         refreshControl={
@@ -298,13 +299,13 @@ export default function BrowseScreen() {
             </Text>
           </View>
         }
-        initialNumToRender={10}
+        initialNumToRender={15}
         maxToRenderPerBatch={10}
-        windowSize={5}
+        windowSize={10}
         removeClippedSubviews={true}
         getItemLayout={(data, index) => ({
-          length: 180, // Approximate height of each row
-          offset: 180 * Math.floor(index / 2),
+          length: TRICK_CARD_HEIGHT,
+          offset: TRICK_CARD_HEIGHT * index,
           index,
         })}
       />
@@ -365,9 +366,6 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     padding: 16,
-  },
-  row: {
-    justifyContent: "space-between",
   },
   emptyState: {
     flex: 1,
