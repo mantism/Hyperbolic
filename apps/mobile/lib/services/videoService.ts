@@ -1,5 +1,6 @@
 import { File } from "expo-file-system";
-import { supabase } from "../supabase/supabase";
+
+import { supabase } from "@/lib/supabase/supabase";
 
 import {
   TrickVideo,

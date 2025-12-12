@@ -9,12 +9,35 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo export",
-    "test": "jest --watchAll",
+    "test": "jest",
+    "test:watch": "jest --watchAll",
+    "test:coverage": "jest --coverage",
     "lint": "expo lint",
     "clean": "rm -rf .expo dist"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "collectCoverageFrom": [
+      "lib/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+      "app/**/*.{ts,tsx}",
+      "!**/__tests__/**",
+      "!**/__mocks__/**",
+      "!**/node_modules/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    },
+    "testMatch": [
+      "**/__tests__/**/*.test.[jt]s?(x)",
+      "**/?(*.)+(spec|test).[jt]s?(x)"
+    ]
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
