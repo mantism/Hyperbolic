@@ -1,5 +1,7 @@
 export enum SurfaceType {
   SPRING_FLOOR = "spring_floor",
+  TRAMPOLINE = "trampoline",
+  AIR_TRACK = "air_track",
   GRASS = "grass",
   CONCRETE = "concrete",
   PUZZLE_MAT = "puzzle_mat",
@@ -16,6 +18,8 @@ export const SURFACE_TYPE_LABELS: Record<SurfaceType, string> = {
   [SurfaceType.SAND]: "Sand",
   [SurfaceType.TURF]: "Turf",
   [SurfaceType.OTHER]: "Other",
+  [SurfaceType.TRAMPOLINE]: "Trampoline",
+  [SurfaceType.AIR_TRACK]: "Air Track",
 };
 
 export const SURFACE_TYPE_COLORS: Record<SurfaceType, string> = {
@@ -26,6 +30,8 @@ export const SURFACE_TYPE_COLORS: Record<SurfaceType, string> = {
   [SurfaceType.SAND]: "#F59E0B", // Amber
   [SurfaceType.TURF]: "#16A34A", // Darker Green
   [SurfaceType.OTHER]: "#9CA3AF", // Light Gray
+  [SurfaceType.TRAMPOLINE]: "#8B5CF6", // Purple
+  [SurfaceType.AIR_TRACK]: "#EC4899", // Pink
 };
 
 /**

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { supabase } from "@/lib/supabase/supabase";
-import { Database } from "@hyperbolic/shared-types";
+import { Database, UserTrick } from "@hyperbolic/shared-types";
 import { format } from "date-fns";
 import {
   SurfaceType,
@@ -21,9 +21,6 @@ import {
 } from "@/lib/surfaceTypes";
 
 type TrickLog = Database["public"]["Tables"]["TrickLogs"]["Row"];
-
-// Note: UserTrick here is just the database row, not the augmented version with landedSurfaces
-type UserTrick = Database["public"]["Tables"]["UserToTricks"]["Row"];
 
 interface TrickLogsProps {
   userTrick?: UserTrick | null;
@@ -168,6 +165,33 @@ export default function TrickLogs({
         throw logError;
       }
 
+      // Update landed_surfaces on UserToTricks if surface was provided and trick was landed
+      if (formData.surface_type && formData.landed) {
+        const { data: userTrickData, error: fetchError } = await supabase
+          .from("UserToTricks")
+          .select("landed_surfaces")
+          .eq("id", currentUserTrick.id)
+          .single();
+
+        if (!fetchError && userTrickData) {
+          const surfaces = new Set(userTrickData.landed_surfaces || []);
+          surfaces.add(formData.surface_type);
+
+          const { error: updateSurfacesError } = await supabase
+            .from("UserToTricks")
+            .update({ landed_surfaces: Array.from(surfaces) })
+            .eq("id", currentUserTrick.id);
+
+          if (updateSurfacesError) {
+            console.error(
+              "Error updating landed surfaces:",
+              updateSurfacesError
+            );
+            // Don't throw - log was created successfully, this is just a cache update
+          }
+        }
+      }
+
       // Reset form and refresh
       setFormData({
         reps: "1",
@@ -217,7 +241,7 @@ export default function TrickLogs({
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No detailed logs yet</Text>
           <Text style={styles.emptySubtext}>
-            Tap "Add Log" to record a session with notes and details
+            Tap "Add Log" to record a trick with notes and details
           </Text>
         </View>
       ) : (

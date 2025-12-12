@@ -178,7 +178,7 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "Tricks_featured_video_id_fkey";
+            foreignKeyName: "TricksTable_featured_video_id_fkey";
             columns: ["featured_video_id"];
             isOneToOne: false;
             referencedRelation: "TrickMedia";
@@ -241,6 +241,7 @@ export type Database = {
           id: string;
           isGoal: boolean | null;
           landed: boolean | null;
+          landedSurfaces: string[] | null;
           rating: number | null;
           stomps: number | null;
           trickID: string;
@@ -252,6 +253,7 @@ export type Database = {
           id?: string;
           isGoal?: boolean | null;
           landed?: boolean | null;
+          landedSurfaces?: string[] | null;
           rating?: number | null;
           stomps?: number | null;
           trickID: string;
@@ -263,6 +265,7 @@ export type Database = {
           id?: string;
           isGoal?: boolean | null;
           landed?: boolean | null;
+          landedSurfaces?: string[] | null;
           rating?: number | null;
           stomps?: number | null;
           trickID?: string;
@@ -270,7 +273,7 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "UserToTricks_trickID_fkey";
+            foreignKeyName: "UserToTricksTable_trickID_fkey";
             columns: ["trickID"];
             isOneToOne: false;
             referencedRelation: "Tricks";
