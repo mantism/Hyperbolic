@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   flatListContent: {
-    padding: 16,
+    paddingBottom: 16,
   },
   emptyState: {
     flex: 1,

@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     gap: 8,
+    paddingHorizontal: 16,
   },
   chip: {
     padding: 8,

@@ -96,6 +96,7 @@ const styles = StyleSheet.create({
   linkContainer: {
     width: "100%",
     marginBottom: 16,
+    paddingHorizontal: 16,
   },
   trickCard: {
     width: "100%",
