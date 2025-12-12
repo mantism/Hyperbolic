@@ -314,8 +314,8 @@ export default function TrickDetailPage({
     }
     if (!userTrick) {
       Alert.alert(
-        "Add to Arsenal",
-        "Add this trick to your arsenal first by logging an attempt or stomp"
+        "Mark as Landed",
+        "Log this trick as landed first by recording an attempt or stomp"
       );
       return;
     }
@@ -340,14 +340,14 @@ export default function TrickDetailPage({
     setSelectedVideo(null);
   };
 
-  const removeFromArsenal = async () => {
+  const removeFromTricks = async () => {
     if (!userTrick) {
       return;
     }
 
     Alert.alert(
       "Remove Trick",
-      `Are you sure you want to clear your progress on ${trick.name}? This will also remove it from your arsenal.`,
+      `Are you sure you want to clear your progress on ${trick.name}? This will remove it from your tracked tricks.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -367,7 +367,7 @@ export default function TrickDetailPage({
               setStomps(0);
               setUserRating(0);
               setIsGoal(false);
-              Alert.alert("Success", "Trick removed from arsenal");
+              Alert.alert("Success", "Trick removed from your tracked tricks");
             } catch (error) {
               console.error("Error removing trick:", error);
               Alert.alert("Error", "Failed to remove trick");
@@ -757,7 +757,7 @@ export default function TrickDetailPage({
             <View style={styles.actionsCard}>
               <TouchableOpacity
                 style={styles.removeButton}
-                onPress={removeFromArsenal}
+                onPress={removeFromTricks}
               >
                 <Ionicons name="trash-outline" size={16} color="#EF4444" />
                 <Text style={styles.removeButtonText}>Clear Progress</Text>
@@ -771,7 +771,7 @@ export default function TrickDetailPage({
               <Ionicons name="person-outline" size={48} color="#ccc" />
               <Text style={styles.loginTitle}>Sign in to track this trick</Text>
               <Text style={styles.loginSubtitle}>
-                Log attempts, rate tricks, and build your arsenal
+                Log attempts, rate tricks, and track your progress
               </Text>
             </View>
           ) : null}

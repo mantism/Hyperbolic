@@ -9,14 +9,9 @@ import SurfaceBadges from "./SurfaceBadges";
 interface TrickCardProps {
   trick: Trick;
   userTrick?: UserTrick;
-  showStats?: boolean;
 }
 
-export default function TrickCard({
-  trick,
-  userTrick,
-  showStats = true,
-}: TrickCardProps) {
+function TrickCard({ trick, userTrick }: TrickCardProps) {
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
   const categoryColorLight = getCategoryColorLight(primaryCategory);
@@ -81,6 +76,21 @@ export default function TrickCard({
     </View>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+// Only re-render if trick ID or userTrick data changes
+export default React.memo(TrickCard, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render)
+  // Return false if props are different (do re-render)
+  return (
+    prevProps.trick.id === nextProps.trick.id &&
+    prevProps.userTrick?.id === nextProps.userTrick?.id &&
+    prevProps.userTrick?.stomps === nextProps.userTrick?.stomps &&
+    prevProps.userTrick?.landed === nextProps.userTrick?.landed &&
+    prevProps.userTrick?.landedSurfaces?.length ===
+      nextProps.userTrick?.landedSurfaces?.length
+  );
+});
 
 const styles = StyleSheet.create({
   linkContainer: {

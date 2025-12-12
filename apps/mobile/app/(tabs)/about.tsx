@@ -31,7 +31,7 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Features</Text>
           <Text style={styles.sectionText}>• Track your trick progression</Text>
-          <Text style={styles.sectionText}>• Build your trick arsenal</Text>
+          <Text style={styles.sectionText}>• Browse and track all tricks</Text>
           <Text style={styles.sectionText}>• Log training sessions</Text>
           <Text style={styles.sectionText}>• Connect with the community</Text>
         </View>

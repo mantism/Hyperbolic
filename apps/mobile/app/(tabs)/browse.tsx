@@ -279,13 +279,7 @@ export default function BrowseScreen() {
         data={filteredTricks}
         renderItem={({ item: trick }) => {
           const userTrick = getUserTrickForTrick(trick.id);
-          return (
-            <TrickCard
-              trick={trick}
-              userTrick={userTrick}
-              showStats={!!userTrick}
-            />
-          );
+          return <TrickCard trick={trick} userTrick={userTrick} />;
         }}
         keyExtractor={(item) => item.id}
         numColumns={2}
