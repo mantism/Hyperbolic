@@ -26,6 +26,7 @@ export interface TrickVideo {
   upload_status: "pending" | "processing" | "completed" | "failed";
   created_at: string | null;
   updated_at: string | null;
+  trick_id: string;
   trick_name?: string; // Optional - populated when fetching user videos
 }
 

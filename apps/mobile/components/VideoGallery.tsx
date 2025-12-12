@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
 } from "react-native";
+import { Link } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { TrickVideo } from "@hyperbolic/shared-types";
 import { deleteVideo } from "@/lib/services/videoService";
@@ -125,9 +126,16 @@ export default function VideoGallery({
             {showMetadata && (
               <View style={styles.metadataContainer}>
                 {video.trick_name && (
-                  <Text style={styles.trickName} numberOfLines={1}>
-                    {video.trick_name}
-                  </Text>
+                  <Link
+                    href={{
+                      pathname: "/trick/[id]",
+                      params: { id: video.trick_id },
+                    }}
+                  >
+                    <Text style={styles.trickName} numberOfLines={1}>
+                      {video.trick_name}
+                    </Text>
+                  </Link>
                 )}
                 {video.created_at && (
                   <Text style={styles.uploadDate} numberOfLines={1}>

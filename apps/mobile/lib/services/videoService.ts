@@ -119,6 +119,7 @@ export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
   return trickMedia.map((media) => ({
     ...media,
     trick_name: trickNameMap.get(trickIdMap.get(media.user_trick_id) || ""),
+    trick_id: trickIdMap.get(media.user_trick_id) || "",
   }));
 }
 
