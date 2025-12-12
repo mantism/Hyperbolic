@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase/supabase";
 import { Trick, UserTrick } from "@hyperbolic/shared-types";
 import TrickCard from "@/components/TrickCard";
 import FilterDropdown from "@/components/FilterDropdown";
+import TrickStatsHexagon from "@/components/TrickStatsHexagon";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 type FilterOptions = {
@@ -270,13 +271,6 @@ export default function TricksScreen() {
         )}
       </View>
 
-      {/* Results Header */}
-      <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>
-          {filteredTricks.length} tricks found
-        </Text>
-      </View>
-
       {/* Tricks List */}
       <FlatList
         data={filteredTricks}
@@ -285,6 +279,28 @@ export default function TricksScreen() {
           return <TrickCard trick={trick} userTrick={userTrick} />;
         }}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <>
+            {/* Stats Hexagon - Mock data for now */}
+            <TrickStatsHexagon
+              stats={{
+                power: 75,
+                creativity: 60,
+                flips: 85,
+                twists: 70,
+                variations: 50,
+                kicks: 65,
+              }}
+            />
+
+            {/* Results Header */}
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsCount}>
+                {filteredTricks.length} tricks found
+              </Text>
+            </View>
+          </>
+        }
         contentContainerStyle={styles.flatListContent}
         style={styles.flatList}
         refreshControl={
