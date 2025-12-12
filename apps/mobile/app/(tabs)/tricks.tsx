@@ -13,14 +13,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
 import { Trick, UserTrick } from "@hyperbolic/shared-types";
 import TrickCard from "@/components/TrickCard";
-import FilterDropdown from "@/components/FilterDropdown";
+import FilterSheet from "@/components/FilterSheet";
+import FilterRow from "@/components/FilterRow";
+import FilterSwitch from "@/components/FilterSwitch";
 import TrickStatsHexagon from "@/components/TrickStatsHexagon";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 type FilterOptions = {
   search: string;
   category: string;
-  landedStatus: "all" | "landed" | "not_landed";
+  showLandedOnly: boolean;
   difficultyRange: [number, number];
   sortBy: "name" | "difficulty" | "category";
   sortOrder: "asc" | "desc";
@@ -41,7 +43,7 @@ export default function TricksScreen() {
   const [filters, setFilters] = useState<FilterOptions>({
     search: "",
     category: "",
-    landedStatus: "all",
+    showLandedOnly: false,
     difficultyRange: [1, 10],
     sortBy: "name",
     sortOrder: "asc",
@@ -144,12 +146,10 @@ export default function TricksScreen() {
       }
 
       // Landed status filter - now O(1) lookup instead of O(n)
-      if (filters.landedStatus !== "all") {
+      if (filters.showLandedOnly) {
         const userTrick = userTricksMap.get(trick.id);
         const isLanded = userTrick?.landed === true;
-
-        if (filters.landedStatus === "landed" && !isLanded) return false;
-        if (filters.landedStatus === "not_landed" && isLanded) return false;
+        if (!isLanded) return false;
       }
 
       return true;
@@ -193,16 +193,13 @@ export default function TricksScreen() {
     }
   };
 
-  const resetFilters = () => {
-    setFilters({
-      search: "",
-      category: "",
-      landedStatus: "all",
-      difficultyRange: [1, 10],
-      sortBy: "name",
-      sortOrder: "asc",
-    });
-  };
+  // Prepare category options for FilterRow
+  const categoryOptions = useMemo(() => {
+    return [
+      { value: "", label: "All" },
+      ...availableCategories.map((cat) => ({ value: cat, label: cat })),
+    ];
+  }, [availableCategories]);
 
   const getUserTrickForTrick = (trickId: string) => {
     return userTricksMap.get(trickId);
@@ -220,56 +217,46 @@ export default function TricksScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Search Container - positioned relatively for dropdown positioning */}
-      <View style={styles.searchContainerWrapper}>
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color="#666" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search tricks..."
-              value={filters.search}
-              onChangeText={(text) =>
-                setFilters((prev) => ({ ...prev, search: text }))
-              }
-            />
-            {filters.search.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
-              >
-                <Ionicons name="close-circle" size={20} color="#666" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => setShowFilters(!showFilters)}
-          >
-            <Ionicons name="options-outline" size={20} color="#007AFF" />
-          </TouchableOpacity>
+      {/* Search Container */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={20} color="#666" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search tricks..."
+            value={filters.search}
+            onChangeText={(text) =>
+              setFilters((prev) => ({ ...prev, search: text }))
+            }
+          />
+          {filters.search.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
+            >
+              <Ionicons name="close-circle" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Filters Dropdown - positioned absolutely within the wrapper */}
-        {showFilters && (
-          <>
-            {/* Overlay for tap-to-close */}
-            <TouchableOpacity
-              style={styles.filterOverlay}
-              activeOpacity={1}
-              onPress={() => setShowFilters(false)}
-            />
-            <FilterDropdown
-              filters={filters}
-              setFilters={setFilters}
-              availableCategories={availableCategories}
-              hasUser={!!user}
-              onReset={resetFilters}
-              onClose={() => setShowFilters(false)}
-            />
-          </>
-        )}
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setShowFilters(true)}
+        >
+          <Ionicons name="options-outline" size={20} color="#007AFF" />
+        </TouchableOpacity>
       </View>
+
+      {/* Sort Filter Sheet */}
+      <FilterSheet
+        visible={showFilters}
+        sortBy={filters.sortBy}
+        sortOrder={filters.sortOrder}
+        onSortByChange={(sortBy) => setFilters((prev) => ({ ...prev, sortBy }))}
+        onSortOrderChange={(sortOrder) =>
+          setFilters((prev) => ({ ...prev, sortOrder }))
+        }
+        onClose={() => setShowFilters(false)}
+      />
 
       {/* Tricks List */}
       <FlatList
@@ -293,11 +280,27 @@ export default function TricksScreen() {
               }}
             />
 
-            {/* Results Header */}
-            <View style={styles.resultsHeader}>
-              <Text style={styles.resultsCount}>
-                {filteredTricks.length} tricks found
-              </Text>
+            {/* Filter Rows */}
+            <View style={styles.filterRowsContainer}>
+              {/* Category Filter Row */}
+              <FilterRow
+                options={categoryOptions}
+                selectedValue={filters.category}
+                onSelect={(value) =>
+                  setFilters((prev) => ({ ...prev, category: value }))
+                }
+              />
+
+              {/* Status Filter Switch - only show for logged in users */}
+              {user && (
+                <FilterSwitch
+                  label="Landed"
+                  value={filters.showLandedOnly}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, showLandedOnly: value }))
+                  }
+                />
+              )}
             </View>
           </>
         }
@@ -339,16 +342,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  searchContainerWrapper: {
-    position: "relative",
-    zIndex: 1,
-  },
   searchContainer: {
     flexDirection: "row",
     padding: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
     alignItems: "center",
     gap: 12,
+    backgroundColor: "#fff",
+  },
+  filterRowsContainer: {
+    backgroundColor: "#fff",
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   searchBar: {
     flex: 1,
@@ -401,14 +406,5 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
     paddingHorizontal: 40,
-  },
-  filterOverlay: {
-    position: "absolute",
-    top: 0,
-    left: -1000, // Extend far left
-    right: -1000, // Extend far right
-    bottom: -1000, // Extend far down
-    backgroundColor: "transparent",
-    zIndex: 10,
   },
 });
