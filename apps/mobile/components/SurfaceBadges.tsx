@@ -90,16 +90,16 @@ const styles = StyleSheet.create({
   badges: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: 6,
   },
   badgeContainer: {
     alignItems: "center",
-    minHeight: 40,
+    minHeight: 24,
   },
   badge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },

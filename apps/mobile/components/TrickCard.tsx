@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import { Trick, UserTrick } from "@hyperbolic/shared-types";
 import SurfaceBadges from "./SurfaceBadges";
@@ -28,6 +29,9 @@ export default function TrickCard({
     ? new Set(userTrick.landedSurfaces)
     : new Set<string>();
 
+  // Check if trick has been landed
+  const isLanded = userTrick?.landed === true;
+
   return (
     <View style={styles.linkContainer}>
       <TouchableOpacity style={styles.trickCard}>
@@ -39,25 +43,38 @@ export default function TrickCard({
           style={styles.linkOverlay}
         />
         <View style={styles.cardContent}>
-          <Text style={styles.trickName}>{trick.name}</Text>
+          <View style={styles.topRow}>
+            <Text style={styles.trickName}>{trick.name}</Text>
+            <Ionicons
+              name={isLanded ? "checkmark-circle" : "ellipse-outline"}
+              size={20}
+              color={isLanded ? "#22C55E" : "#D1D5DB"}
+            />
+          </View>
           <View style={styles.bottomRow}>
-            <View
-              style={[styles.category, { backgroundColor: categoryColorLight }]}
-            >
-              <Text style={[styles.categoryLabel]}>
-                {trick.categories?.join(", ")}
-              </Text>
-            </View>
-            {landedSurfaces.size > 0 && (
-              <View style={styles.surfaceBadgesContainer}>
-                <SurfaceBadges
-                  landedSurfaces={landedSurfaces}
-                  showTitle={false}
-                  interactive={false}
-                  showLabels={false}
-                />
+            <View style={styles.bottomLeft}>
+              <View
+                style={[
+                  styles.category,
+                  { backgroundColor: categoryColorLight },
+                ]}
+              >
+                <Text style={[styles.categoryLabel]}>
+                  {trick.categories?.join(", ")}
+                </Text>
               </View>
-            )}
+              {landedSurfaces.size > 0 && (
+                <View style={styles.surfaceBadgesContainer}>
+                  <SurfaceBadges
+                    landedSurfaces={landedSurfaces}
+                    showTitle={false}
+                    interactive={false}
+                    showLabels={false}
+                  />
+                </View>
+              )}
+            </View>
+            {isLanded && <Text style={styles.landedCount}>{stompsCount}</Text>}
           </View>
         </View>
       </TouchableOpacity>
@@ -95,16 +112,28 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     gap: 4,
   },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   trickName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#000",
-    marginBottom: 4,
+    flex: 1,
   },
   bottomRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  bottomLeft: {
+    flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flex: 1,
   },
   category: {
     borderRadius: 12,
@@ -119,6 +148,11 @@ const styles = StyleSheet.create({
   },
   surfaceBadgesContainer: {
     flex: 1,
+  },
+  landedCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#666",
   },
   linkOverlay: {
     position: "absolute",
