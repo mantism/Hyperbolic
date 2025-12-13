@@ -185,8 +185,10 @@ const styles = StyleSheet.create({
     color: "#999",
     letterSpacing: 1,
     marginBottom: 12,
+    paddingHorizontal: 16,
   },
   scrollContent: {
+    paddingLeft: 16,
     paddingRight: 16,
     gap: 12,
   },

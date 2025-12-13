@@ -184,7 +184,6 @@ const styles = StyleSheet.create({
   },
   videoSection: {
     marginBottom: 32,
-    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 20,
