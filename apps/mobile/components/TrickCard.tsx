@@ -9,9 +9,10 @@ import SurfaceBadges from "./SurfaceBadges";
 interface TrickCardProps {
   trick: Trick;
   userTrick?: UserTrick;
+  onPress?: () => void; // Optional custom onPress handler
 }
 
-function TrickCard({ trick, userTrick }: TrickCardProps) {
+function TrickCard({ trick, userTrick, onPress }: TrickCardProps) {
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
   const categoryColorLight = getCategoryColorLight(primaryCategory);
@@ -29,14 +30,20 @@ function TrickCard({ trick, userTrick }: TrickCardProps) {
 
   return (
     <View style={styles.linkContainer}>
-      <TouchableOpacity style={styles.trickCard}>
-        <Link
-          href={{
-            pathname: "/trick/[id]",
-            params: { id: trick.id },
-          }}
-          style={styles.linkOverlay}
-        />
+      <TouchableOpacity
+        style={styles.trickCard}
+        onPress={onPress}
+        disabled={!onPress}
+      >
+        {!onPress && (
+          <Link
+            href={{
+              pathname: "/trick/[id]",
+              params: { id: trick.id },
+            }}
+            style={styles.linkOverlay}
+          />
+        )}
         <View style={styles.cardContent}>
           <View style={styles.topRow}>
             <Text style={styles.trickName}>{trick.name}</Text>
