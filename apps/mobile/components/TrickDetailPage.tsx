@@ -12,7 +12,6 @@ import {
   ScrollView,
 } from "react-native";
 
-const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/supabase";
@@ -39,6 +38,8 @@ interface TrickDetailPageProps {
   trick: Trick;
   onClose: () => void;
 }
+
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 export default function TrickDetailPage({
   trick,
@@ -68,7 +69,6 @@ export default function TrickDetailPage({
 
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
-  const categoryColorLight = getCategoryColorLight(primaryCategory);
 
   // Get trick tier for subtle accent styling
   const userStomps = userTrick?.stomps || 0;

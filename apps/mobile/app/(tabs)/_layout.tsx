@@ -36,6 +36,7 @@ export default function TabLayout() {
         name="tricks"
         options={{
           title: "Tricks",
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "flash" : "flash-outline"}

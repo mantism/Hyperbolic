@@ -217,33 +217,59 @@ export default function TricksScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Search Container */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color="#666" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search tricks..."
-            value={filters.search}
-            onChangeText={(text) =>
-              setFilters((prev) => ({ ...prev, search: text }))
-            }
-          />
-          {filters.search.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
-            >
-              <Ionicons name="close-circle" size={20} color="#666" />
-            </TouchableOpacity>
-          )}
+      {/* Header Container - Search + Filters */}
+      <View style={styles.headerContainer}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={20} color="#666" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search tricks..."
+              value={filters.search}
+              onChangeText={(text) =>
+                setFilters((prev) => ({ ...prev, search: text }))
+              }
+            />
+            {filters.search.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
+              >
+                <Ionicons name="close-circle" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowFilters(true)}
+          >
+            <Ionicons name="options-outline" size={20} color="#007AFF" />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setShowFilters(true)}
-        >
-          <Ionicons name="options-outline" size={20} color="#007AFF" />
-        </TouchableOpacity>
+        {/* Filter Rows - always visible below search */}
+        <View style={styles.filterRowsContainer}>
+          {/* Category Filter Row */}
+          <FilterRow
+            options={categoryOptions}
+            selectedValue={filters.category}
+            onSelect={(value) =>
+              setFilters((prev) => ({ ...prev, category: value }))
+            }
+          />
+
+          {/* Status Filter Switch - only show for logged in users */}
+          {user && (
+            <FilterSwitch
+              label="Landed"
+              value={filters.showLandedOnly}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, showLandedOnly: value }))
+              }
+            />
+          )}
+        </View>
       </View>
 
       {/* Sort Filter Sheet */}
@@ -279,29 +305,6 @@ export default function TricksScreen() {
                 kicks: 65,
               }}
             />
-
-            {/* Filter Rows */}
-            <View style={styles.filterRowsContainer}>
-              {/* Category Filter Row */}
-              <FilterRow
-                options={categoryOptions}
-                selectedValue={filters.category}
-                onSelect={(value) =>
-                  setFilters((prev) => ({ ...prev, category: value }))
-                }
-              />
-
-              {/* Status Filter Switch - only show for logged in users */}
-              {user && (
-                <FilterSwitch
-                  label="Landed"
-                  value={filters.showLandedOnly}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, showLandedOnly: value }))
-                  }
-                />
-              )}
-            </View>
           </>
         }
         contentContainerStyle={styles.flatListContent}
@@ -342,17 +345,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  headerContainer: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   searchContainer: {
     flexDirection: "row",
     padding: 16,
+    paddingTop: 60,
     paddingBottom: 12,
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
   },
   filterRowsContainer: {
     backgroundColor: "#fff",
-    paddingTop: 16,
     paddingBottom: 8,
   },
   searchBar: {
