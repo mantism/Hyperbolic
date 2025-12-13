@@ -10,7 +10,7 @@ import {
 interface FilterRowProps {
   label?: string;
   options: { value: string; label: string }[];
-  selectedValue: string;
+  selectedValue?: string;
   onSelect: (value: string) => void;
 }
 

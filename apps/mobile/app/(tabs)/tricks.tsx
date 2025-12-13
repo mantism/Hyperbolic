@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTricks } from "@/contexts/TricksContext";
+import { useTricks, TrickFilterOptions } from "@/contexts/TricksContext";
 import TrickCard from "@/components/TrickCard";
 import FilterSheet from "@/components/FilterSheet";
 import FilterRow from "@/components/FilterRow";
@@ -18,33 +18,23 @@ import FilterSwitch from "@/components/FilterSwitch";
 import TrickStatsHexagon from "@/components/TrickStatsHexagon";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-type FilterOptions = {
-  search: string;
-  category: string;
-  showLandedOnly: boolean;
-  difficultyRange: [number, number];
-  sortBy: "name" | "difficulty" | "category";
-  sortOrder: "asc" | "desc";
-};
-
 // Height of each TrickCard including margins for FlatList optimization
 const TRICK_CARD_HEIGHT = 140;
 
 export default function TricksScreen() {
   const { user } = useAuth();
   const {
-    allTricks,
-    userTricks,
     availableCategories,
     loading,
     refreshing,
     refetchTricks,
     refetchUserTricks,
     getUserTrickForTrickId,
+    filterAndSortTricks,
   } = useTricks();
   const [showFilters, setShowFilters] = useState(false);
 
-  const [filters, setFilters] = useState<FilterOptions>({
+  const [filters, setFilters] = useState<TrickFilterOptions>({
     search: "",
     category: "",
     showLandedOnly: false,
@@ -53,81 +43,9 @@ export default function TricksScreen() {
     sortOrder: "asc",
   });
 
-  // Create a lookup map for user tricks for better performance
-  const userTricksMap = useMemo(() => {
-    const map = new Map<string, UserTrick>();
-    userTricks.forEach((userTrick) => {
-      map.set(userTrick.trickID, userTrick);
-    });
-    return map;
-  }, [userTricks]);
-
   const filteredTricks = useMemo(() => {
-    let filtered = allTricks.filter((trick) => {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const matchesName = trick.name.toLowerCase().includes(searchLower);
-        const matchesAlias = trick.aliases?.some((alias) =>
-          alias.toLowerCase().includes(searchLower)
-        );
-        if (!matchesName && !matchesAlias) return false;
-      }
-
-      // Category filter
-      if (filters.category && filters.category !== "") {
-        if (!trick.categories?.includes(filters.category)) return false;
-      }
-
-      // Difficulty range filter
-      if (trick.rating) {
-        if (
-          trick.rating < filters.difficultyRange[0] ||
-          trick.rating > filters.difficultyRange[1]
-        ) {
-          return false;
-        }
-      }
-
-      // Landed status filter - now O(1) lookup instead of O(n)
-      if (filters.showLandedOnly) {
-        const userTrick = userTricksMap.get(trick.id);
-        const isLanded = userTrick?.landed === true;
-        if (!isLanded) return false;
-      }
-
-      return true;
-    });
-
-    // Sort
-    filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      switch (filters.sortBy) {
-        case "name":
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case "difficulty":
-          aValue = a.rating || 0;
-          bValue = b.rating || 0;
-          break;
-        case "category":
-          aValue = a.categories?.[0] || "";
-          bValue = b.categories?.[0] || "";
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return filters.sortOrder === "asc" ? -1 : 1;
-      if (aValue > bValue) return filters.sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [allTricks, userTricksMap, filters]);
+    return filterAndSortTricks(filters);
+  }, [filterAndSortTricks, filters]);
 
   const onRefresh = async () => {
     await refetchTricks();
@@ -143,10 +61,6 @@ export default function TricksScreen() {
       ...availableCategories.map((cat) => ({ value: cat, label: cat })),
     ];
   }, [availableCategories]);
-
-  const getUserTrickForTrick = (trickId: string) => {
-    return userTricksMap.get(trickId);
-  };
 
   if (loading) {
     return (
@@ -174,7 +88,7 @@ export default function TricksScreen() {
                 setFilters((prev) => ({ ...prev, search: text }))
               }
             />
-            {filters.search.length > 0 && (
+            {(filters.search ?? "").length > 0 && (
               <TouchableOpacity
                 onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
               >
@@ -231,7 +145,7 @@ export default function TricksScreen() {
       <FlatList
         data={filteredTricks}
         renderItem={({ item: trick }) => {
-          const userTrick = getUserTrickForTrick(trick.id);
+          const userTrick = getUserTrickForTrickId(trick.id);
           return <TrickCard trick={trick} userTrick={userTrick} />;
         }}
         keyExtractor={(item) => item.id}

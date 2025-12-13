@@ -4,10 +4,20 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { supabase } from "@/lib/supabase/supabase";
 import { Trick, UserTrick } from "@hyperbolic/shared-types";
 import { useAuth } from "./AuthContext";
+
+export type TrickFilterOptions = {
+  search?: string;
+  category?: string;
+  showLandedOnly?: boolean;
+  difficultyRange?: [number, number];
+  sortBy?: "name" | "difficulty" | "category";
+  sortOrder?: "asc" | "desc";
+};
 
 interface TricksContextType {
   allTricks: Trick[];
@@ -18,6 +28,7 @@ interface TricksContextType {
   refetchTricks: () => Promise<void>;
   refetchUserTricks: () => Promise<void>;
   getUserTrickForTrickId: (trickId: string) => UserTrick | undefined;
+  filterAndSortTricks: (options: TrickFilterOptions) => Trick[];
 }
 
 const TricksContext = createContext<TricksContextType | undefined>(undefined);
@@ -100,6 +111,79 @@ export function TricksProvider({ children }: { children: React.ReactNode }) {
     [userTricks]
   );
 
+  const filterAndSortTricks = useCallback(
+    (options: TrickFilterOptions) => {
+      let filtered = allTricks.filter((trick) => {
+        // Search filter
+        if (options.search) {
+          const searchLower = options.search.toLowerCase();
+          const matchesName = trick.name.toLowerCase().includes(searchLower);
+          const matchesAlias = trick.aliases?.some((alias) =>
+            alias.toLowerCase().includes(searchLower)
+          );
+          if (!matchesName && !matchesAlias) return false;
+        }
+
+        // Category filter
+        if (options.category && options.category !== "") {
+          if (!trick.categories?.includes(options.category)) return false;
+        }
+
+        // Difficulty range filter
+        if (options.difficultyRange && trick.rating) {
+          if (
+            trick.rating < options.difficultyRange[0] ||
+            trick.rating > options.difficultyRange[1]
+          ) {
+            return false;
+          }
+        }
+
+        // Landed status filter
+        if (options.showLandedOnly) {
+          const userTrick = getUserTrickForTrickId(trick.id);
+          const isLanded = userTrick?.landed === true;
+          if (!isLanded) return false;
+        }
+
+        return true;
+      });
+
+      // Sort
+      if (options.sortBy) {
+        filtered.sort((a, b) => {
+          let aValue: any;
+          let bValue: any;
+
+          switch (options.sortBy) {
+            case "name":
+              aValue = a.name.toLowerCase();
+              bValue = b.name.toLowerCase();
+              break;
+            case "difficulty":
+              aValue = a.rating || 0;
+              bValue = b.rating || 0;
+              break;
+            case "category":
+              aValue = a.categories?.[0] || "";
+              bValue = b.categories?.[0] || "";
+              break;
+            default:
+              return 0;
+          }
+
+          const order = options.sortOrder || "asc";
+          if (aValue < bValue) return order === "asc" ? -1 : 1;
+          if (aValue > bValue) return order === "asc" ? 1 : -1;
+          return 0;
+        });
+      }
+
+      return filtered;
+    },
+    [allTricks, getUserTrickForTrickId]
+  );
+
   // Initial fetch
   useEffect(() => {
     fetchAllTricks();
@@ -146,6 +230,7 @@ export function TricksProvider({ children }: { children: React.ReactNode }) {
     refetchTricks,
     refetchUserTricks,
     getUserTrickForTrickId,
+    filterAndSortTricks,
   };
 
   return (

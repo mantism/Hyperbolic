@@ -17,8 +17,8 @@ type SortOrder = "asc" | "desc";
 
 interface FilterSheetProps {
   visible: boolean;
-  sortBy: SortBy;
-  sortOrder: SortOrder;
+  sortBy?: SortBy;
+  sortOrder?: SortOrder;
   onSortByChange: (sortBy: SortBy) => void;
   onSortOrderChange: (sortOrder: SortOrder) => void;
   onClose: () => void;

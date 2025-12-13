@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import { useTricks } from "@/contexts/TricksContext";
+import { useTricks, TrickFilterOptions } from "@/contexts/TricksContext";
 import { Trick } from "@hyperbolic/shared-types";
 import TrickCard from "@/components/TrickCard";
 import FilterRow from "@/components/FilterRow";
@@ -21,13 +21,6 @@ interface TrickSelectionModalProps {
   onSelectTrick: (trick: Trick) => void;
 }
 
-type FilterOptions = {
-  search: string;
-  category: string;
-  sortBy: "name" | "difficulty" | "category";
-  sortOrder: "asc" | "desc";
-};
-
 const TRICK_CARD_HEIGHT = 140;
 
 export default function TrickSelectionModal({
@@ -35,65 +28,24 @@ export default function TrickSelectionModal({
   onClose,
   onSelectTrick,
 }: TrickSelectionModalProps) {
-  const { allTricks, availableCategories, loading, getUserTrickForTrickId } =
-    useTricks();
+  const {
+    availableCategories,
+    loading,
+    getUserTrickForTrickId,
+    filterAndSortTricks,
+  } = useTricks();
 
-  const [filters, setFilters] = useState<FilterOptions>({
+  const [filters, setFilters] = useState<TrickFilterOptions>({
     search: "",
     category: "",
     sortBy: "name",
     sortOrder: "asc",
+    showLandedOnly: false,
   });
 
   const filteredTricks = useMemo(() => {
-    let filtered = allTricks.filter((trick) => {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const matchesName = trick.name.toLowerCase().includes(searchLower);
-        const matchesAlias = trick.aliases?.some((alias) =>
-          alias.toLowerCase().includes(searchLower)
-        );
-        if (!matchesName && !matchesAlias) return false;
-      }
-
-      // Category filter
-      if (filters.category && filters.category !== "") {
-        if (!trick.categories?.includes(filters.category)) return false;
-      }
-
-      return true;
-    });
-
-    // Sort
-    filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      switch (filters.sortBy) {
-        case "name":
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case "difficulty":
-          aValue = a.rating || 0;
-          bValue = b.rating || 0;
-          break;
-        case "category":
-          aValue = a.categories?.[0] || "";
-          bValue = b.categories?.[0] || "";
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return filters.sortOrder === "asc" ? -1 : 1;
-      if (aValue > bValue) return filters.sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [allTricks, filters]);
+    return filterAndSortTricks(filters);
+  }, [filterAndSortTricks, filters]);
 
   const categoryOptions = useMemo(() => {
     return [
@@ -142,7 +94,7 @@ export default function TrickSelectionModal({
                 setFilters((prev) => ({ ...prev, search: text }))
               }
             />
-            {filters.search.length > 0 && (
+            {(filters.search ?? "").length > 0 && (
               <TouchableOpacity
                 onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
               >

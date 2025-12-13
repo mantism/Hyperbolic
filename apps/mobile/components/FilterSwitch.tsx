@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Switch } from "react-native";
 
 interface FilterSwitchProps {
   label: string;
-  value: boolean;
+  value?: boolean;
   onValueChange: (value: boolean) => void;
 }
 
