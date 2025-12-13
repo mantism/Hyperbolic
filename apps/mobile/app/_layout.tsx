@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { TricksProvider } from "@/contexts/TricksContext";
 
 function InitialLayout() {
   const { user, loading } = useAuth();
@@ -68,8 +69,10 @@ function InitialLayout() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <InitialLayout />
-      <StatusBar style="auto" />
+      <TricksProvider>
+        <InitialLayout />
+        <StatusBar style="auto" />
+      </TricksProvider>
     </AuthProvider>
   );
 }

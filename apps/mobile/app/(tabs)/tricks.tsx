@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase/supabase";
-import { Trick, UserTrick } from "@hyperbolic/shared-types";
+import { useTricks } from "@/contexts/TricksContext";
 import TrickCard from "@/components/TrickCard";
 import FilterSheet from "@/components/FilterSheet";
 import FilterRow from "@/components/FilterRow";
@@ -33,12 +32,17 @@ const TRICK_CARD_HEIGHT = 140;
 
 export default function TricksScreen() {
   const { user } = useAuth();
-  const [allTricks, setAllTricks] = useState<Trick[]>([]);
-  const [userTricks, setUserTricks] = useState<UserTrick[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    allTricks,
+    userTricks,
+    availableCategories,
+    loading,
+    refreshing,
+    refetchTricks,
+    refetchUserTricks,
+    getUserTrickForTrickId,
+  } = useTricks();
   const [showFilters, setShowFilters] = useState(false);
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
   const [filters, setFilters] = useState<FilterOptions>({
     search: "",
@@ -48,66 +52,6 @@ export default function TricksScreen() {
     sortBy: "name",
     sortOrder: "asc",
   });
-
-  const fetchAllTricks = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("Tricks")
-        .select("*")
-        .order("name");
-
-      if (error) {
-        throw error;
-      }
-
-      const tricks = data as Trick[];
-      setAllTricks(tricks);
-
-      // Extract unique categories
-      const categories = new Set<string>();
-      tricks.forEach((trick) => {
-        trick.categories?.forEach((category: string) =>
-          categories.add(category)
-        );
-      });
-      setAvailableCategories(Array.from(categories).sort());
-    } catch (error) {
-      console.error("Error fetching tricks:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  const fetchUserTricks = useCallback(async () => {
-    if (!user) {
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("UserToTricks")
-        .select(
-          `
-          *,
-          trick:Tricks(*)
-        `
-        )
-        .eq("userID", user.id);
-
-      if (error) throw error;
-      setUserTricks(data as UserTrick[]);
-    } catch (error) {
-      console.error("Error fetching user tricks:", error);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchAllTricks();
-    if (user) {
-      fetchUserTricks();
-    }
-  }, [user, fetchUserTricks, fetchAllTricks]);
 
   // Create a lookup map for user tricks for better performance
   const userTricksMap = useMemo(() => {
@@ -185,11 +129,10 @@ export default function TricksScreen() {
     return filtered;
   }, [allTricks, userTricksMap, filters]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchAllTricks();
+  const onRefresh = async () => {
+    await refetchTricks();
     if (user) {
-      fetchUserTricks();
+      await refetchUserTricks();
     }
   };
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Image, Animated } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { TrickVideo } from "@/lib/services/videoService";
+import { TrickVideo } from "@hyperbolic/shared-types";
 
 interface VideoHeroProps {
   video: TrickVideo | null;
