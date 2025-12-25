@@ -18,6 +18,12 @@ import { supabase } from "@/lib/supabase/supabase";
 import { TrickVideo, Trick, UserTrick } from "@hyperbolic/shared-types";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import {
+  getUserTrick,
+  updateUserTrickStats,
+  upsertUserTrick,
+  deleteUserTrick,
+} from "@/lib/services/userTrickService";
+import {
   getTrickTier,
   getTierColor,
   TrickTier,
@@ -27,6 +33,7 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
+import TrickLogModal from "./TrickLogModal";
 import CircularProgress from "./CircularProgress";
 import VideoHero from "./VideoHero";
 import VideoGallery from "./VideoGallery";
@@ -65,7 +72,6 @@ export default function TrickDetailPage({
   const [userRating, setUserRating] = useState(0);
   const [isGoal, setIsGoal] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
-  const [landedSurfaces, setLandedSurfaces] = useState<Set<string>>(new Set());
 
   const primaryCategory = trick.categories?.[0];
   const categoryColor = getCategoryColor(primaryCategory);
@@ -89,17 +95,7 @@ export default function TrickDetailPage({
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from("UserToTricks")
-        .select("*")
-        .eq("userID", user.id)
-        .eq("trickID", trick.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        // PGRST116 = no rows returned
-        throw error;
-      }
+      const data = await getUserTrick(user.id, trick.id);
 
       if (data) {
         setUserTrick(data);
@@ -107,9 +103,13 @@ export default function TrickDetailPage({
         setStomps(data.stomps || 0);
         setUserRating(data.rating || 0);
         setIsGoal(data.isGoal || false);
-
-        // Fetch surfaces from trick logs
-        fetchLandedSurfaces(data.id);
+      } else {
+        // No UserTrick exists yet
+        setUserTrick(null);
+        setAttempts(0);
+        setStomps(0);
+        setUserRating(0);
+        setIsGoal(false);
       }
     } catch (error) {
       console.error("Error fetching user trick:", error);
@@ -118,31 +118,6 @@ export default function TrickDetailPage({
       setLoading(false);
     }
   }, [user, trick.id]);
-
-  const fetchLandedSurfaces = async (userTrickId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("TrickLogs")
-        .select("surface_type")
-        .eq("user_trick_id", userTrickId)
-        .eq("landed", true)
-        .not("surface_type", "is", null);
-
-      if (error) throw error;
-
-      if (data) {
-        const surfaces = new Set<string>();
-        data.forEach((log) => {
-          if (log.surface_type) {
-            surfaces.add(log.surface_type);
-          }
-        });
-        setLandedSurfaces(surfaces);
-      }
-    } catch (error) {
-      console.error("Error fetching landed surfaces:", error);
-    }
-  };
 
   const fetchVideos = useCallback(async () => {
     if (!user) return;
@@ -202,8 +177,6 @@ export default function TrickDetailPage({
             setStomps(newData.stomps || 0);
             setUserRating(newData.rating || 0);
             setIsGoal(newData.isGoal || false);
-            // Refresh surfaces when user trick is updated
-            fetchLandedSurfaces(newData.id);
           } else if (payload.eventType === "DELETE") {
             setUserTrick(null);
             setAttempts(0);
@@ -226,46 +199,24 @@ export default function TrickDetailPage({
       newAttempts: number,
       newStomps: number,
       newRating: number,
-      newIsGoal: boolean,
-      currentUserTrick: UserTrick | null
+      newIsGoal: boolean
     ) => {
       if (!user) return;
 
       try {
         const landed = newStomps > 0;
-        const trickData = {
-          userID: user.id,
-          trickID: trick.id,
+
+        // Use upsert service to create or update
+        const data = await upsertUserTrick(user.id, trick.id, {
           attempts: newAttempts,
           stomps: newStomps,
           landed,
           rating: newRating || null,
           isGoal: newIsGoal,
-        };
+        });
 
-        if (currentUserTrick) {
-          // Update existing
-          const { data, error } = await supabase
-            .from("UserToTricks")
-            .update(trickData)
-            .eq("id", currentUserTrick.id)
-            .select()
-            .single();
-
-          if (error) throw error;
-          // Update the userTrick state with the latest data
-          setUserTrick(data);
-        } else {
-          // Insert new
-          const { data, error } = await supabase
-            .from("UserToTricks")
-            .insert(trickData)
-            .select()
-            .single();
-
-          if (error) throw error;
-          setUserTrick(data);
-        }
+        // Update the userTrick state with the latest data
+        setUserTrick(data);
       } catch (error: any) {
         console.error("Error auto-saving:", error);
         // Revert the optimistic update on error
@@ -275,27 +226,55 @@ export default function TrickDetailPage({
     [user, trick.id]
   );
 
-  const incrementAttempts = async () => {
+  // Debounced increment functions to prevent rapid clicks creating duplicates
+  const incrementAttemptsDebounced = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const incrementStompsDebounced = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  const incrementAttempts = () => {
+    // Clear any pending debounce
+    if (incrementAttemptsDebounced.current) {
+      clearTimeout(incrementAttemptsDebounced.current);
+    }
+
+    // Optimistic update immediately for UI responsiveness
     const newAttempts = attempts + 1;
-    setAttempts(newAttempts); // Optimistic update
-    await autoSave(newAttempts, stomps, userRating, isGoal, userTrick);
+    setAttempts(newAttempts);
+
+    // Debounce the actual save
+    incrementAttemptsDebounced.current = setTimeout(() => {
+      autoSave(newAttempts, stomps, userRating, isGoal);
+    }, 300);
   };
 
-  const incrementStomps = async () => {
+  const incrementStomps = () => {
+    // Clear any pending debounce
+    if (incrementStompsDebounced.current) {
+      clearTimeout(incrementStompsDebounced.current);
+    }
+
+    // Optimistic update immediately for UI responsiveness
     const newStomps = stomps + 1;
-    setStomps(newStomps); // Optimistic update
-    await autoSave(attempts, newStomps, userRating, isGoal, userTrick);
+    setStomps(newStomps);
+
+    // Debounce the actual save
+    incrementStompsDebounced.current = setTimeout(() => {
+      autoSave(attempts, newStomps, userRating, isGoal);
+    }, 300);
   };
 
   const updateRating = async (rating: number) => {
     setUserRating(rating); // Optimistic update
-    await autoSave(attempts, stomps, rating, isGoal, userTrick);
+    await autoSave(attempts, stomps, rating, isGoal);
   };
 
   const toggleGoal = async () => {
     const newIsGoal = !isGoal;
     setIsGoal(newIsGoal); // Optimistic update
-    await autoSave(attempts, stomps, userRating, newIsGoal, userTrick);
+    await autoSave(attempts, stomps, userRating, newIsGoal);
   };
 
   const handleTrickNavigation = (selectedTrick: Trick) => {
@@ -355,12 +334,7 @@ export default function TrickDetailPage({
           style: "destructive",
           onPress: async () => {
             try {
-              const { error } = await supabase
-                .from("UserToTricks")
-                .delete()
-                .eq("id", userTrick.id);
-
-              if (error) throw error;
+              await deleteUserTrick(userTrick.id);
 
               setUserTrick(null);
               setAttempts(0);
@@ -612,7 +586,11 @@ export default function TrickDetailPage({
             {/* Surfaces Section */}
             {user ? (
               <SurfaceBadges
-                landedSurfaces={landedSurfaces}
+                landedSurfaces={
+                  userTrick?.landedSurfaces
+                    ? new Set(userTrick.landedSurfaces)
+                    : new Set<string>()
+                }
                 showTitle={true}
                 interactive={true}
               />
@@ -729,21 +707,7 @@ export default function TrickDetailPage({
 
           {/* Trick Logs */}
           {user && (
-            <TrickLogs
-              userTrick={userTrick}
-              trickId={trick.id}
-              userId={user.id}
-              onLogAdded={() => {
-                fetchUserTrick();
-                if (userTrick) {
-                  fetchLandedSurfaces(userTrick.id);
-                }
-                setShowLogModal(false);
-              }}
-              trickName={trick.name}
-              showAddModal={showLogModal}
-              onCloseModal={() => setShowLogModal(false)}
-            />
+            <TrickLogs userTrick={userTrick} onAddPress={handleLogPress} />
           )}
 
           {/* Trick Progression Graph */}
@@ -783,6 +747,17 @@ export default function TrickDetailPage({
         visible={showVideoPlayer}
         video={selectedVideo}
         onClose={handleCloseVideoPlayer}
+      />
+
+      {/* Trick Log Modal */}
+      <TrickLogModal
+        visible={showLogModal}
+        userTrick={userTrick}
+        trickId={trick.id}
+        userId={user?.id || ""}
+        trickName={trick.name}
+        onClose={() => setShowLogModal(false)}
+        onLogAdded={fetchUserTrick}
       />
     </View>
   );

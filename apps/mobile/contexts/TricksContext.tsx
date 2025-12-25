@@ -7,6 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import { supabase } from "@/lib/supabase/supabase";
+import { getUserTricks } from "@/lib/services/userTrickService";
 import { Trick, UserTrick } from "@hyperbolic/shared-types";
 import { useAuth } from "./AuthContext";
 
@@ -78,18 +79,8 @@ export function TricksProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("UserToTricks")
-        .select(
-          `
-          *,
-          trick:Tricks(*)
-        `
-        )
-        .eq("userID", user.id);
-
-      if (error) throw error;
-      setUserTricks(data as UserTrick[]);
+      const data = await getUserTricks(user.id);
+      setUserTricks(data);
     } catch (error) {
       console.error("Error fetching user tricks:", error);
     }

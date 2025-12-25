@@ -27,6 +27,7 @@ interface UpdateUserTrickStatsParams {
 
 /**
  * Create a new UserTrick record
+ * Handles unique constraint violations by fetching existing record
  */
 export async function createUserTrick(
   params: CreateUserTrickParams
@@ -58,6 +59,18 @@ export async function createUserTrick(
     .single();
 
   if (error) {
+    // Check if this is a unique constraint violation (error code 23505)
+    // This means the record already exists - fetch and return it
+    if (error.code === "23505") {
+      console.warn(
+        `UserTrick already exists for userId=${userId}, trickId=${trickId}. Fetching existing record.`
+      );
+      const existing = await getUserTrick(userId, trickId);
+      if (existing) {
+        return existing;
+      }
+    }
+
     console.error("Error creating UserTrick:", error);
     throw error;
   }
@@ -189,26 +202,39 @@ export async function deleteUserTrick(userTrickId: string): Promise<void> {
 }
 
 /**
- * Create or update a UserTrick in a single operation
- * Useful for incrementing stats when the record may or may not exist
+ * Create or update a UserTrick in a single atomic operation
+ * Uses Supabase upsert to prevent race conditions
+ * Requires unique constraint on (userID, trickID)
  */
 export async function upsertUserTrick(
   userId: string,
   trickId: string,
   updates: UpdateUserTrickStatsParams
 ): Promise<UserTrick> {
-  // Try to get existing record
-  const existing = await getUserTrick(userId, trickId);
+  const { data, error } = await supabase
+    .from("UserToTricks")
+    .upsert(
+      {
+        userID: userId,
+        trickID: trickId,
+        attempts: updates.attempts ?? 0,
+        stomps: updates.stomps ?? 0,
+        landed: updates.landed ?? false,
+        rating: updates.rating ?? null,
+        isGoal: updates.isGoal ?? false,
+      },
+      {
+        onConflict: "userID,trickID",
+        ignoreDuplicates: false, // Update on conflict
+      }
+    )
+    .select()
+    .single();
 
-  if (existing) {
-    // Update existing record
-    return updateUserTrickStats(existing.id, updates);
-  } else {
-    // Create new record with the updates
-    return createUserTrick({
-      userId,
-      trickId,
-      ...updates,
-    });
+  if (error) {
+    console.error("Error upserting UserTrick:", error);
+    throw error;
   }
+
+  return data;
 }
