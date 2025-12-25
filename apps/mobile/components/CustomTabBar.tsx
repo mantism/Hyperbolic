@@ -87,10 +87,7 @@ export default function CustomTabBar({
         })}
       </View>
 
-      <QuickLogFlow
-        visible={showQuickLog}
-        onClose={() => setShowQuickLog(false)}
-      />
+      {showQuickLog && <QuickLogFlow onClose={() => setShowQuickLog(false)} />}
     </>
   );
 }
