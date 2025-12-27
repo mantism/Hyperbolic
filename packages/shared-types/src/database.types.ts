@@ -14,6 +14,75 @@ export type Database = {
   };
   public: {
     Tables: {
+      ComboLogs: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          is_public: boolean | null;
+          landed: boolean | null;
+          location_name: string | null;
+          logged_at: string;
+          notes: string | null;
+          rating: number | null;
+          surface_type: string | null;
+          thumbnail_url: string | null;
+          trick_sequence: Json;
+          user_combo_id: string | null;
+          user_id: string;
+          video_urls: string[] | null;
+          weather_conditions: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id: string;
+          is_public?: boolean | null;
+          landed?: boolean | null;
+          location_name?: string | null;
+          logged_at?: string;
+          notes?: string | null;
+          rating?: number | null;
+          surface_type?: string | null;
+          thumbnail_url?: string | null;
+          trick_sequence: Json;
+          user_combo_id?: string | null;
+          user_id: string;
+          video_urls?: string[] | null;
+          weather_conditions?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          is_public?: boolean | null;
+          landed?: boolean | null;
+          location_name?: string | null;
+          logged_at?: string;
+          notes?: string | null;
+          rating?: number | null;
+          surface_type?: string | null;
+          thumbnail_url?: string | null;
+          trick_sequence?: Json;
+          user_combo_id?: string | null;
+          user_id?: string;
+          video_urls?: string[] | null;
+          weather_conditions?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ComboLogs_user_combo_id_fkey";
+            columns: ["user_combo_id"];
+            isOneToOne: false;
+            referencedRelation: "UserCombos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ComboLogs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "Users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       TrickLogs: {
         Row: {
           created_at: string | null;
@@ -182,6 +251,47 @@ export type Database = {
             columns: ["featured_video_id"];
             isOneToOne: false;
             referencedRelation: "TrickMedia";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      UserCombos: {
+        Row: {
+          attempts: number | null;
+          created_at: string | null;
+          id: string;
+          landed: boolean | null;
+          name: string;
+          stomps: number | null;
+          trick_sequence: Json;
+          user_id: string;
+        };
+        Insert: {
+          attempts?: number | null;
+          created_at?: string | null;
+          id: string;
+          landed?: boolean | null;
+          name: string;
+          stomps?: number | null;
+          trick_sequence: Json;
+          user_id: string;
+        };
+        Update: {
+          attempts?: number | null;
+          created_at?: string | null;
+          id?: string;
+          landed?: boolean | null;
+          name?: string;
+          stomps?: number | null;
+          trick_sequence?: Json;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "UserCombos_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "Users";
             referencedColumns: ["id"];
           },
         ];
