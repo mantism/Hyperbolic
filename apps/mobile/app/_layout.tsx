@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TricksProvider } from "@/contexts/TricksContext";
+import { CombosProvider } from "@/contexts/CombosContext";
 
 function InitialLayout() {
   const { user, loading } = useAuth();
@@ -70,8 +71,10 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <TricksProvider>
-        <InitialLayout />
-        <StatusBar style="auto" />
+        <CombosProvider>
+          <InitialLayout />
+          <StatusBar style="auto" />
+        </CombosProvider>
       </TricksProvider>
     </AuthProvider>
   );
