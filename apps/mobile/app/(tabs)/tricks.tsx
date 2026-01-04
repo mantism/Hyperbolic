@@ -3,9 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
@@ -17,6 +15,8 @@ import FilterRow from "@/components/FilterRow";
 import FilterSwitch from "@/components/FilterSwitch";
 import TrickStatsHexagon from "@/components/TrickStatsHexagon";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import SearchBar from "@/components/SearchBar";
+import PageHeader from "@/components/PageHeader";
 
 // Height of each TrickCard including margins for FlatList optimization
 const TRICK_CARD_HEIGHT = 140;
@@ -74,36 +74,16 @@ export default function TricksScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header Container - Search + Filters */}
-      <View style={styles.headerContainer}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color="#666" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search tricks..."
-              value={filters.search}
-              onChangeText={(text) =>
-                setFilters((prev) => ({ ...prev, search: text }))
-              }
-            />
-            {(filters.search ?? "").length > 0 && (
-              <TouchableOpacity
-                onPress={() => setFilters((prev) => ({ ...prev, search: "" }))}
-              >
-                <Ionicons name="close-circle" size={20} color="#666" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => setShowFilters(true)}
-          >
-            <Ionicons name="options-outline" size={20} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
+      <PageHeader>
+        <SearchBar
+          value={filters.search}
+          onChangeText={(text: string) =>
+            setFilters((prev) => ({ ...prev, search: text }))
+          }
+          placeholder="Search tricks..."
+          showFilterButton={true}
+          onFilterPress={() => setShowFilters(true)}
+        />
 
         {/* Filter Rows - always visible below search */}
         <View style={styles.filterRowsContainer}>
@@ -127,7 +107,7 @@ export default function TricksScreen() {
             />
           )}
         </View>
-      </View>
+      </PageHeader>
 
       {/* Sort Filter Sheet */}
       <FilterSheet
@@ -202,48 +182,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerContainer: {
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    padding: 16,
-    paddingTop: 60,
-    paddingBottom: 12,
-    alignItems: "center",
-    gap: 12,
-  },
   filterRowsContainer: {
     backgroundColor: "#fff",
     paddingBottom: 8,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#000",
-  },
-  filterButton: {
-    padding: 8,
   },
   resultsHeader: {
     paddingHorizontal: 16,
