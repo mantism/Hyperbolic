@@ -16,12 +16,14 @@ interface AddLogModalProps {
   visible: boolean;
   onClose: () => void;
   onSelectTrick: () => void;
+  onSelectCombo: () => void;
 }
 
 export default function AddLogModal({
   visible,
   onClose,
   onSelectTrick,
+  onSelectCombo,
 }: AddLogModalProps) {
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 

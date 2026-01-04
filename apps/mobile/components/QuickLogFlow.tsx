@@ -12,7 +12,7 @@ interface QuickLogFlowProps {
 export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
   const { user } = useAuth();
   const [step, setStep] = useState<
-    "select-type" | "select-trick" | "log-trick"
+    "select-type" | "select-trick" | "log-trick" | "log-combo"
   >("select-type");
   const [selectedTrick, setSelectedTrick] = useState<Trick | null>(null);
   const [userTrickId, setUserTrickId] = useState<string | null>(null);
@@ -26,6 +26,10 @@ export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
 
   const handleSelectTrick = () => {
     setStep("select-trick");
+  };
+
+  const handleSelectCombo = () => {
+    setStep("log-combo");
   };
 
   const handleTrickSelected = (trick: Trick) => {
@@ -47,6 +51,7 @@ export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
           visible={true}
           onClose={handleClose}
           onSelectTrick={handleSelectTrick}
+          onSelectCombo={handleSelectCombo}
         />
       );
     case "select-trick":
