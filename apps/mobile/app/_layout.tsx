@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TricksProvider } from "@/contexts/TricksContext";
 import { CombosProvider } from "@/contexts/CombosContext";
@@ -69,13 +70,15 @@ function InitialLayout() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <TricksProvider>
-        <CombosProvider>
-          <InitialLayout />
-          <StatusBar style="auto" />
-        </CombosProvider>
-      </TricksProvider>
-    </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <TricksProvider>
+          <CombosProvider>
+            <InitialLayout />
+            <StatusBar style="auto" />
+          </CombosProvider>
+        </TricksProvider>
+      </AuthProvider>
+    </KeyboardProvider>
   );
 }

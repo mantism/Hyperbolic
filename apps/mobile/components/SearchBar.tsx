@@ -8,6 +8,8 @@ interface SearchBarProps {
   placeholder?: string;
   onFilterPress?: () => void;
   showFilterButton?: boolean;
+  onAddPress?: () => void;
+  showAddButton?: boolean;
 }
 
 export default function SearchBar({
@@ -16,6 +18,8 @@ export default function SearchBar({
   placeholder = "Search...",
   onFilterPress,
   showFilterButton = true,
+  onAddPress,
+  showAddButton = false,
 }: SearchBarProps) {
   return (
     <View style={styles.searchContainer}>
@@ -37,6 +41,12 @@ export default function SearchBar({
       {showFilterButton && onFilterPress && (
         <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
           <Ionicons name="options-outline" size={20} color="#007AFF" />
+        </TouchableOpacity>
+      )}
+
+      {showAddButton && onAddPress && (
+        <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
+          <Ionicons name="add-circle" size={28} color="#007AFF" />
         </TouchableOpacity>
       )}
     </View>
@@ -69,5 +79,8 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     padding: 8,
+  },
+  addButton: {
+    padding: 4,
   },
 });

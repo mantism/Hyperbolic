@@ -5,7 +5,11 @@ import {
   marshalTrickSequence,
   unmarshalTrickSequence,
 } from "./validation/comboValidation";
-import { incrementComboStats } from "./userComboService";
+import {
+  incrementComboStats,
+  createUserCombo,
+  getUserCombos,
+} from "./userComboService";
 
 /**
  * Centralized service for ComboLog CRUD operations.
@@ -14,7 +18,8 @@ import { incrementComboStats } from "./userComboService";
 
 interface CreateComboLogParams {
   userId: string;
-  userComboId?: string | null; // null for one-off combos
+  userComboId?: string; // If provided, use this combo; otherwise auto-create
+  comboName?: string; // Name for auto-created combo
   trickSequence: ComboTrick[];
   landed?: boolean;
   rating?: number;
@@ -30,14 +35,15 @@ interface CreateComboLogParams {
 
 /**
  * Log a combo session
- * Automatically updates UserCombo stats if userComboId is provided
+ * Auto-creates UserCombo if it doesn't exist, then logs the session
  */
 export async function createComboLog(
   params: CreateComboLogParams
 ): Promise<ComboLog> {
   const {
     userId,
-    userComboId = null,
+    userComboId,
+    comboName,
     trickSequence,
     landed = false,
     rating = null,
@@ -54,12 +60,35 @@ export async function createComboLog(
   // Validate and marshal the trick sequence
   const marshaledSequence = marshalTrickSequence(trickSequence);
 
+  // Find or create UserCombo
+  let comboId = userComboId;
+  if (!comboId) {
+    // Auto-create combo: Try to find existing combo with same sequence
+    const existingCombos = await getUserCombos(userId);
+    const matchingCombo = existingCombos.find((combo) =>
+      areSequencesEqual(combo.trick_sequence, trickSequence)
+    );
+
+    if (matchingCombo) {
+      comboId = matchingCombo.id;
+    } else {
+      // Create new combo
+      const generatedName = comboName || generateComboName(trickSequence);
+      const newCombo = await createUserCombo({
+        userId,
+        name: generatedName,
+        trickSequence,
+      });
+      comboId = newCombo.id;
+    }
+  }
+
   const { data, error } = await supabase
     .from("ComboLogs")
     .insert({
-      user_id: userId,
-      user_combo_id: userComboId,
-      trick_sequence: marshaledSequence as unknown as Database["public"]["Tables"]["ComboLogs"]["Insert"]["trick_sequence"],
+      user_combo_id: comboId,
+      trick_sequence:
+        marshaledSequence as unknown as Database["public"]["Tables"]["ComboLogs"]["Insert"]["trick_sequence"],
       logged_at: loggedAt,
       landed,
       rating,
@@ -79,10 +108,8 @@ export async function createComboLog(
     throw error;
   }
 
-  // If this log is for a saved combo, update its stats
-  if (userComboId) {
-    await incrementComboStats(userComboId, { landed });
-  }
+  // Update combo stats
+  await incrementComboStats(comboId, { landed });
 
   return {
     ...data,
@@ -91,7 +118,29 @@ export async function createComboLog(
 }
 
 /**
- * Get combo logs for a user
+ * Helper: Check if two trick sequences are equal
+ */
+function areSequencesEqual(seq1: ComboTrick[], seq2: ComboTrick[]): boolean {
+  if (seq1.length !== seq2.length) return false;
+  return seq1.every(
+    (trick, i) =>
+      trick.trick_id === seq2[i].trick_id &&
+      trick.landing_stance === seq2[i].landing_stance &&
+      trick.transition === seq2[i].transition
+  );
+}
+
+/**
+ * Helper: Generate combo name from trick sequence
+ */
+function generateComboName(sequence: ComboTrick[]): string {
+  if (sequence.length === 0) return "Empty Combo";
+  if (sequence.length === 1) return `${sequence[0].trick_id} Combo`;
+  return `${sequence[0].trick_id} to ${sequence[sequence.length - 1].trick_id}`;
+}
+
+/**
+ * Get combo logs for a user (via UserCombos join)
  */
 export async function getComboLogs(
   userId: string,
@@ -99,8 +148,13 @@ export async function getComboLogs(
 ): Promise<ComboLog[]> {
   const { data, error } = await supabase
     .from("ComboLogs")
-    .select("*")
-    .eq("user_id", userId)
+    .select(
+      `
+      *,
+      user_combo:UserCombos!inner(user_id)
+    `
+    )
+    .eq("user_combo.user_id", userId)
     .order("logged_at", { ascending: false })
     .limit(limit);
 
@@ -197,7 +251,8 @@ export async function updateComboLog(
     updateData.location_name = updates.locationName;
   if (updates.surfaceType !== undefined)
     updateData.surface_type = updates.surfaceType;
-  if (updates.videoUrls !== undefined) updateData.video_urls = updates.videoUrls;
+  if (updates.videoUrls !== undefined)
+    updateData.video_urls = updates.videoUrls;
   if (updates.thumbnailUrl !== undefined)
     updateData.thumbnail_url = updates.thumbnailUrl;
   if (updates.weatherConditions !== undefined)
