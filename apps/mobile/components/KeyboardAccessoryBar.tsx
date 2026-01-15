@@ -32,16 +32,22 @@ export default function KeyboardAccessoryBar({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Transitions Section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Transitions</Text>
           <View style={styles.buttonGroup}>
-            {TRANSITIONS.map((transition) => (
+            {TRANSITIONS.map((transition, index) => (
               <TouchableOpacity
                 key={transition}
-                style={[styles.button, styles.transitionButton]}
+                style={[
+                  styles.button,
+                  styles.transitionButton,
+                  index > 0 && styles.buttonSpacing,
+                ]}
                 onPress={() => onTransitionPress(transition)}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.buttonText, styles.transitionText]}>
                   {transition}
@@ -55,10 +61,14 @@ export default function KeyboardAccessoryBar({
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Stances</Text>
           <View style={styles.buttonGroup}>
-            {STANCES.map((stance) => (
+            {STANCES.map((stance, index) => (
               <TouchableOpacity
                 key={stance}
-                style={[styles.button, styles.stanceButton]}
+                style={[
+                  styles.button,
+                  styles.stanceButton,
+                  index > 0 && styles.buttonSpacing,
+                ]}
                 onPress={() => onStancePress(stance)}
               >
                 <Text style={[styles.buttonText, styles.stanceText]}>
@@ -79,13 +89,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
     paddingVertical: 8,
+    height: 80,
   },
   scrollContent: {
     paddingHorizontal: 12,
-    gap: 16,
+    flexDirection: "row",
   },
   section: {
-    gap: 4,
+    marginRight: 16,
   },
   sectionLabel: {
     fontSize: 10,
@@ -96,13 +107,15 @@ const styles = StyleSheet.create({
   },
   buttonGroup: {
     flexDirection: "row",
-    gap: 6,
   },
   button: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
+  },
+  buttonSpacing: {
+    marginLeft: 6,
   },
   buttonText: {
     fontSize: 13,

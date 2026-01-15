@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
@@ -47,27 +47,32 @@ export default function TrickAutocomplete({
     return null;
   }
 
+  // Calculate height based on number of items (max 200px)
+  const ITEM_HEIGHT = 50; // Approximate height per item
+  const calculatedHeight = Math.min(filteredTricks.length * ITEM_HEIGHT, 200);
+
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={filteredTricks}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+    <View style={[styles.container, { height: calculatedHeight }]}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={true}
+        showsVerticalScrollIndicator={true}
+      >
+        {filteredTricks.map((trick) => (
           <TouchableOpacity
+            key={trick.id}
             style={styles.item}
-            onPress={() => onSelectTrick(item)}
+            onPress={() => onSelectTrick(trick)}
           >
-            <Text style={styles.itemText}>{item.name}</Text>
-            {item.aliases && item.aliases.length > 0 && (
+            <Text style={styles.itemText}>{trick.name}</Text>
+            {trick.aliases && trick.aliases.length > 0 && (
               <Text style={styles.aliasText}>
-                aka {item.aliases.slice(0, 2).join(", ")}
+                aka {trick.aliases.slice(0, 2).join(", ")}
               </Text>
             )}
           </TouchableOpacity>
-        )}
-        keyboardShouldPersistTaps="handled"
-        style={styles.list}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -83,7 +88,6 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     borderRadius: 8,
     marginTop: 4,
-    maxHeight: 200,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -93,9 +97,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1000,
-  },
-  list: {
-    flex: 1,
   },
   item: {
     padding: 12,

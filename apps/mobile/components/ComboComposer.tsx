@@ -6,16 +6,13 @@ import {
   StyleSheet,
   Text,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
-import { KeyboardToolbar } from "react-native-keyboard-controller";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trick, ComboTrick } from "@hyperbolic/shared-types";
 import { createUserCombo } from "@/lib/services/userComboService";
 import ComboChip from "./ComboChip";
-import TrickAutocomplete from "./TrickAutocomplete";
-import KeyboardAccessoryBar from "./KeyboardAccessoryBar";
+import TrickSuggestionChips from "./TrickSuggestionChips";
+import ComboModifierButtons from "./ComboModifierButtons";
 
 interface ComboComposerProps {
   userId: string;
@@ -189,76 +186,70 @@ export default function ComboComposer({
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>Create Combo</Text>
-        <TouchableOpacity onPress={onCancel} hitSlop={8}>
-          <Ionicons name="close" size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Create Combo</Text>
+          <TouchableOpacity onPress={onCancel} hitSlop={8}>
+            <Ionicons name="close" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
 
-      {/* Combo Name Input */}
-      <View style={styles.nameInputContainer}>
-        <TextInput
-          style={styles.nameInput}
-          placeholder="Combo name (optional)"
-          value={comboName}
-          onChangeText={setComboName}
-        />
-      </View>
+        {/* Combo Name Input */}
+        <View style={styles.nameInputContainer}>
+          <TextInput
+            style={styles.nameInput}
+            placeholder="Combo name (optional)"
+            value={comboName}
+            onChangeText={setComboName}
+          />
+        </View>
 
-      {/* Sequence Display */}
-      {sequence.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sequenceContainer}
-        >
-          {sequence.map((item, index) => renderSequenceItem(item, index))}
-        </ScrollView>
-      )}
+        {/* Sequence Display */}
+        {sequence.length > 0 && (
+          <View style={styles.sequenceContainer}>
+            {sequence.map((item, index) => renderSequenceItem(item, index))}
+          </View>
+        )}
 
-      {/* Trick Search Input */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type trick name..."
-          value={searchText}
-          onChangeText={setSearchText}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TrickAutocomplete
+        {/* Trick Search Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type trick name..."
+            value={searchText}
+            onChangeText={setSearchText}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        {/* Trick Suggestions */}
+        <TrickSuggestionChips
           searchText={searchText}
           onSelectTrick={handleSelectTrick}
         />
-      </View>
 
-      {/* Save Button */}
-      <TouchableOpacity
-        style={[
-          styles.saveButton,
-          (sequence.length === 0 || saving) && styles.saveButtonDisabled,
-        ]}
-        onPress={handleSave}
-        disabled={sequence.length === 0 || saving}
-      >
-        <Text style={styles.saveButtonText}>
-          {saving ? "Saving..." : "Save Combo"}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Keyboard Accessory */}
-      <KeyboardToolbar>
-        <KeyboardAccessoryBar
+        {/* Modifier Buttons */}
+        <ComboModifierButtons
           onTransitionPress={handleTransitionPress}
           onStancePress={handleStancePress}
+          disabled={sequence.length === 0}
         />
-      </KeyboardToolbar>
-    </KeyboardAvoidingView>
+
+        {/* Save Button */}
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            (sequence.length === 0 || saving) && styles.saveButtonDisabled,
+          ]}
+          onPress={handleSave}
+          disabled={sequence.length === 0 || saving}
+        >
+          <Text style={styles.saveButtonText}>
+            {saving ? "Saving..." : "Save Combo"}
+          </Text>
+        </TouchableOpacity>
+      </View>
   );
 }
 
@@ -293,6 +284,7 @@ const styles = StyleSheet.create({
   },
   sequenceContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 4,
     paddingVertical: 8,
@@ -305,7 +297,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   inputContainer: {
-    position: "relative",
     marginBottom: 12,
   },
   input: {
@@ -321,6 +312,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 16,
   },
   saveButtonDisabled: {
     backgroundColor: "#CCC",
