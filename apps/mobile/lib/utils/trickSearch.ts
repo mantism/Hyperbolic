@@ -6,18 +6,22 @@ import { Trick } from "@hyperbolic/shared-types";
  */
 function scoreTrick(trick: Trick, searchLower: string): number {
   const nameLower = trick.name.toLowerCase();
+  const idLower = trick.id.toLowerCase();
   let score = 0;
 
-  // Exact match - highest priority
-  if (nameLower === searchLower) {
+  // Exact match to name or id - highest priority
+  if (nameLower === searchLower || idLower === searchLower) {
     score = 1000;
   }
   // Starts with search - high priority
-  else if (nameLower.startsWith(searchLower)) {
+  else if (
+    nameLower.startsWith(searchLower) ||
+    idLower.startsWith(searchLower)
+  ) {
     score = 500;
   }
   // Contains search in name
-  else if (nameLower.includes(searchLower)) {
+  else if (nameLower.includes(searchLower) || idLower.includes(searchLower)) {
     score = 100;
   }
   // Check aliases

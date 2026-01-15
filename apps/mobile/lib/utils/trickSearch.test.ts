@@ -5,37 +5,37 @@ import { Trick } from "@hyperbolic/shared-types";
 describe("trickSearch", () => {
   const mockTricks: Trick[] = [
     createTrick({
-      id: "1",
+      id: "butterfly-twist",
       name: "Butterfly Twist",
       aliases: ["btwist", "b-twist"],
     }),
     createTrick({
-      id: "2",
+      id: "butterfly-kick",
       name: "Butterfly Kick",
       aliases: ["b-kick"],
     }),
     createTrick({
-      id: "3",
+      id: "cheat-900",
       name: "Cheat 900",
       aliases: ["c9"],
     }),
     createTrick({
-      id: "4",
+      id: "cheat-1080",
       name: "Cheat 1080",
       aliases: ["cheat 900 double", "c10"],
     }),
     createTrick({
-      id: "5",
+      id: "cheat-1080-shuriken",
       name: "Cheat 1080 Shuriken",
       aliases: ["cheat 900 shuriken"],
     }),
     createTrick({
-      id: "6",
+      id: "aerial",
       name: "Aerial",
       aliases: [],
     }),
     createTrick({
-      id: "7",
+      id: "corkscrew",
       name: "Corkscrew",
       aliases: ["cork"],
     }),
@@ -114,6 +114,39 @@ describe("trickSearch", () => {
       const results = searchTricks(mockTricks, "cork");
       // "Corkscrew" (name starts with) should rank higher than any alias match
       expect(results[0].name).toBe("Corkscrew");
+    });
+
+    it("matches tricks by exact ID", () => {
+      const results = searchTricks(mockTricks, "aerial");
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe("aerial");
+    });
+
+    it("matches tricks by ID starting with search", () => {
+      const results = searchTricks(mockTricks, "butterfly");
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      // Should match both butterfly-twist and butterfly-kick
+      expect(results.some((t) => t.id === "butterfly-twist")).toBe(true);
+      expect(results.some((t) => t.id === "butterfly-kick")).toBe(true);
+    });
+
+    it("matches tricks by ID containing search", () => {
+      const results = searchTricks(mockTricks, "1080");
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      // Should match cheat-1080 and cheat-1080-shuriken
+      expect(results.some((t) => t.id === "cheat-1080")).toBe(true);
+      expect(results.some((t) => t.id === "cheat-1080-shuriken")).toBe(true);
+    });
+
+    it("prioritizes exact ID match equally with exact name match", () => {
+      const results = searchTricks(mockTricks, "corkscrew");
+      expect(results[0].id).toBe("corkscrew");
+    });
+
+    it("matches tricks by ID with hyphens", () => {
+      const results = searchTricks(mockTricks, "cheat-900");
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0].id).toBe("cheat-900");
     });
   });
 
