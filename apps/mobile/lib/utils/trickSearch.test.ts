@@ -1,99 +1,44 @@
 import { searchTricks, hasExactTrickMatch } from "./trickSearch";
+import { createTrick } from "./createTrick";
 import { Trick } from "@hyperbolic/shared-types";
 
 describe("trickSearch", () => {
   const mockTricks: Trick[] = [
-    {
+    createTrick({
       id: "1",
       name: "Butterfly Twist",
       aliases: ["btwist", "b-twist"],
-      categories: null,
-      created_at: null,
-      description: null,
-      featured_video_id: null,
-      lastUpdated: null,
-      prereqs: null,
-      progressions: null,
-      rating: null,
-    },
-    {
+    }),
+    createTrick({
       id: "2",
       name: "Butterfly Kick",
       aliases: ["b-kick"],
-      categories: null,
-      created_at: null,
-      description: null,
-      featured_video_id: null,
-      lastUpdated: null,
-      prereqs: null,
-      progressions: null,
-      rating: null,
-    },
-    {
+    }),
+    createTrick({
       id: "3",
       name: "Cheat 900",
       aliases: ["c9"],
-      categories: null,
-      created_at: null,
-      description: null,
-      featured_video_id: null,
-      lastUpdated: null,
-      prereqs: null,
-      progressions: null,
-      rating: null,
-    },
-    {
+    }),
+    createTrick({
       id: "4",
       name: "Cheat 1080",
       aliases: ["cheat 900 double", "c10"],
-      categories: null,
-      created_at: null,
-      description: null,
-      featured_video_id: null,
-      lastUpdated: null,
-      prereqs: null,
-      progressions: null,
-      rating: null,
-    },
-    {
+    }),
+    createTrick({
       id: "5",
       name: "Cheat 1080 Shuriken",
       aliases: ["cheat 900 shuriken"],
-      categories: null,
-      created_at: null,
-      description: null,
-      featured_video_id: null,
-      lastUpdated: null,
-      prereqs: null,
-      progressions: null,
-      rating: null,
-    },
-    {
+    }),
+    createTrick({
       id: "6",
       name: "Aerial",
       aliases: [],
-      categories: null,
-      created_at: null,
-      description: null,
-      featured_video_id: null,
-      lastUpdated: null,
-      prereqs: null,
-      progressions: null,
-      rating: null,
-    },
-    {
+    }),
+    createTrick({
       id: "7",
       name: "Corkscrew",
       aliases: ["cork"],
-      categories: null,
-      created_at: null,
-      description: null,
-      featured_video_id: null,
-      lastUpdated: null,
-      prereqs: null,
-      progressions: null,
-      rating: null,
-    },
+    }),
   ];
 
   describe("searchTricks", () => {
@@ -214,19 +159,11 @@ describe("trickSearch", () => {
 
     it("handles tricks with empty aliases array", () => {
       const tricksWithEmptyAliases: Trick[] = [
-        {
+        createTrick({
           id: "1",
           name: "Test Trick",
           aliases: [],
-          categories: null,
-          created_at: null,
-          description: null,
-          featured_video_id: null,
-          lastUpdated: null,
-          prereqs: null,
-          progressions: null,
-          rating: null,
-        },
+        }),
       ];
       const results = searchTricks(tricksWithEmptyAliases, "test");
       expect(results).toHaveLength(1);
