@@ -4,11 +4,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 interface ComboModifierButtonsProps {
   onTransitionPress: (transition: string) => void;
   onStancePress: (stance: string) => void;
-  disabled?: boolean;
+  transitionsDisabled?: boolean;
+  stancesDisabled?: boolean;
 }
 
 // Common transitions in tricking
-const TRANSITIONS = ["s/t", "round", "hyper", "punch", "cork"];
+const TRANSITIONS = ["s/t", "vs", "fs", "w/t", "reverse", "pop", "misleg"];
 
 // Common landing stances in tricking
 const STANCES = ["complete", "semi", "mega", "hyper"];
@@ -20,7 +21,8 @@ const STANCES = ["complete", "semi", "mega", "hyper"];
 export default function ComboModifierButtons({
   onTransitionPress,
   onStancePress,
-  disabled = false,
+  transitionsDisabled = false,
+  stancesDisabled = false,
 }: ComboModifierButtonsProps) {
   return (
     <View style={styles.container}>
@@ -34,17 +36,17 @@ export default function ComboModifierButtons({
               style={[
                 styles.button,
                 styles.transitionButton,
-                disabled && styles.buttonDisabled,
+                transitionsDisabled && styles.buttonDisabled,
               ]}
               onPress={() => onTransitionPress(transition)}
-              disabled={disabled}
+              disabled={transitionsDisabled}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.buttonText,
                   styles.transitionText,
-                  disabled && styles.buttonTextDisabled,
+                  transitionsDisabled && styles.buttonTextDisabled,
                 ]}
               >
                 {transition}
@@ -64,17 +66,17 @@ export default function ComboModifierButtons({
               style={[
                 styles.button,
                 styles.stanceButton,
-                disabled && styles.buttonDisabled,
+                stancesDisabled && styles.buttonDisabled,
               ]}
               onPress={() => onStancePress(stance)}
-              disabled={disabled}
+              disabled={stancesDisabled}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.buttonText,
                   styles.stanceText,
-                  disabled && styles.buttonTextDisabled,
+                  stancesDisabled && styles.buttonTextDisabled,
                 ]}
               >
                 {stance}

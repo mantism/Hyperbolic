@@ -5,14 +5,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   Text,
-  ScrollView,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trick, ComboTrick } from "@hyperbolic/shared-types";
 import { createUserCombo } from "@/lib/services/userComboService";
-import ComboChip from "./ComboChip";
+import { createTrick } from "@/lib/utils/createTrick";
+import DraggableComboChip from "./DraggableComboChip";
 import TrickSuggestionChips from "./TrickSuggestionChips";
 import ComboModifierButtons from "./ComboModifierButtons";
+import TrashZone from "./TrashZone";
 
 interface ComboComposerProps {
   userId: string;
@@ -20,11 +22,19 @@ interface ComboComposerProps {
   onCancel: () => void;
 }
 
-type SequenceItem = {
+type TrickItem = {
   id: string;
-  type: "trick" | "transition" | "stance" | "arrow";
-  data: ComboTrick | { value: string };
+  type: "trick";
+  data: ComboTrick;
 };
+
+type ArrowItem = {
+  id: string;
+  type: "arrow";
+  transition?: string;
+};
+
+type SequenceItem = TrickItem | ArrowItem;
 
 /**
  * Inline combo composer for creating new combos
@@ -39,12 +49,14 @@ export default function ComboComposer({
   const [sequence, setSequence] = useState<SequenceItem[]>([]);
   const [comboName, setComboName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [trashZoneY, setTrashZoneY] = useState(0);
 
   // Auto-generate combo name from tricks
   const generateComboName = (items: SequenceItem[]): string => {
     const tricks = items
-      .filter((item) => item.type === "trick")
-      .map((item) => (item.data as ComboTrick).trick_id)
+      .filter((item): item is TrickItem => item.type === "trick")
+      .map((item) => item.data.trick_id)
       .slice(0, 2); // Use first 2 tricks
 
     if (tricks.length === 0) return "";
@@ -59,18 +71,18 @@ export default function ComboComposer({
       data: { trick_id: trick.id },
     };
 
-    const updatedSequence = [...sequence, newItem];
+    const updatedSequence = [...sequence];
 
     // Add arrow separator if not the first trick
     if (sequence.length > 0) {
       const arrowItem: SequenceItem = {
         id: `${Date.now()}-arrow`,
         type: "arrow",
-        data: { value: "→" },
       };
-      updatedSequence.splice(updatedSequence.length - 1, 0, arrowItem);
+      updatedSequence.push(arrowItem);
     }
 
+    updatedSequence.push(newItem);
     setSequence(updatedSequence);
     setSearchText("");
 
@@ -80,21 +92,42 @@ export default function ComboComposer({
     }
   };
 
+  const handleCreateCustomTrick = (trickName: string) => {
+    const customTrick = createTrick({
+      id: trickName.toLowerCase().replace(/\s+/g, "-"),
+      name: trickName,
+      aliases: [],
+    });
+    handleSelectTrick(customTrick);
+  };
+
   const handleTransitionPress = (transition: string) => {
-    if (sequence.length === 0) return;
+    // Need at least one trick in sequence
+    if (sequence.length === 0) {
+      return;
+    }
 
     const lastItem = sequence[sequence.length - 1];
-    if (lastItem.type !== "trick") return;
 
-    // Update the last trick with transition
-    const updatedSequence = [...sequence];
-    const lastTrickData = lastItem.data as ComboTrick;
-    updatedSequence[updatedSequence.length - 1] = {
-      ...lastItem,
-      data: { ...lastTrickData, transition },
+    // If last item is already an arrow, update its transition
+    if (lastItem.type === "arrow") {
+      const updatedSequence = [...sequence];
+      updatedSequence[updatedSequence.length - 1] = {
+        ...lastItem,
+        transition,
+      };
+      setSequence(updatedSequence);
+      return;
+    }
+
+    // Otherwise add a new arrow with the transition
+    const arrowItem: ArrowItem = {
+      id: `${Date.now()}-arrow`,
+      type: "arrow",
+      transition,
     };
 
-    setSequence(updatedSequence);
+    setSequence([...sequence, arrowItem]);
   };
 
   const handleStancePress = (stance: string) => {
@@ -105,17 +138,30 @@ export default function ComboComposer({
 
     // Update the last trick with landing stance
     const updatedSequence = [...sequence];
-    const lastTrickData = lastItem.data as ComboTrick;
     updatedSequence[updatedSequence.length - 1] = {
       ...lastItem,
-      data: { ...lastTrickData, landing_stance: stance },
+      data: { ...lastItem.data, landing_stance: stance },
     };
 
     setSequence(updatedSequence);
   };
 
   const handleRemoveItem = (index: number) => {
-    const updatedSequence = sequence.filter((_, i) => i !== index);
+    let updatedSequence = sequence.filter((_, i) => i !== index);
+
+    // Clean up orphaned arrows
+    // Remove arrow before the deleted item if it exists
+    if (index > 0 && updatedSequence[index - 1]?.type === "arrow") {
+      updatedSequence = updatedSequence.filter((_, i) => i !== index - 1);
+    }
+    // Remove arrow after the deleted item if it exists and is now at the start
+    else if (
+      updatedSequence.length > 0 &&
+      updatedSequence[0]?.type === "arrow"
+    ) {
+      updatedSequence = updatedSequence.filter((_, i) => i !== 0);
+    }
+
     setSequence(updatedSequence);
 
     // Regenerate name if auto-generated
@@ -133,9 +179,9 @@ export default function ComboComposer({
       setSaving(true);
 
       // Extract only tricks from sequence (filter out arrows)
-      const trickSequence: ComboTrick[] = sequence
-        .filter((item) => item.type === "trick")
-        .map((item) => item.data as ComboTrick);
+      const trickSequence = sequence
+        .filter((item): item is TrickItem => item.type === "trick")
+        .map((item) => item.data);
 
       console.log("Saving combo for user:", userId);
 
@@ -160,25 +206,40 @@ export default function ComboComposer({
 
   const renderSequenceItem = (item: SequenceItem, index: number) => {
     if (item.type === "arrow") {
-      return <ComboChip key={item.id} type="arrow" label="→" />;
+      // Only render arrows that have transitions
+      if (!item.transition) {
+        return null;
+      }
+
+      return (
+        <DraggableComboChip
+          key={item.id}
+          type="transition"
+          label={item.transition}
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={() => setIsDragging(false)}
+          onDelete={() => handleRemoveItem(index)}
+          trashZoneY={trashZoneY}
+        />
+      );
     }
 
     if (item.type === "trick") {
-      const trickData = item.data as ComboTrick;
+      const comboTrick = item.data;
+      const label = comboTrick.landing_stance
+        ? `${comboTrick.trick_id} (${comboTrick.landing_stance})`
+        : comboTrick.trick_id;
+
       return (
-        <View key={item.id} style={styles.trickGroup}>
-          <ComboChip
-            type="trick"
-            label={trickData.trick_id}
-            onRemove={() => handleRemoveItem(index)}
-          />
-          {trickData.transition && (
-            <ComboChip type="transition" label={trickData.transition} />
-          )}
-          {trickData.landing_stance && (
-            <ComboChip type="stance" label={`(${trickData.landing_stance})`} />
-          )}
-        </View>
+        <DraggableComboChip
+          key={item.id}
+          type="trick"
+          label={label}
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={() => setIsDragging(false)}
+          onDelete={() => handleRemoveItem(index)}
+          trashZoneY={trashZoneY}
+        />
       );
     }
 
@@ -186,7 +247,8 @@ export default function ComboComposer({
   };
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
+      <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Create Combo</Text>
           <TouchableOpacity onPress={onCancel} hitSlop={8}>
@@ -220,6 +282,13 @@ export default function ComboComposer({
             onChangeText={setSearchText}
             autoCapitalize="none"
             autoCorrect={false}
+            onSubmitEditing={() => {
+              if (searchText.trim()) {
+                handleCreateCustomTrick(searchText.trim());
+              }
+            }}
+            returnKeyType="done"
+            blurOnSubmit={false}
           />
         </View>
 
@@ -227,13 +296,18 @@ export default function ComboComposer({
         <TrickSuggestionChips
           searchText={searchText}
           onSelectTrick={handleSelectTrick}
+          onCreateCustom={handleCreateCustomTrick}
         />
 
         {/* Modifier Buttons */}
         <ComboModifierButtons
           onTransitionPress={handleTransitionPress}
           onStancePress={handleStancePress}
-          disabled={sequence.length === 0}
+          transitionsDisabled={sequence.length === 0}
+          stancesDisabled={
+            sequence.length === 0 ||
+            sequence[sequence.length - 1]?.type !== "trick"
+          }
         />
 
         {/* Save Button */}
@@ -250,14 +324,21 @@ export default function ComboComposer({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Trash Zone */}
+      <TrashZone visible={isDragging} onLayout={setTrashZoneY} />
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+  },
+  content: {
     padding: 16,
   },
   header: {
@@ -290,11 +371,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     marginBottom: 12,
-  },
-  trickGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
   },
   inputContainer: {
     marginBottom: 12,

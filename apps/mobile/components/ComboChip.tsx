@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import Svg, { Path } from "react-native-svg";
 
 type ChipType = "trick" | "transition" | "stance" | "arrow";
 
@@ -40,6 +41,62 @@ export default function ComboChip({
     type === "stance" && styles.stanceText,
     type === "arrow" && styles.arrowText,
   ];
+
+  // Render transition with chevron background
+  if (type === "transition") {
+    const badgeHeight = 20; // Badge height
+    const chevronHeight = 28; // Independent chevron height (TALLER than badge - extends above/below)
+    const chevronWidth = 12; // Chevron point length
+    const borderWidth = 1;
+
+    return (
+      <View style={styles.chevronContainer}>
+        {/* Middle badge content (renders first, on bottom) */}
+        <View style={[styles.chevronMiddle, { height: badgeHeight }]}>
+          <Text style={styles.transitionText}>{label}</Text>
+          {onRemove && (
+            <TouchableOpacity
+              onPress={onRemove}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={14} color="#F57C00" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Triangle SVG (independent of badge height) */}
+        <View style={{ marginLeft: -5 }}>
+          <Svg height={chevronHeight} width={chevronWidth + 10}>
+            {/* Draw full triangle background */}
+            <Path
+              d={`M${chevronWidth},${chevronHeight / 2} L0,0 L0,${chevronHeight} Z`}
+              fill="#FFF3E0"
+            />
+            {/* Stroke only the visible edges */}
+            <Path
+              d={`M0,0 L${chevronWidth},${chevronHeight / 2} L0,${chevronHeight}`}
+              stroke="#FF9800"
+              strokeWidth={borderWidth}
+              fill="none"
+            />
+            {/* Add connecting lines from badge corners to triangle */}
+            <Path
+              d={`M0,${(chevronHeight - badgeHeight) / 2} L0,0`}
+              stroke="#FF9800"
+              strokeWidth={borderWidth * 2}
+              fill="none"
+            />
+            <Path
+              d={`M0,${chevronHeight} L0,${(chevronHeight + badgeHeight) / 2}`}
+              stroke="#FF9800"
+              strokeWidth={borderWidth * 2}
+              fill="none"
+            />
+          </Svg>
+        </View>
+      </View>
+    );
+  }
 
   const chipContent = (
     <View style={containerStyle}>
@@ -91,16 +148,21 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // Transition chip: s/t
+  // Transition chip: s/t (arrow-shaped)
   transitionChip: {
     backgroundColor: "#FFF3E0",
     borderWidth: 1,
     borderColor: "#FF9800",
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    // Create visual arrow effect with asymmetric borders
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
   },
   transitionText: {
     color: "#F57C00",
-    fontWeight: "500",
-    fontStyle: "italic",
+    fontWeight: "600",
+    fontSize: 13,
   },
 
   // Stance chip: (complete)
@@ -122,5 +184,35 @@ const styles = StyleSheet.create({
   arrowText: {
     color: "#999",
     fontSize: 16,
+  },
+
+  // Chevron container for transitions
+  chevronContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 32,
+  },
+  chevronLeft: {
+    marginLeft: -2,
+  },
+  chevronRight: {
+    marginLeft: -5,
+    marginRight: -2,
+  },
+  chevronMiddle: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF3E0",
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 0,
+    borderColor: "#FF9800",
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
+    gap: 4,
+    justifyContent: "center",
   },
 });

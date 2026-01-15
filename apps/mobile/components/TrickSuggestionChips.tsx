@@ -1,11 +1,13 @@
 import React, { useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useTricks } from "@/contexts/TricksContext";
 import { Trick } from "@hyperbolic/shared-types";
+import { searchTricks, hasExactTrickMatch } from "@/lib/utils/trickSearch";
 
 interface TrickSuggestionChipsProps {
   searchText: string;
   onSelectTrick: (trick: Trick) => void;
+  onCreateCustom?: (trickName: string) => void;
   maxResults?: number;
 }
 
@@ -16,33 +18,33 @@ interface TrickSuggestionChipsProps {
 export default function TrickSuggestionChips({
   searchText,
   onSelectTrick,
-  maxResults = 3,
+  onCreateCustom,
+  maxResults = 8,
 }: TrickSuggestionChipsProps) {
   const { allTricks } = useTricks();
 
   const filteredTricks = useMemo(() => {
-    if (!searchText || searchText.length < 2) {
-      return [];
-    }
-
-    const searchLower = searchText.toLowerCase();
-    const matches = allTricks.filter((trick) => {
-      const matchesName = trick.name.toLowerCase().includes(searchLower);
-      const matchesAlias = trick.aliases?.some((alias) =>
-        alias.toLowerCase().includes(searchLower)
-      );
-      return matchesName || matchesAlias;
-    });
-
-    return matches.slice(0, maxResults);
+    return searchTricks(allTricks, searchText, maxResults);
   }, [allTricks, searchText, maxResults]);
 
   if (filteredTricks.length === 0) {
     return null;
   }
 
+  // Check if search text is an exact match
+  const hasExactMatch = hasExactTrickMatch(allTricks, searchText);
+
+  const showCustomOption =
+    searchText.length >= 2 && !hasExactMatch && onCreateCustom;
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.scrollView}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       {filteredTricks.map((trick) => (
         <TouchableOpacity
           key={trick.id}
@@ -53,16 +55,29 @@ export default function TrickSuggestionChips({
           <Text style={styles.chipText}>{trick.name}</Text>
         </TouchableOpacity>
       ))}
-    </View>
+      {showCustomOption && (
+        <TouchableOpacity
+          style={[styles.chip, styles.customChip]}
+          onPress={() => onCreateCustom(searchText.trim())}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.chipText, styles.customChipText]}>
+            + "{searchText.trim()}"
+          </Text>
+        </TouchableOpacity>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    marginTop: 8,
+  },
   container: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
-    marginTop: 8,
+    paddingRight: 16,
   },
   chip: {
     backgroundColor: "#E3F2FD",
@@ -76,5 +91,14 @@ const styles = StyleSheet.create({
     color: "#1976D2",
     fontSize: 14,
     fontWeight: "500",
+  },
+  customChip: {
+    backgroundColor: "#F5F5F5",
+    borderColor: "#999",
+    borderStyle: "dashed",
+  },
+  customChipText: {
+    color: "#666",
+    fontStyle: "italic",
   },
 });
