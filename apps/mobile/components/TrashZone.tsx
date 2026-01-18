@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 export interface TrashZoneBounds {
@@ -61,7 +62,11 @@ export default function TrashZone({ visible, onLayout }: TrashZoneProps) {
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      <View style={[styles.hitArea, { paddingVertical: PADDING_VERTICAL }]}>
+      <BlurView
+        intensity={20}
+        tint="light"
+        style={[styles.hitArea, { paddingVertical: PADDING_VERTICAL }]}
+      >
         <View
           ref={iconRef}
           style={styles.trashIcon}
@@ -69,7 +74,7 @@ export default function TrashZone({ visible, onLayout }: TrashZoneProps) {
         >
           <Ionicons name="trash" size={24} color="#999" />
         </View>
-      </View>
+      </BlurView>
     </Animated.View>
   );
 }

@@ -330,8 +330,12 @@ export default function ComboComposer({
         </TouchableOpacity>
       </View>
 
-      {/* Trash Zone - inline below save button when dragging */}
-      {isDragging && <TrashZone visible={isDragging} onLayout={setTrashZoneBounds} />}
+      {/* Trash Zone - absolutely positioned over modifier buttons */}
+      {isDragging && (
+        <View style={styles.trashZoneContainer}>
+          <TrashZone visible={isDragging} onLayout={setTrashZoneBounds} />
+        </View>
+      )}
     </GestureHandlerRootView>
   );
 }
@@ -402,5 +406,11 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  trashZoneContainer: {
+    position: "absolute",
+    bottom: 100,
+    left: 0,
+    right: 0,
   },
 });
