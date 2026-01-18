@@ -8,6 +8,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import ComboChip from "./ComboChip";
+import { TrashZoneBounds } from "./TrashZone";
 
 type ChipType = "trick" | "transition" | "stance" | "arrow";
 
@@ -17,7 +18,7 @@ interface DraggableComboChipProps {
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onDelete?: () => void;
-  trashZoneY?: number; // Y position of trash zone
+  trashZoneBounds?: TrashZoneBounds;
 }
 
 /**
@@ -30,7 +31,7 @@ export default function DraggableComboChip({
   onDragStart,
   onDragEnd,
   onDelete,
-  trashZoneY = 0,
+  trashZoneBounds,
 }: DraggableComboChipProps) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -50,24 +51,32 @@ export default function DraggableComboChip({
       translateY.value = event.translationY;
     })
     .onEnd((event) => {
-      const absoluteY = event.absoluteY;
+      const { absoluteX, absoluteY } = event;
 
-      // Check if dropped in trash zone (within 100px of trash zone)
-      const isInTrashZone = trashZoneY > 0 && absoluteY > trashZoneY - 100;
+      // Check if dropped within the trash icon bounds
+      let isInTrashZone = false;
+      if (trashZoneBounds) {
+        const { x, y, width, height } = trashZoneBounds;
+        isInTrashZone =
+          absoluteX >= x &&
+          absoluteX <= x + width &&
+          absoluteY >= y &&
+          absoluteY <= y + height;
+      }
 
       if (isInTrashZone && onDelete) {
         // Animate to trash and delete
         opacity.value = withSpring(0, {}, () => {
           runOnJS(onDelete)();
         });
+        scale.value = withSpring(0.5);
       } else {
         // Spring back to original position
         translateX.value = withSpring(0);
         translateY.value = withSpring(0);
+        scale.value = withSpring(1);
+        opacity.value = withSpring(1);
       }
-
-      scale.value = withSpring(1);
-      opacity.value = withSpring(1);
 
       if (onDragEnd) {
         runOnJS(onDragEnd)();

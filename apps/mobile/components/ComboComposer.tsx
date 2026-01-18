@@ -50,7 +50,12 @@ export default function ComboComposer({
   const [comboName, setComboName] = useState("");
   const [saving, setSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [trashZoneY, setTrashZoneY] = useState(0);
+  const [trashZoneBounds, setTrashZoneBounds] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   // Auto-generate combo name from tricks
   const generateComboName = (items: SequenceItem[]): string => {
@@ -219,7 +224,7 @@ export default function ComboComposer({
           onDragStart={() => setIsDragging(true)}
           onDragEnd={() => setIsDragging(false)}
           onDelete={() => handleRemoveItem(index)}
-          trashZoneY={trashZoneY}
+          trashZoneBounds={trashZoneBounds ?? undefined}
         />
       );
     }
@@ -238,7 +243,7 @@ export default function ComboComposer({
           onDragStart={() => setIsDragging(true)}
           onDragEnd={() => setIsDragging(false)}
           onDelete={() => handleRemoveItem(index)}
-          trashZoneY={trashZoneY}
+          trashZoneBounds={trashZoneBounds ?? undefined}
         />
       );
     }
@@ -325,8 +330,8 @@ export default function ComboComposer({
         </TouchableOpacity>
       </View>
 
-      {/* Trash Zone */}
-      <TrashZone visible={isDragging} onLayout={setTrashZoneY} />
+      {/* Trash Zone - inline below save button when dragging */}
+      {isDragging && <TrashZone visible={isDragging} onLayout={setTrashZoneBounds} />}
     </GestureHandlerRootView>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
@@ -7,24 +7,49 @@ import Animated, {
 } from "react-native-reanimated";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
+export interface TrashZoneBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface TrashZoneProps {
   visible: boolean;
-  onLayout?: (y: number) => void;
+  onLayout?: (bounds: TrashZoneBounds) => void;
 }
+
+const PADDING_VERTICAL = 40;
+const TRANSLATE_Y_START = 50;
 
 /**
  * Animated trash zone that appears when dragging combo chips
  */
 export default function TrashZone({ visible, onLayout }: TrashZoneProps) {
-  const translateY = useSharedValue(100);
+  const iconRef = useRef<View>(null);
+  const translateY = useSharedValue(TRANSLATE_Y_START);
   const opacity = useSharedValue(0);
+
+  const measureAndReport = () => {
+    if (onLayout && iconRef.current) {
+      iconRef.current.measureInWindow((x, y, width, height) => {
+        // Full screen width, vertical padding around icon
+        onLayout({
+          x: 0,
+          y: y - TRANSLATE_Y_START - PADDING_VERTICAL,
+          width: 9999, // Full width
+          height: height + PADDING_VERTICAL * 2,
+        });
+      });
+    }
+  };
 
   useEffect(() => {
     if (visible) {
       translateY.value = withSpring(0);
       opacity.value = withSpring(1);
     } else {
-      translateY.value = withSpring(100);
+      translateY.value = withSpring(TRANSLATE_Y_START);
       opacity.value = withSpring(0);
     }
   }, [visible]);
@@ -35,17 +60,15 @@ export default function TrashZone({ visible, onLayout }: TrashZoneProps) {
   }));
 
   return (
-    <Animated.View
-      style={[styles.container, animatedStyle]}
-      onLayout={(event) => {
-        const { y } = event.nativeEvent.layout;
-        if (onLayout) {
-          onLayout(y);
-        }
-      }}
-    >
-      <View style={styles.trashIcon}>
-        <Ionicons name="trash" size={32} color="#FF3B30" />
+    <Animated.View style={[styles.container, animatedStyle]}>
+      <View style={[styles.hitArea, { paddingVertical: PADDING_VERTICAL }]}>
+        <View
+          ref={iconRef}
+          style={styles.trashIcon}
+          onLayout={measureAndReport}
+        >
+          <Ionicons name="trash" size={24} color="#999" />
+        </View>
       </View>
     </Animated.View>
   );
@@ -53,22 +76,20 @@ export default function TrashZone({ visible, onLayout }: TrashZoneProps) {
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
   },
+  hitArea: {
+    width: "100%",
+    alignItems: "center",
+  },
   trashIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#FFF",
     borderWidth: 2,
-    borderColor: "rgba(255, 59, 48, 0.1)",
+    borderColor: "#999",
     justifyContent: "center",
     alignItems: "center",
   },
