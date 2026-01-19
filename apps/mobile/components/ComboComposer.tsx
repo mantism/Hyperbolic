@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   TextInput,
@@ -58,7 +58,7 @@ export default function ComboComposer({
   } | null>(null);
 
   // Auto-generate combo name from first and last tricks
-  const generatedName = (() => {
+  const generatedName = useMemo(() => {
     const tricks = sequence
       .filter((item): item is TrickItem => item.type === "trick")
       .map((item) => item.data.trick_id);
@@ -66,7 +66,7 @@ export default function ComboComposer({
     if (tricks.length === 0) return "";
     if (tricks.length === 1) return `${tricks[0]} Combo`;
     return `${tricks[0]} to ${tricks[tricks.length - 1]} Combo`;
-  })();
+  }, [sequence]);
 
   // Use custom name if user has typed one, otherwise use generated name
   const comboName = customName ?? generatedName;
@@ -184,14 +184,14 @@ export default function ComboComposer({
 
       await createUserCombo({
         userId,
-        name: comboName || generateComboName(sequence),
+        name: comboName || generatedName,
         trickSequence,
       });
 
       // Reset and notify parent
       setSequence([]);
       setSearchText("");
-      setComboName("");
+      setCustomName("");
       onSave();
     } catch (error) {
       console.error("Error saving combo:", error);
