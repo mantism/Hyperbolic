@@ -27,14 +27,13 @@ export type Database = {
           surface_type: string | null;
           thumbnail_url: string | null;
           trick_sequence: Json;
-          user_combo_id: string | null;
-          user_id: string;
+          user_combo_id: string;
           video_urls: string[] | null;
           weather_conditions: string | null;
         };
         Insert: {
           created_at?: string | null;
-          id: string;
+          id?: string;
           is_public?: boolean | null;
           landed?: boolean | null;
           location_name?: string | null;
@@ -44,8 +43,7 @@ export type Database = {
           surface_type?: string | null;
           thumbnail_url?: string | null;
           trick_sequence: Json;
-          user_combo_id?: string | null;
-          user_id: string;
+          user_combo_id: string;
           video_urls?: string[] | null;
           weather_conditions?: string | null;
         };
@@ -61,8 +59,7 @@ export type Database = {
           surface_type?: string | null;
           thumbnail_url?: string | null;
           trick_sequence?: Json;
-          user_combo_id?: string | null;
-          user_id?: string;
+          user_combo_id?: string;
           video_urls?: string[] | null;
           weather_conditions?: string | null;
         };
@@ -74,14 +71,97 @@ export type Database = {
             referencedRelation: "UserCombos";
             referencedColumns: ["id"];
           },
+        ];
+      };
+      LandingStances: {
+        Row: {
+          aliases: string[] | null;
+          created_at: string | null;
+          description: string | null;
+          id: string;
+          last_updated: string | null;
+          name: string;
+        };
+        Insert: {
+          aliases?: string[] | null;
+          created_at?: string | null;
+          description?: string | null;
+          id: string;
+          last_updated?: string | null;
+          name: string;
+        };
+        Update: {
+          aliases?: string[] | null;
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          last_updated?: string | null;
+          name?: string;
+        };
+        Relationships: [];
+      };
+      LandingStanceTransitions: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          landing_stance_id: string;
+          transition_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          landing_stance_id: string;
+          transition_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          landing_stance_id?: string;
+          transition_id?: string;
+        };
+        Relationships: [
           {
-            foreignKeyName: "ComboLogs_user_id_fkey";
-            columns: ["user_id"];
+            foreignKeyName: "LandingStanceTransitions_landing_stance_id_fkey";
+            columns: ["landing_stance_id"];
             isOneToOne: false;
-            referencedRelation: "Users";
+            referencedRelation: "LandingStances";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "LandingStanceTransitions_transition_id_fkey";
+            columns: ["transition_id"];
+            isOneToOne: false;
+            referencedRelation: "Transitions";
             referencedColumns: ["id"];
           },
         ];
+      };
+      Transitions: {
+        Row: {
+          aliases: string[] | null;
+          created_at: string | null;
+          description: string | null;
+          id: string;
+          last_updated: string | null;
+          name: string;
+        };
+        Insert: {
+          aliases?: string[] | null;
+          created_at?: string | null;
+          description?: string | null;
+          id: string;
+          last_updated?: string | null;
+          name: string;
+        };
+        Update: {
+          aliases?: string[] | null;
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          last_updated?: string | null;
+          name?: string;
+        };
+        Relationships: [];
       };
       TrickLogs: {
         Row: {
@@ -269,7 +349,7 @@ export type Database = {
         Insert: {
           attempts?: number | null;
           created_at?: string | null;
-          id: string;
+          id?: string;
           landed?: boolean | null;
           name: string;
           stomps?: number | null;
@@ -382,6 +462,13 @@ export type Database = {
           userID?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "UserToTricks_userID_fkey";
+            columns: ["userID"];
+            isOneToOne: false;
+            referencedRelation: "Users";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "UserToTricksTable_trickID_fkey";
             columns: ["trickID"];
