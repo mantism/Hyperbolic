@@ -47,7 +47,7 @@ export default function ComboComposer({
 }: ComboComposerProps) {
   const [searchText, setSearchText] = useState("");
   const [sequence, setSequence] = useState<SequenceItem[]>([]);
-  const [comboName, setComboName] = useState("");
+  const [customName, setCustomName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [trashZoneBounds, setTrashZoneBounds] = useState<{
@@ -57,17 +57,19 @@ export default function ComboComposer({
     height: number;
   } | null>(null);
 
-  // Auto-generate combo name from tricks
-  const generateComboName = (items: SequenceItem[]): string => {
-    const tricks = items
+  // Auto-generate combo name from first and last tricks
+  const generatedName = (() => {
+    const tricks = sequence
       .filter((item): item is TrickItem => item.type === "trick")
-      .map((item) => item.data.trick_id)
-      .slice(0, 2); // Use first 2 tricks
+      .map((item) => item.data.trick_id);
 
     if (tricks.length === 0) return "";
     if (tricks.length === 1) return `${tricks[0]} Combo`;
-    return `${tricks[0]} to ${tricks[1]} Combo`;
-  };
+    return `${tricks[0]} to ${tricks[tricks.length - 1]} Combo`;
+  })();
+
+  // Use custom name if user has typed one, otherwise use generated name
+  const comboName = customName ?? generatedName;
 
   const handleSelectTrick = (trick: Trick) => {
     const newItem: SequenceItem = {
@@ -90,11 +92,6 @@ export default function ComboComposer({
     updatedSequence.push(newItem);
     setSequence(updatedSequence);
     setSearchText("");
-
-    // Auto-generate name if not manually set
-    if (!comboName) {
-      setComboName(generateComboName(updatedSequence));
-    }
   };
 
   const handleCreateCustomTrick = (trickName: string) => {
@@ -168,11 +165,6 @@ export default function ComboComposer({
     }
 
     setSequence(updatedSequence);
-
-    // Regenerate name if auto-generated
-    if (!comboName || comboName.includes("Combo")) {
-      setComboName(generateComboName(updatedSequence));
-    }
   };
 
   const handleSave = async () => {
@@ -267,7 +259,7 @@ export default function ComboComposer({
             style={styles.nameInput}
             placeholder="Combo name (optional)"
             value={comboName}
-            onChangeText={setComboName}
+            onChangeText={(text) => setCustomName(text || null)}
           />
         </View>
 

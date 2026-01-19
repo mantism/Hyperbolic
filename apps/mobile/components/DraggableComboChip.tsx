@@ -65,10 +65,9 @@ export default function DraggableComboChip({
       }
 
       if (isInTrashZone && onDelete) {
-        // Animate to trash and delete
-        opacity.value = withSpring(0, {}, () => {
-          runOnJS(onDelete)();
-        });
+        // Delete immediately, animate independently
+        runOnJS(onDelete)();
+        opacity.value = withSpring(0);
         scale.value = withSpring(0.5);
       } else {
         // Spring back to original position
