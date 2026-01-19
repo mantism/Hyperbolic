@@ -8,7 +8,16 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Trick, ComboTrick } from "@hyperbolic/shared-types";
+import {
+  SequenceItem,
+  TrickItem,
+  ArrowItem,
+  Trick,
+} from "@hyperbolic/shared-types";
+import {
+  removeSequenceItem,
+  sequenceToComboGraph,
+} from "../lib/utils/comboRendering";
 import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
 import DraggableComboChip from "./DraggableComboChip";
@@ -21,20 +30,6 @@ interface ComboComposerProps {
   onSave: () => void;
   onCancel: () => void;
 }
-
-type TrickItem = {
-  id: string;
-  type: "trick";
-  data: ComboTrick;
-};
-
-type ArrowItem = {
-  id: string;
-  type: "arrow";
-  transition?: string;
-};
-
-type SequenceItem = TrickItem | ArrowItem;
 
 /**
  * Inline combo composer for creating new combos
@@ -103,7 +98,7 @@ export default function ComboComposer({
     handleSelectTrick(customTrick);
   };
 
-  const handleTransitionPress = (transition: string) => {
+  const handleTransitionPress = (transitionId: string) => {
     // Need at least one trick in sequence
     if (sequence.length === 0) {
       return;
@@ -111,22 +106,22 @@ export default function ComboComposer({
 
     const lastItem = sequence[sequence.length - 1];
 
-    // If last item is already an arrow, update its transition
+    // If last item is already an arrow, update its transition_id
     if (lastItem.type === "arrow") {
       const updatedSequence = [...sequence];
       updatedSequence[updatedSequence.length - 1] = {
         ...lastItem,
-        transition,
+        transition_id: transitionId,
       };
       setSequence(updatedSequence);
       return;
     }
 
-    // Otherwise add a new arrow with the transition
+    // Otherwise add a new arrow with the transition_id
     const arrowItem: ArrowItem = {
       id: `${Date.now()}-arrow`,
       type: "arrow",
-      transition,
+      transition_id: transitionId,
     };
 
     setSequence([...sequence, arrowItem]);
@@ -149,22 +144,7 @@ export default function ComboComposer({
   };
 
   const handleRemoveItem = (index: number) => {
-    let updatedSequence = sequence.filter((_, i) => i !== index);
-
-    // Clean up orphaned arrows
-    // Remove arrow before the deleted item if it exists
-    if (index > 0 && updatedSequence[index - 1]?.type === "arrow") {
-      updatedSequence = updatedSequence.filter((_, i) => i !== index - 1);
-    }
-    // Remove arrow after the deleted item if it exists and is now at the start
-    else if (
-      updatedSequence.length > 0 &&
-      updatedSequence[0]?.type === "arrow"
-    ) {
-      updatedSequence = updatedSequence.filter((_, i) => i !== 0);
-    }
-
-    setSequence(updatedSequence);
+    setSequence(removeSequenceItem(sequence, index));
   };
 
   const handleSave = async () => {
@@ -175,17 +155,13 @@ export default function ComboComposer({
     try {
       setSaving(true);
 
-      // Extract only tricks from sequence (filter out arrows)
-      const trickSequence = sequence
-        .filter((item): item is TrickItem => item.type === "trick")
-        .map((item) => item.data);
-
-      console.log("Saving combo for user:", userId);
+      // Convert sequence to ComboGraph
+      const comboGraph = sequenceToComboGraph(sequence);
 
       await createUserCombo({
         userId,
         name: comboName || generatedName,
-        trickSequence,
+        comboGraph,
       });
 
       // Reset and notify parent
@@ -204,7 +180,7 @@ export default function ComboComposer({
   const renderSequenceItem = (item: SequenceItem, index: number) => {
     if (item.type === "arrow") {
       // Only render arrows that have transitions
-      if (!item.transition) {
+      if (!item.transition_id) {
         return null;
       }
 
@@ -212,7 +188,7 @@ export default function ComboComposer({
         <DraggableComboChip
           key={item.id}
           type="transition"
-          label={item.transition}
+          label={item.transition_id}
           onDragStart={() => setIsDragging(true)}
           onDragEnd={() => setIsDragging(false)}
           onDelete={() => handleRemoveItem(index)}
@@ -222,10 +198,10 @@ export default function ComboComposer({
     }
 
     if (item.type === "trick") {
-      const comboTrick = item.data;
-      const label = comboTrick.landing_stance
-        ? `${comboTrick.trick_id} (${comboTrick.landing_stance})`
-        : comboTrick.trick_id;
+      const comboNode = item.data;
+      const label = comboNode.landing_stance
+        ? `${comboNode.trick_id} (${comboNode.landing_stance})`
+        : comboNode.trick_id;
 
       return (
         <DraggableComboChip

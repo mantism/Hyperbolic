@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/supabase/supabase";
-import { ComboTrick, ComboLog } from "@hyperbolic/shared-types";
+import { ComboGraph, ComboLog } from "@hyperbolic/shared-types";
 import { Database } from "@hyperbolic/shared-types";
 import {
-  marshalTrickSequence,
-  unmarshalTrickSequence,
+  marshalComboGraph,
+  unmarshalComboGraph,
 } from "./validation/comboValidation";
 import {
   incrementComboStats,
@@ -20,7 +20,7 @@ interface CreateComboLogParams {
   userId: string;
   userComboId?: string; // If provided, use this combo; otherwise auto-create
   comboName?: string; // Name for auto-created combo
-  trickSequence: ComboTrick[];
+  comboGraph: ComboGraph;
   landed?: boolean;
   rating?: number;
   notes?: string;
@@ -44,7 +44,7 @@ export async function createComboLog(
     userId,
     userComboId,
     comboName,
-    trickSequence,
+    comboGraph,
     landed = false,
     rating = null,
     notes = null,
@@ -57,27 +57,27 @@ export async function createComboLog(
     loggedAt = new Date().toISOString(),
   } = params;
 
-  // Validate and marshal the trick sequence
-  const marshaledSequence = marshalTrickSequence(trickSequence);
+  // Validate and marshal the combo graph
+  const marshaledGraph = marshalComboGraph(comboGraph);
 
   // Find or create UserCombo
   let comboId = userComboId;
   if (!comboId) {
-    // Auto-create combo: Try to find existing combo with same sequence
+    // Auto-create combo: Try to find existing combo with same graph
     const existingCombos = await getUserCombos(userId);
     const matchingCombo = existingCombos.find((combo) =>
-      areSequencesEqual(combo.trick_sequence, trickSequence)
+      areGraphsEqual(combo.trick_sequence, comboGraph)
     );
 
     if (matchingCombo) {
       comboId = matchingCombo.id;
     } else {
       // Create new combo
-      const generatedName = comboName || generateComboName(trickSequence);
+      const generatedName = comboName || generateComboName(comboGraph);
       const newCombo = await createUserCombo({
         userId,
         name: generatedName,
-        trickSequence,
+        comboGraph,
       });
       comboId = newCombo.id;
     }
@@ -88,7 +88,7 @@ export async function createComboLog(
     .insert({
       user_combo_id: comboId,
       trick_sequence:
-        marshaledSequence as unknown as Database["public"]["Tables"]["ComboLogs"]["Insert"]["trick_sequence"],
+        marshaledGraph as unknown as Database["public"]["Tables"]["ComboLogs"]["Insert"]["trick_sequence"],
       logged_at: loggedAt,
       landed,
       rating,
@@ -113,30 +113,48 @@ export async function createComboLog(
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
 /**
- * Helper: Check if two trick sequences are equal
+ * Helper: Check if two combo graphs are equal
  */
-function areSequencesEqual(seq1: ComboTrick[], seq2: ComboTrick[]): boolean {
-  if (seq1.length !== seq2.length) return false;
-  return seq1.every(
-    (trick, i) =>
-      trick.trick_id === seq2[i].trick_id &&
-      trick.landing_stance === seq2[i].landing_stance &&
-      trick.transition === seq2[i].transition
+function areGraphsEqual(graph1: ComboGraph, graph2: ComboGraph): boolean {
+  // Compare nodes
+  if (graph1.nodes.length !== graph2.nodes.length) return false;
+  const nodesEqual = graph1.nodes.every(
+    (node, i) =>
+      node.trick_id === graph2.nodes[i].trick_id &&
+      node.landing_stance === graph2.nodes[i].landing_stance
+  );
+  if (!nodesEqual) {
+    return false;
+  }
+
+  // Compare edges
+  if (graph1.edges.length !== graph2.edges.length) return false;
+  return graph1.edges.every(
+    (edge, i) =>
+      edge.from_index === graph2.edges[i].from_index &&
+      edge.to_index === graph2.edges[i].to_index &&
+      edge.transition_id === graph2.edges[i].transition_id
   );
 }
 
 /**
- * Helper: Generate combo name from trick sequence
+ * Helper: Generate combo name from combo graph
  */
-function generateComboName(sequence: ComboTrick[]): string {
-  if (sequence.length === 0) return "Empty Combo";
-  if (sequence.length === 1) return `${sequence[0].trick_id} Combo`;
-  return `${sequence[0].trick_id} to ${sequence[sequence.length - 1].trick_id}`;
+function generateComboName(graph: ComboGraph): string {
+  const nodes = graph.nodes;
+  if (nodes.length === 0) {
+    return "Empty Combo";
+  }
+  if (nodes.length === 1) {
+    return `${nodes[0].trick_id} Combo`;
+  }
+
+  return `${nodes[0].trick_id} to ${nodes[nodes.length - 1].trick_id}`;
 }
 
 /**
@@ -166,7 +184,7 @@ export async function getComboLogs(
   return (
     data?.map((log) => ({
       ...log,
-      trick_sequence: unmarshalTrickSequence(log.trick_sequence),
+      trick_sequence: unmarshalComboGraph(log.trick_sequence),
     })) || []
   );
 }
@@ -193,7 +211,7 @@ export async function getComboLogsByComboId(
   return (
     data?.map((log) => ({
       ...log,
-      trick_sequence: unmarshalTrickSequence(log.trick_sequence),
+      trick_sequence: unmarshalComboGraph(log.trick_sequence),
     })) || []
   );
 }
@@ -219,7 +237,7 @@ export async function getComboLog(logId: string): Promise<ComboLog | null> {
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
@@ -273,7 +291,7 @@ export async function updateComboLog(
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
@@ -308,7 +326,7 @@ export async function getPublicComboLogs(limit = 50): Promise<ComboLog[]> {
   return (
     data?.map((log) => ({
       ...log,
-      trick_sequence: unmarshalTrickSequence(log.trick_sequence),
+      trick_sequence: unmarshalComboGraph(log.trick_sequence),
     })) || []
   );
 }

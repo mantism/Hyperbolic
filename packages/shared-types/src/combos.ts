@@ -3,37 +3,73 @@ import { Database } from "./database.types";
 /**
  * Combo-related types
  *
- * ComboTrick defines the structure of JSONB data in trick_sequence fields.
+ * ComboGraph defines the graph structure of a combo stored in trick_sequence JSONB.
+ * Nodes are tricks, edges are transitions between tricks.
+ *
  * For UserCombos and ComboLogs table types, use the Supabase-generated types:
  *   - Database["public"]["Tables"]["UserCombos"]["Row/Insert/Update"]
  *   - Database["public"]["Tables"]["ComboLogs"]["Row/Insert/Update"]
  */
 
 /**
- * Represents a single trick within a combo sequence (stored in JSONB)
+ * A node in the combo graph representing a single trick
  */
-export type ComboTrick = {
+export type ComboNode = {
   trick_id: string;
   landing_stance?: string;
-  transition?: string;
 };
 
 /**
- * UserCombo with properly typed trick_sequence (instead of generic Json type)
+ * An edge in the combo graph representing a transition between tricks
+ */
+export type ComboEdge = {
+  from_index: number;
+  to_index: number;
+  transition_id: string;
+};
+
+/**
+ * Graph representation of a combo (stored in trick_sequence JSONB)
+ * Nodes are tricks, edges are transitions between tricks
+ */
+export type ComboGraph = {
+  nodes: ComboNode[];
+  edges: ComboEdge[];
+};
+
+/**
+ * Landing stance from database
+ */
+export type LandingStance =
+  Database["public"]["Tables"]["LandingStances"]["Row"];
+
+/**
+ * Transition from database
+ */
+export type Transition = Database["public"]["Tables"]["Transitions"]["Row"];
+
+/**
+ * Valid landing stance -> transition mapping from database
+ */
+export type LandingStanceTransition =
+  Database["public"]["Tables"]["LandingStanceTransitions"]["Row"];
+
+/**
+ * UserCombo with properly typed trick_sequence (ComboGraph format)
  */
 export type UserCombo = Omit<
   Database["public"]["Tables"]["UserCombos"]["Row"],
   "trick_sequence"
 > & {
-  trick_sequence: ComboTrick[];
+  trick_sequence: ComboGraph;
 };
 
 /**
- * ComboLog with properly typed trick_sequence (instead of generic Json type)
+ * ComboLog with properly typed trick_sequence (ComboGraph format)
  */
 export type ComboLog = Omit<
   Database["public"]["Tables"]["ComboLogs"]["Row"],
   "trick_sequence"
 > & {
-  trick_sequence: ComboTrick[];
+  trick_sequence: ComboGraph;
 };

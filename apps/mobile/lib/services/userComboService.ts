@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/supabase/supabase";
-import { ComboTrick, UserCombo } from "@hyperbolic/shared-types";
+import { ComboGraph, UserCombo } from "@hyperbolic/shared-types";
 import { Database } from "@hyperbolic/shared-types";
 import {
-  marshalTrickSequence,
-  unmarshalTrickSequence,
+  marshalComboGraph,
+  unmarshalComboGraph,
 } from "./validation/comboValidation";
 
 /**
@@ -14,7 +14,7 @@ import {
 interface CreateUserComboParams {
   userId: string;
   name: string;
-  trickSequence: ComboTrick[];
+  comboGraph: ComboGraph;
 }
 
 interface UpdateUserComboStatsParams {
@@ -29,10 +29,10 @@ interface UpdateUserComboStatsParams {
 export async function createUserCombo(
   params: CreateUserComboParams
 ): Promise<UserCombo> {
-  const { userId, name, trickSequence } = params;
+  const { userId, name, comboGraph } = params;
 
-  // Validate and marshal the trick sequence
-  const marshaledSequence = marshalTrickSequence(trickSequence);
+  // Validate and marshal the combo graph
+  const marshaledGraph = marshalComboGraph(comboGraph);
 
   const { data, error } = await supabase
     .from("UserCombos")
@@ -40,7 +40,7 @@ export async function createUserCombo(
       user_id: userId,
       name,
       trick_sequence:
-        marshaledSequence as unknown as Database["public"]["Tables"]["UserCombos"]["Insert"]["trick_sequence"],
+        marshaledGraph as unknown as Database["public"]["Tables"]["UserCombos"]["Insert"]["trick_sequence"],
     })
     .select()
     .single();
@@ -58,7 +58,7 @@ export async function createUserCombo(
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
@@ -80,7 +80,7 @@ export async function getUserCombos(userId: string): Promise<UserCombo[]> {
   return (
     data?.map((combo) => ({
       ...combo,
-      trick_sequence: unmarshalTrickSequence(combo.trick_sequence),
+      trick_sequence: unmarshalComboGraph(combo.trick_sequence),
     })) || []
   );
 }
@@ -106,7 +106,7 @@ export async function getUserCombo(comboId: string): Promise<UserCombo | null> {
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
@@ -131,7 +131,7 @@ export async function updateUserComboStats(
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
@@ -159,32 +159,32 @@ export async function incrementComboStats(
 }
 
 /**
- * Update a combo's trick sequence
+ * Update a combo's graph (trick sequence)
  */
-export async function updateUserComboSequence(
+export async function updateUserComboGraph(
   comboId: string,
-  trickSequence: ComboTrick[]
+  comboGraph: ComboGraph
 ): Promise<UserCombo> {
-  const marshaledSequence = marshalTrickSequence(trickSequence);
+  const marshaledGraph = marshalComboGraph(comboGraph);
 
   const { data, error } = await supabase
     .from("UserCombos")
     .update({
       trick_sequence:
-        marshaledSequence as unknown as Database["public"]["Tables"]["UserCombos"]["Update"]["trick_sequence"],
+        marshaledGraph as unknown as Database["public"]["Tables"]["UserCombos"]["Update"]["trick_sequence"],
     })
     .eq("id", comboId)
     .select()
     .single();
 
   if (error) {
-    console.error("Error updating UserCombo sequence:", error);
+    console.error("Error updating UserCombo graph:", error);
     throw error;
   }
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
@@ -215,7 +215,7 @@ export async function renameUserCombo(
 
   return {
     ...data,
-    trick_sequence: unmarshalTrickSequence(data.trick_sequence),
+    trick_sequence: unmarshalComboGraph(data.trick_sequence),
   };
 }
 
