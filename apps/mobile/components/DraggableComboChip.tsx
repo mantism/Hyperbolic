@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet } from "react-native";
+import React, { useRef, useCallback } from "react";
+import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -12,12 +12,23 @@ import { TrashZoneBounds } from "./TrashZone";
 
 type ChipType = "trick" | "transition" | "stance" | "arrow";
 
+export interface ChipMeasurement {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  pageX: number;
+  pageY: number;
+}
+
 interface DraggableComboChipProps {
   type: ChipType;
   label: string;
+  index: number;
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onDelete?: () => void;
+  onMeasure?: (index: number, measurement: ChipMeasurement) => void;
   trashZoneBounds?: TrashZoneBounds;
 }
 
@@ -28,15 +39,35 @@ interface DraggableComboChipProps {
 export default function DraggableComboChip({
   type,
   label,
+  index,
   onDragStart,
   onDragEnd,
   onDelete,
+  onMeasure,
   trashZoneBounds,
 }: DraggableComboChipProps) {
+  const viewRef = useRef<View>(null);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
+
+  const measureChip = useCallback(() => {
+    if (!onMeasure || !viewRef.current) return;
+
+    viewRef.current.measure((x, y, width, height, pageX, pageY) => {
+      if (width > 0 && height > 0) {
+        onMeasure(index, { x, y, width, height, pageX, pageY });
+      }
+    });
+  }, [index, onMeasure]);
+
+  const handleLayout = useCallback(() => {
+    // Small delay to ensure layout is complete
+    requestAnimationFrame(() => {
+      measureChip();
+    });
+  }, [measureChip]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -99,7 +130,11 @@ export default function DraggableComboChip({
 
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View style={[styles.container, animatedStyle]}>
+      <Animated.View
+        ref={viewRef}
+        style={[styles.container, animatedStyle]}
+        onLayout={handleLayout}
+      >
         <ComboChip type={type} label={label} />
       </Animated.View>
     </GestureDetector>

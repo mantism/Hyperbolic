@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -20,7 +20,7 @@ import {
 } from "../lib/utils/comboRendering";
 import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
-import DraggableComboChip from "./DraggableComboChip";
+import DraggableComboChip, { ChipMeasurement } from "./DraggableComboChip";
 import TrickSuggestionChips from "./TrickSuggestionChips";
 import ComboModifierButtons from "./ComboModifierButtons";
 import TrashZone from "./TrashZone";
@@ -51,6 +51,28 @@ export default function ComboComposer({
     width: number;
     height: number;
   } | null>(null);
+
+  // Store measurements for each chip by their sequence index
+  const chipMeasurementsRef = useRef<Map<number, ChipMeasurement>>(new Map());
+
+  // Callback to store chip measurements when they report their layout
+  const handleChipMeasure = useCallback(
+    (index: number, measurement: ChipMeasurement) => {
+      chipMeasurementsRef.current.set(index, measurement);
+    },
+    []
+  );
+
+  // Clear stale measurements when sequence changes
+  // (measurements for indices that no longer exist)
+  const clearStaleMeasurements = useCallback(() => {
+    const currentIndices = new Set(sequence.map((_, i) => i));
+    chipMeasurementsRef.current.forEach((_, index) => {
+      if (!currentIndices.has(index)) {
+        chipMeasurementsRef.current.delete(index);
+      }
+    });
+  }, [sequence]);
 
   // Auto-generate combo name from first and last tricks
   const generatedName = useMemo(() => {
@@ -145,6 +167,8 @@ export default function ComboComposer({
 
   const handleRemoveItem = (index: number) => {
     setSequence(removeSequenceItem(sequence, index));
+    // Clear stale measurements after sequence change
+    clearStaleMeasurements();
   };
 
   const handleSave = async () => {
@@ -189,9 +213,11 @@ export default function ComboComposer({
           key={item.id}
           type="transition"
           label={item.transition_id}
+          index={index}
           onDragStart={() => setIsDragging(true)}
           onDragEnd={() => setIsDragging(false)}
           onDelete={() => handleRemoveItem(index)}
+          onMeasure={handleChipMeasure}
           trashZoneBounds={trashZoneBounds ?? undefined}
         />
       );
@@ -208,9 +234,11 @@ export default function ComboComposer({
           key={item.id}
           type="trick"
           label={label}
+          index={index}
           onDragStart={() => setIsDragging(true)}
           onDragEnd={() => setIsDragging(false)}
           onDelete={() => handleRemoveItem(index)}
+          onMeasure={handleChipMeasure}
           trashZoneBounds={trashZoneBounds ?? undefined}
         />
       );
