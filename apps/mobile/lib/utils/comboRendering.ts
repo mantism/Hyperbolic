@@ -134,3 +134,98 @@ export function removeSequenceItem(
 
   return updatedSequence;
 }
+
+/**
+ * Reorders a trick in the sequence by moving it to a new position.
+ * Adjacent edges (transitions) connected to the moved trick are removed.
+ *
+ * @param sequence - The current sequence of items
+ * @param fromIndex - The current index of the trick in the sequence
+ * @param toTrickPosition - The target trick position (0 = first trick, 1 = second trick, etc.)
+ * @returns The updated sequence with the trick moved and edges removed
+ */
+export function reorderSequenceItem(
+  sequence: SequenceItem[],
+  fromIndex: number,
+  toTrickPosition: number
+): SequenceItem[] {
+  if (fromIndex < 0 || fromIndex >= sequence.length) {
+    return sequence;
+  }
+
+  const item = sequence[fromIndex];
+  if (item.type !== "trick") {
+    return sequence;
+  }
+
+  // Extract just the tricks to determine positions
+  const tricks = sequence
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.type === "trick");
+
+  const currentTrickPosition = tricks.findIndex(({ index }) => index === fromIndex);
+  if (currentTrickPosition === -1 || currentTrickPosition === toTrickPosition) {
+    return sequence;
+  }
+
+  // Remove the trick and its adjacent arrows
+  let updatedSequence = removeSequenceItem(sequence, fromIndex);
+
+  // Recalculate trick positions after removal
+  const remainingTricks = updatedSequence
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.type === "trick");
+
+  // Determine where to insert the trick
+  let insertIndex: number;
+  if (toTrickPosition === 0) {
+    // Insert at the beginning
+    insertIndex = 0;
+  } else if (toTrickPosition >= remainingTricks.length) {
+    // Insert at the end
+    insertIndex = updatedSequence.length;
+  } else {
+    // Insert before the trick at toTrickPosition
+    insertIndex = remainingTricks[toTrickPosition].index;
+  }
+
+  // Insert the trick at the new position
+  updatedSequence = [
+    ...updatedSequence.slice(0, insertIndex),
+    item,
+    ...updatedSequence.slice(insertIndex),
+  ];
+
+  // Clean up: ensure no consecutive arrows and no arrows at start/end
+  return cleanupSequence(updatedSequence);
+}
+
+/**
+ * Cleans up a sequence to ensure valid structure:
+ * - No consecutive arrows
+ * - No arrows at the start or end
+ */
+function cleanupSequence(sequence: SequenceItem[]): SequenceItem[] {
+  const result: SequenceItem[] = [];
+
+  for (let i = 0; i < sequence.length; i++) {
+    const item = sequence[i];
+    const prevItem = result[result.length - 1];
+
+    if (item.type === "arrow") {
+      // Skip arrow if it would be at the start
+      if (result.length === 0) continue;
+      // Skip arrow if previous item was also an arrow
+      if (prevItem?.type === "arrow") continue;
+    }
+
+    result.push(item);
+  }
+
+  // Remove trailing arrow if present
+  if (result.length > 0 && result[result.length - 1].type === "arrow") {
+    result.pop();
+  }
+
+  return result;
+}
