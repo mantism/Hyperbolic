@@ -21,6 +21,7 @@ import {
 import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
 import DraggableComboChip, { ChipMeasurement } from "./DraggableComboChip";
+import ComboChip from "./ComboChip";
 import TrickSuggestionChips from "./TrickSuggestionChips";
 import ComboModifierButtons from "./ComboModifierButtons";
 import TrashZone from "./TrashZone";
@@ -29,6 +30,18 @@ interface ComboComposerProps {
   userId: string;
   onSave: () => void;
   onCancel: () => void;
+}
+
+// State for the floating drag overlay
+interface DragState {
+  index: number;
+  type: "trick" | "transition";
+  label: string;
+  currentX: number;
+  currentY: number;
+  // Offset from finger to chip's top-left corner (captured at drag start)
+  offsetX: number;
+  offsetY: number;
 }
 
 /**
@@ -44,13 +57,17 @@ export default function ComboComposer({
   const [sequence, setSequence] = useState<SequenceItem[]>([]);
   const [customName, setCustomName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [dragState, setDragState] = useState<DragState | null>(null);
   const [trashZoneBounds, setTrashZoneBounds] = useState<{
     x: number;
     y: number;
     width: number;
     height: number;
   } | null>(null);
+
+  // Track the container's position for accurate floating chip positioning
+  const containerRef = useRef<View>(null);
+  const [containerOffset, setContainerOffset] = useState({ x: 0, y: 0 });
 
   // Store measurements for each chip by their sequence index
   const chipMeasurementsRef = useRef<Map<number, ChipMeasurement>>(new Map());
@@ -73,6 +90,15 @@ export default function ComboComposer({
       }
     });
   }, [sequence]);
+
+  // Measure container position for floating chip offset calculation
+  const handleContainerLayout = useCallback(() => {
+    if (containerRef.current) {
+      containerRef.current.measure((x, y, width, height, pageX, pageY) => {
+        setContainerOffset({ x: pageX, y: pageY });
+      });
+    }
+  }, []);
 
   // Auto-generate combo name from first and last tricks
   const generatedName = useMemo(() => {
@@ -171,6 +197,58 @@ export default function ComboComposer({
     clearStaleMeasurements();
   };
 
+  // Get label for a sequence item
+  const getLabelForItem = useCallback((item: SequenceItem): string => {
+    if (item.type === "trick") {
+      const comboNode = item.data;
+      return comboNode.landing_stance
+        ? `${comboNode.trick_id} (${comboNode.landing_stance})`
+        : comboNode.trick_id;
+    }
+    if (item.type === "arrow" && item.transition_id) {
+      return item.transition_id;
+    }
+    return "";
+  }, []);
+
+  // Drag handlers for reordering
+  const handleDragStart = useCallback(
+    (index: number, absoluteX: number, absoluteY: number) => {
+      const item = sequence[index];
+      if (!item) return;
+
+      const label = getLabelForItem(item);
+      const chipType = item.type === "trick" ? "trick" : "transition";
+
+      // Get the chip's measured position to calculate offset
+      const measurement = chipMeasurementsRef.current.get(index);
+      const offsetX = measurement ? absoluteX - measurement.pageX : 0;
+      const offsetY = measurement ? absoluteY - measurement.pageY : 0;
+
+      setDragState({
+        index,
+        type: chipType,
+        label,
+        currentX: absoluteX,
+        currentY: absoluteY,
+        offsetX,
+        offsetY,
+      });
+    },
+    [sequence, getLabelForItem]
+  );
+
+  const handleDragMove = useCallback((absoluteX: number, absoluteY: number) => {
+    setDragState((prev) => {
+      if (!prev) return null;
+      return { ...prev, currentX: absoluteX, currentY: absoluteY };
+    });
+  }, []);
+
+  const handleDragEnd = useCallback((index: number) => {
+    setDragState(null);
+  }, []);
+
   const handleSave = async () => {
     if (sequence.length === 0) {
       return;
@@ -214,8 +292,9 @@ export default function ComboComposer({
           type="transition"
           label={item.transition_id}
           index={index}
-          onDragStart={() => setIsDragging(true)}
-          onDragEnd={() => setIsDragging(false)}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
           onDelete={() => handleRemoveItem(index)}
           onMeasure={handleChipMeasure}
           trashZoneBounds={trashZoneBounds ?? undefined}
@@ -235,8 +314,9 @@ export default function ComboComposer({
           type="trick"
           label={label}
           index={index}
-          onDragStart={() => setIsDragging(true)}
-          onDragEnd={() => setIsDragging(false)}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
           onDelete={() => handleRemoveItem(index)}
           onMeasure={handleChipMeasure}
           trashZoneBounds={trashZoneBounds ?? undefined}
@@ -248,91 +328,115 @@ export default function ComboComposer({
   };
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Combo</Text>
-          <TouchableOpacity onPress={onCancel} hitSlop={8}>
-            <Ionicons name="close" size={24} color="#666" />
+    <View
+      ref={containerRef}
+      style={styles.container}
+      onLayout={handleContainerLayout}
+    >
+      <GestureHandlerRootView style={styles.gestureContainer}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Create Combo</Text>
+            <TouchableOpacity onPress={onCancel} hitSlop={8}>
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Combo Name Input */}
+          <View style={styles.nameInputContainer}>
+            <TextInput
+              style={styles.nameInput}
+              placeholder="Combo name (optional)"
+              value={comboName}
+              onChangeText={(text) => setCustomName(text || null)}
+            />
+          </View>
+
+          {/* Sequence Display */}
+          {sequence.length > 0 && (
+            <View style={styles.sequenceContainer}>
+              {sequence.map((item, index) => renderSequenceItem(item, index))}
+            </View>
+          )}
+
+          {/* Trick Search Input */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type trick name..."
+              value={searchText}
+              onChangeText={setSearchText}
+              autoCapitalize="none"
+              autoCorrect={false}
+              onSubmitEditing={() => {
+                if (searchText.trim()) {
+                  handleCreateCustomTrick(searchText.trim());
+                }
+              }}
+              returnKeyType="done"
+              blurOnSubmit={false}
+            />
+          </View>
+
+          {/* Trick Suggestions */}
+          <TrickSuggestionChips
+            searchText={searchText}
+            onSelectTrick={handleSelectTrick}
+            onCreateCustom={handleCreateCustomTrick}
+          />
+
+          {/* Modifier Buttons */}
+          <ComboModifierButtons
+            onTransitionPress={handleTransitionPress}
+            onStancePress={handleStancePress}
+            transitionsDisabled={sequence.length === 0}
+            stancesDisabled={
+              sequence.length === 0 ||
+              sequence[sequence.length - 1]?.type !== "trick"
+            }
+          />
+
+          {/* Save Button */}
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (sequence.length === 0 || saving) && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={sequence.length === 0 || saving}
+          >
+            <Text style={styles.saveButtonText}>
+              {saving ? "Saving..." : "Save Combo"}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Combo Name Input */}
-        <View style={styles.nameInputContainer}>
-          <TextInput
-            style={styles.nameInput}
-            placeholder="Combo name (optional)"
-            value={comboName}
-            onChangeText={(text) => setCustomName(text || null)}
-          />
-        </View>
-
-        {/* Sequence Display */}
-        {sequence.length > 0 && (
-          <View style={styles.sequenceContainer}>
-            {sequence.map((item, index) => renderSequenceItem(item, index))}
+        {/* Trash Zone - absolutely positioned over modifier buttons */}
+        {dragState && (
+          <View style={styles.trashZoneContainer}>
+            <TrashZone visible={!!dragState} onLayout={setTrashZoneBounds} />
           </View>
         )}
+      </GestureHandlerRootView>
 
-        {/* Trick Search Input */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type trick name..."
-            value={searchText}
-            onChangeText={setSearchText}
-            autoCapitalize="none"
-            autoCorrect={false}
-            onSubmitEditing={() => {
-              if (searchText.trim()) {
-                handleCreateCustomTrick(searchText.trim());
-              }
-            }}
-            returnKeyType="done"
-            blurOnSubmit={false}
-          />
-        </View>
-
-        {/* Trick Suggestions */}
-        <TrickSuggestionChips
-          searchText={searchText}
-          onSelectTrick={handleSelectTrick}
-          onCreateCustom={handleCreateCustomTrick}
-        />
-
-        {/* Modifier Buttons */}
-        <ComboModifierButtons
-          onTransitionPress={handleTransitionPress}
-          onStancePress={handleStancePress}
-          transitionsDisabled={sequence.length === 0}
-          stancesDisabled={
-            sequence.length === 0 ||
-            sequence[sequence.length - 1]?.type !== "trick"
-          }
-        />
-
-        {/* Save Button */}
-        <TouchableOpacity
+      {/* Floating overlay chip that follows the finger during drag */}
+      {dragState && (
+        <View
           style={[
-            styles.saveButton,
-            (sequence.length === 0 || saving) && styles.saveButtonDisabled,
+            styles.floatingChip,
+            {
+              // Position chip so finger stays at same relative position as when drag started
+              // Subtract container offset since absolute positioning is relative to container
+              left: dragState.currentX - dragState.offsetX - containerOffset.x,
+              top: dragState.currentY - dragState.offsetY - containerOffset.y,
+            },
           ]}
-          onPress={handleSave}
-          disabled={sequence.length === 0 || saving}
+          pointerEvents="none"
         >
-          <Text style={styles.saveButtonText}>
-            {saving ? "Saving..." : "Save Combo"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Trash Zone - absolutely positioned over modifier buttons */}
-      {isDragging && (
-        <View style={styles.trashZoneContainer}>
-          <TrashZone visible={isDragging} onLayout={setTrashZoneBounds} />
+          <ComboChip type={dragState.type} label={dragState.label} />
         </View>
       )}
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
@@ -342,6 +446,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+  },
+  gestureContainer: {
+    flex: 1,
   },
   content: {
     padding: 16,
@@ -408,5 +515,15 @@ const styles = StyleSheet.create({
     bottom: 100,
     left: 0,
     right: 0,
+  },
+  floatingChip: {
+    position: "absolute",
+    zIndex: 1000,
+    // Add shadow for depth
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
   },
 });

@@ -1,12 +1,7 @@
 import React, { useRef, useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  runOnJS,
-} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import ComboChip from "./ComboChip";
 import { TrashZoneBounds } from "./TrashZone";
 
@@ -25,8 +20,9 @@ interface DraggableComboChipProps {
   type: ChipType;
   label: string;
   index: number;
-  onDragStart?: () => void;
-  onDragEnd?: () => void;
+  onDragStart?: (index: number, absoluteX: number, absoluteY: number) => void;
+  onDragMove?: (absoluteX: number, absoluteY: number) => void;
+  onDragEnd?: (index: number) => void;
   onDelete?: () => void;
   onMeasure?: (index: number, measurement: ChipMeasurement) => void;
   trashZoneBounds?: TrashZoneBounds;
@@ -41,16 +37,13 @@ export default function DraggableComboChip({
   label,
   index,
   onDragStart,
+  onDragMove,
   onDragEnd,
   onDelete,
   onMeasure,
   trashZoneBounds,
 }: DraggableComboChipProps) {
   const viewRef = useRef<View>(null);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
 
   const measureChip = useCallback(() => {
     if (!onMeasure || !viewRef.current) return;
@@ -70,16 +63,22 @@ export default function DraggableComboChip({
   }, [measureChip]);
 
   const panGesture = Gesture.Pan()
-    .onStart(() => {
-      scale.value = withSpring(1.1);
-      opacity.value = withSpring(0.8);
+    .onStart((event) => {
+      // Original chip stays in place - floating overlay handles visual drag
+      // Just notify parent of drag start
       if (onDragStart) {
-        runOnJS(onDragStart)();
+        const x = event.absoluteX;
+        const y = event.absoluteY;
+        scheduleOnRN(onDragStart, index, x, y);
       }
     })
     .onUpdate((event) => {
-      translateX.value = event.translationX;
-      translateY.value = event.translationY;
+      // Original chip stays in place - just update parent with position
+      if (onDragMove) {
+        const x = event.absoluteX;
+        const y = event.absoluteY;
+        scheduleOnRN(onDragMove, x, y);
+      }
     })
     .onEnd((event) => {
       const { absoluteX, absoluteY } = event;
@@ -96,32 +95,14 @@ export default function DraggableComboChip({
       }
 
       if (isInTrashZone && onDelete) {
-        // Delete immediately, animate independently
-        runOnJS(onDelete)();
-        opacity.value = withSpring(0);
-        scale.value = withSpring(0.5);
-      } else {
-        // Spring back to original position
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-        scale.value = withSpring(1);
-        opacity.value = withSpring(1);
+        scheduleOnRN(onDelete);
       }
 
       if (onDragEnd) {
-        runOnJS(onDragEnd)();
+        const idx = index;
+        scheduleOnRN(onDragEnd, idx);
       }
     });
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-    opacity: opacity.value,
-    zIndex: scale.value > 1 ? 1000 : 1,
-  }));
 
   // Don't make arrows draggable
   if (type === "arrow") {
@@ -130,13 +111,9 @@ export default function DraggableComboChip({
 
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View
-        ref={viewRef}
-        style={[styles.container, animatedStyle]}
-        onLayout={handleLayout}
-      >
+      <View ref={viewRef} style={styles.container} onLayout={handleLayout}>
         <ComboChip type={type} label={label} />
-      </Animated.View>
+      </View>
     </GestureDetector>
   );
 }
