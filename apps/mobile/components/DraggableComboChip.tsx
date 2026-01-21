@@ -20,6 +20,7 @@ interface DraggableComboChipProps {
   type: ChipType;
   label: string;
   index: number;
+  isGhost?: boolean;
   onDragStart?: (index: number, absoluteX: number, absoluteY: number) => void;
   onDragMove?: (absoluteX: number, absoluteY: number) => void;
   onDragEnd?: (index: number) => void;
@@ -36,6 +37,7 @@ export default function DraggableComboChip({
   type,
   label,
   index,
+  isGhost = false,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -111,7 +113,11 @@ export default function DraggableComboChip({
 
   return (
     <GestureDetector gesture={panGesture}>
-      <View ref={viewRef} style={styles.container} onLayout={handleLayout}>
+      <View
+        ref={viewRef}
+        style={[styles.container, isGhost && styles.ghost]}
+        onLayout={handleLayout}
+      >
         <ComboChip type={type} label={label} />
       </View>
     </GestureDetector>
@@ -119,7 +125,8 @@ export default function DraggableComboChip({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    // Container for animated view
+  container: {},
+  ghost: {
+    opacity: 0.4,
   },
 });

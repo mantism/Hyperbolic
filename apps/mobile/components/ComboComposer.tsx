@@ -280,6 +280,8 @@ export default function ComboComposer({
   };
 
   const renderSequenceItem = (item: SequenceItem, index: number) => {
+    const isBeingDragged = dragState?.index === index;
+
     if (item.type === "arrow") {
       // Only render arrows that have transitions
       if (!item.transition_id) {
@@ -292,6 +294,7 @@ export default function ComboComposer({
           type="transition"
           label={item.transition_id}
           index={index}
+          isGhost={isBeingDragged}
           onDragStart={handleDragStart}
           onDragMove={handleDragMove}
           onDragEnd={handleDragEnd}
@@ -314,6 +317,7 @@ export default function ComboComposer({
           type="trick"
           label={label}
           index={index}
+          isGhost={isBeingDragged}
           onDragStart={handleDragStart}
           onDragMove={handleDragMove}
           onDragEnd={handleDragEnd}
