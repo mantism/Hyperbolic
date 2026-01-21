@@ -10,6 +10,10 @@ interface ComboChipProps {
   label: string;
   onRemove?: () => void;
   onPress?: () => void;
+  /** Ref callback to allow parent to measure this chip */
+  viewRef?: (ref: View | null) => void;
+  /** When true, renders with reduced opacity (ghost placeholder) */
+  isGhost?: boolean;
 }
 
 /**
@@ -25,6 +29,8 @@ export default function ComboChip({
   label,
   onRemove,
   onPress,
+  viewRef,
+  isGhost = false,
 }: ComboChipProps) {
   const containerStyle = [
     styles.chip,
@@ -50,7 +56,7 @@ export default function ComboChip({
     const borderWidth = 1;
 
     return (
-      <View style={styles.chevronContainer}>
+      <View ref={viewRef} style={[styles.chevronContainer, isGhost && styles.ghost]}>
         {/* Middle badge content (renders first, on bottom) */}
         <View style={[styles.chevronMiddle, { height: badgeHeight }]}>
           <Text style={styles.transitionText}>{label}</Text>
@@ -114,13 +120,19 @@ export default function ComboChip({
 
   if (onPress && type !== "arrow") {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        {chipContent}
-      </TouchableOpacity>
+      <View ref={viewRef} style={isGhost && styles.ghost}>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+          {chipContent}
+        </TouchableOpacity>
+      </View>
     );
   }
 
-  return chipContent;
+  return (
+    <View ref={viewRef} style={isGhost && styles.ghost}>
+      {chipContent}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -214,5 +226,10 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 6,
     gap: 4,
     justifyContent: "center",
+  },
+
+  // Ghost state for drag placeholder
+  ghost: {
+    opacity: 0.4,
   },
 });

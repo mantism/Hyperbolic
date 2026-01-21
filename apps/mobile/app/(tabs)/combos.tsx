@@ -62,8 +62,8 @@ export default function CombosScreen() {
             <View style={styles.comboCard}>
               <Text style={styles.comboName}>{combo.name}</Text>
               <Text style={styles.comboDetails}>
-                {combo.trick_sequence.length} tricks • {combo.attempts} attempts
-                • {combo.stomps} stomps
+                {combo.trick_sequence.nodes.length} tricks • {combo.attempts}{" "}
+                attempts • {combo.stomps} stomps
               </Text>
             </View>
           );

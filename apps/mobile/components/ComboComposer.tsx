@@ -27,7 +27,6 @@ import {
 } from "../lib/utils/comboRendering";
 import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
-import DraggableComboChip, { ChipMeasurement } from "./DraggableComboChip";
 import ComboChip from "./ComboChip";
 import TrickSuggestionChips from "./TrickSuggestionChips";
 import ComboModifierButtons from "./ComboModifierButtons";
@@ -37,6 +36,13 @@ interface ComboComposerProps {
   userId: string;
   onSave: () => void;
   onCancel: () => void;
+}
+
+interface Bounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 // State for the floating drag overlay
@@ -49,6 +55,8 @@ interface DragState {
   // Offset from finger to chip's top-left corner (captured at drag start)
   offsetX: number;
   offsetY: number;
+  // True if this is a new trick being dragged from suggestions (not a reorder)
+  isInsertDrag: boolean;
 }
 
 /**
@@ -65,44 +73,57 @@ export default function ComboComposer({
   const [customName, setCustomName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dragState, setDragState] = useState<DragState | null>(null);
-  const [trashZoneBounds, setTrashZoneBounds] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [trashZoneBounds, setTrashZoneBounds] = useState<Bounds | null>(null);
+  const [sequenceContainerBounds, setSequenceContainerBounds] =
+    useState<Bounds | null>(null);
+  const sequenceContainerRef = useRef<View>(null);
 
   // Track the container's position for accurate floating chip positioning
   const containerRef = useRef<View>(null);
   const [containerOffset, setContainerOffset] = useState({ x: 0, y: 0 });
 
-  // Store measurements for each chip by their sequence index
-  const chipMeasurementsRef = useRef<Map<number, ChipMeasurement>>(new Map());
+  // Store refs for each chip by their sequence index (for measurement)
+  const chipRefsRef = useRef<Map<number, View>>(new Map());
+  // Cached measurements - refreshed at drag start
+  const chipMeasurementsRef = useRef<Map<number, Bounds>>(new Map());
 
   // Use refs to track current state for gesture handlers (avoids stale closures)
   const sequenceRef = useRef<SequenceItem[]>(sequence);
   sequenceRef.current = sequence;
 
   const dragIndexRef = useRef<number | null>(null);
+  const isInsertDragRef = useRef(false);
 
-  // Callback to store chip measurements when they report their layout
-  const handleChipMeasure = useCallback(
-    (index: number, measurement: ChipMeasurement) => {
-      chipMeasurementsRef.current.set(index, measurement);
-    },
-    []
-  );
-
-  // Clear stale measurements when sequence changes
-  // (measurements for indices that no longer exist)
-  const clearStaleMeasurements = useCallback(() => {
-    const currentIndices = new Set(sequence.map((_, i) => i));
-    chipMeasurementsRef.current.forEach((_, index) => {
-      if (!currentIndices.has(index)) {
-        chipMeasurementsRef.current.delete(index);
+  // Measure all chips and cache results (called at drag start)
+  const measureAllChips = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      const entries = Array.from(chipRefsRef.current.entries());
+      if (entries.length === 0) {
+        resolve();
+        return;
       }
+
+      let remaining = entries.length;
+      chipMeasurementsRef.current.clear();
+
+      entries.forEach(([index, view]) => {
+        view.measure((x, y, width, height, pageX, pageY) => {
+          if (width > 0 && height > 0) {
+            chipMeasurementsRef.current.set(index, {
+              x: pageX,
+              y: pageY,
+              width,
+              height,
+            });
+          }
+          remaining--;
+          if (remaining === 0) {
+            resolve();
+          }
+        });
+      });
     });
-  }, [sequence]);
+  }, []);
 
   // Measure container position for floating chip offset calculation
   const handleContainerLayout = useCallback(() => {
@@ -110,6 +131,17 @@ export default function ComboComposer({
       containerRef.current.measure((x, y, width, height, pageX, pageY) => {
         setContainerOffset({ x: pageX, y: pageY });
       });
+    }
+  }, []);
+
+  // Measure sequence container for insert drag drop detection
+  const handleSequenceContainerLayout = useCallback(() => {
+    if (sequenceContainerRef.current) {
+      sequenceContainerRef.current.measure(
+        (x, y, width, height, pageX, pageY) => {
+          setSequenceContainerBounds({ x: pageX, y: pageY, width, height });
+        }
+      );
     }
   }, []);
 
@@ -206,8 +238,6 @@ export default function ComboComposer({
 
   const handleRemoveItem = (index: number) => {
     setSequence(removeSequenceItem(sequence, index));
-    // Clear stale measurements after sequence change
-    clearStaleMeasurements();
   };
 
   // Get label for a sequence item
@@ -225,44 +255,105 @@ export default function ComboComposer({
   }, []);
 
   // Find which chip (trick only) was tapped based on coordinates
+  // Measures all chips fresh, caches them, and returns the tapped index
   const findTappedChipIndex = useCallback(
-    (absoluteX: number, absoluteY: number): number | null => {
-      for (const [
-        index,
-        measurement,
-      ] of chipMeasurementsRef.current.entries()) {
-        // Only allow dragging tricks
-        const item = sequenceRef.current[index];
-        if (!item || item.type !== "trick") continue;
+    async (tapX: number, tapY: number): Promise<number | null> => {
+      // Measure all chips fresh
+      await measureAllChips();
 
-        const { pageX, pageY, width, height } = measurement;
-        if (
-          absoluteX >= pageX &&
-          absoluteX <= pageX + width &&
-          absoluteY >= pageY &&
-          absoluteY <= pageY + height
-        ) {
+      const currentSequence = sequenceRef.current;
+      // Get only trick indices
+      const trickIndices = currentSequence
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item.type === "trick")
+        .map(({ index }) => index);
+
+      for (const index of trickIndices) {
+        const measurement = chipMeasurementsRef.current.get(index);
+        if (!measurement) continue;
+
+        const { x, y, width, height } = measurement;
+        if (tapX >= x && tapX <= x + width && tapY >= y && tapY <= y + height) {
           return index;
         }
       }
       return null;
     },
-    []
+    [measureAllChips]
+  );
+
+  // Handle drag from suggestion chips - insert trick and start dragging it
+  const handleDragFromSuggestion = useCallback(
+    (trick: Trick, absoluteX: number, absoluteY: number) => {
+      // Create the new trick item
+      const newItem: TrickItem = {
+        id: `${Date.now()}-trick`,
+        type: "trick",
+        data: { trick_id: trick.id },
+      };
+
+      // Insert at the end of the sequence
+      const currentSequence = sequenceRef.current;
+      let newIndex: number;
+
+      if (currentSequence.length === 0) {
+        // First trick - just add it
+        setSequence([newItem]);
+        newIndex = 0;
+      } else {
+        // Add arrow separator then the trick
+        const arrowItem: ArrowItem = {
+          id: `${Date.now()}-arrow`,
+          type: "arrow",
+        };
+        setSequence([...currentSequence, arrowItem, newItem]);
+        newIndex = currentSequence.length + 1; // After existing items + arrow
+      }
+
+      // Set the drag refs immediately
+      dragIndexRef.current = newIndex;
+      isInsertDragRef.current = true;
+
+      // Start the drag state (no offset since we don't have a chip to measure yet)
+      setDragState({
+        index: newIndex,
+        type: "trick",
+        label: trick.id,
+        currentX: absoluteX,
+        currentY: absoluteY,
+        offsetX: 0,
+        offsetY: 0,
+        isInsertDrag: true,
+      });
+
+      // Measure chips after the new chip renders (for hover detection during drag)
+      requestAnimationFrame(() => {
+        measureAllChips();
+      });
+    },
+    [measureAllChips]
   );
 
   // Drag handlers for reordering
   const handleDragStart = useCallback(
-    (index: number, absoluteX: number, absoluteY: number) => {
+    (
+      index: number,
+      absoluteX: number,
+      absoluteY: number,
+      isInsertDrag: boolean = false
+    ) => {
       const item = sequenceRef.current[index];
-      if (!item) return;
+      if (!item) {
+        return;
+      }
 
       const label = getLabelForItem(item);
       const chipType = item.type === "trick" ? "trick" : "transition";
 
       // Get the chip's measured position to calculate offset
       const measurement = chipMeasurementsRef.current.get(index);
-      const offsetX = measurement ? absoluteX - measurement.pageX : 0;
-      const offsetY = measurement ? absoluteY - measurement.pageY : 0;
+      const offsetX = measurement ? absoluteX - measurement.x : 0;
+      const offsetY = measurement ? absoluteY - measurement.y : 0;
 
       // Set the ref immediately for use in handleDragMove
       dragIndexRef.current = index;
@@ -275,6 +366,7 @@ export default function ComboComposer({
         currentY: absoluteY,
         offsetX,
         offsetY,
+        isInsertDrag,
       });
     },
     [getLabelForItem]
@@ -304,12 +396,12 @@ export default function ComboComposer({
         if (!measurement) continue;
 
         // Check if finger is within this chip's bounds
-        const { pageX, pageY, width, height } = measurement;
+        const { x, y, width, height } = measurement;
         if (
-          absoluteX >= pageX &&
-          absoluteX <= pageX + width &&
-          absoluteY >= pageY &&
-          absoluteY <= pageY + height
+          absoluteX >= x &&
+          absoluteX <= x + width &&
+          absoluteY >= y &&
+          absoluteY <= y + height
         ) {
           return trickPos;
         }
@@ -375,33 +467,52 @@ export default function ComboComposer({
   const handleDragEnd = useCallback(
     (absoluteX: number, absoluteY: number) => {
       const dragIndex = dragIndexRef.current;
+      const isInsertDrag = isInsertDragRef.current;
 
-      // Check if dropped in trash zone
-      if (dragIndex !== null && trashZoneBounds) {
-        const { x, y, width, height } = trashZoneBounds;
-        const isInTrashZone =
-          absoluteX >= x &&
-          absoluteX <= x + width &&
-          absoluteY >= y &&
-          absoluteY <= y + height;
+      if (dragIndex !== null) {
+        if (isInsertDrag) {
+          // Insert drag: check if dropped outside sequence container → cancel
+          if (sequenceContainerBounds) {
+            const { x, y, width, height } = sequenceContainerBounds;
+            const isInSequenceContainer =
+              absoluteX >= x &&
+              absoluteX <= x + width &&
+              absoluteY >= y &&
+              absoluteY <= y + height;
 
-        if (isInTrashZone) {
-          // Delete the dragged item
-          setSequence((current) => removeSequenceItem(current, dragIndex));
-          clearStaleMeasurements();
+            if (!isInSequenceContainer) {
+              // Dropped outside - cancel the insert
+              setSequence((current) => removeSequenceItem(current, dragIndex));
+            }
+          }
+        } else {
+          // Reorder drag: check if dropped in trash zone → delete
+          if (trashZoneBounds) {
+            const { x, y, width, height } = trashZoneBounds;
+            const isInTrashZone =
+              absoluteX >= x &&
+              absoluteX <= x + width &&
+              absoluteY >= y &&
+              absoluteY <= y + height;
+
+            if (isInTrashZone) {
+              setSequence((current) => removeSequenceItem(current, dragIndex));
+            }
+          }
         }
       }
 
       dragIndexRef.current = null;
+      isInsertDragRef.current = false;
       setDragState(null);
     },
-    [trashZoneBounds, clearStaleMeasurements]
+    [trashZoneBounds, sequenceContainerBounds]
   );
 
   // Store handlers in refs so they can be called from worklet via scheduleOnRN
   const handleGestureStart = useCallback(
-    (absoluteX: number, absoluteY: number) => {
-      const tappedIndex = findTappedChipIndex(absoluteX, absoluteY);
+    async (absoluteX: number, absoluteY: number) => {
+      const tappedIndex = await findTappedChipIndex(absoluteX, absoluteY);
       if (tappedIndex !== null) {
         handleDragStart(tappedIndex, absoluteX, absoluteY);
       }
@@ -491,13 +602,15 @@ export default function ComboComposer({
       }
 
       return (
-        <DraggableComboChip
+        <ComboChip
           key={item.id}
           type="transition"
           label={item.transition_id}
-          index={index}
           isGhost={isBeingDragged}
-          onMeasure={handleChipMeasure}
+          viewRef={(ref) => {
+            if (ref) chipRefsRef.current.set(index, ref);
+            else chipRefsRef.current.delete(index);
+          }}
         />
       );
     }
@@ -509,13 +622,15 @@ export default function ComboComposer({
         : comboNode.trick_id;
 
       return (
-        <DraggableComboChip
+        <ComboChip
           key={item.id}
           type="trick"
           label={label}
-          index={index}
           isGhost={isBeingDragged}
-          onMeasure={handleChipMeasure}
+          viewRef={(ref) => {
+            if (ref) chipRefsRef.current.set(index, ref);
+            else chipRefsRef.current.delete(index);
+          }}
         />
       );
     }
@@ -551,7 +666,11 @@ export default function ComboComposer({
           {/* Sequence Display - wrapped in gesture detector for drag reordering */}
           {sequence.length > 0 && (
             <GestureDetector gesture={sequencePanGesture}>
-              <View style={styles.sequenceContainer}>
+              <View
+                ref={sequenceContainerRef}
+                style={styles.sequenceContainer}
+                onLayout={handleSequenceContainerLayout}
+              >
                 {sequence.map((item, index) => renderSequenceItem(item, index))}
               </View>
             </GestureDetector>
@@ -581,6 +700,9 @@ export default function ComboComposer({
             searchText={searchText}
             onSelectTrick={handleSelectTrick}
             onCreateCustom={handleCreateCustomTrick}
+            onDragTrick={handleDragFromSuggestion}
+            onDragMove={onGestureUpdate}
+            onDragEnd={onGestureEnd}
           />
 
           {/* Modifier Buttons */}
@@ -609,8 +731,8 @@ export default function ComboComposer({
           </TouchableOpacity>
         </View>
 
-        {/* Trash Zone - absolutely positioned over modifier buttons */}
-        {dragState && (
+        {/* Trash Zone - only shown for reorder drags, not insert drags */}
+        {dragState && !dragState.isInsertDrag && (
           <View style={styles.trashZoneContainer}>
             <TrashZone visible={!!dragState} onLayout={setTrashZoneBounds} />
           </View>
