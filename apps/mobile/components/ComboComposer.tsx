@@ -5,8 +5,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Text,
+  LayoutAnimation,
 } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import { scheduleOnRN } from "react-native-worklets";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   SequenceItem,
@@ -17,6 +23,7 @@ import {
 import {
   removeSequenceItem,
   sequenceToComboGraph,
+  moveTrickToPosition,
 } from "../lib/utils/comboRendering";
 import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
@@ -71,6 +78,12 @@ export default function ComboComposer({
 
   // Store measurements for each chip by their sequence index
   const chipMeasurementsRef = useRef<Map<number, ChipMeasurement>>(new Map());
+
+  // Use refs to track current state for gesture handlers (avoids stale closures)
+  const sequenceRef = useRef<SequenceItem[]>(sequence);
+  sequenceRef.current = sequence;
+
+  const dragIndexRef = useRef<number | null>(null);
 
   // Callback to store chip measurements when they report their layout
   const handleChipMeasure = useCallback(
@@ -211,10 +224,36 @@ export default function ComboComposer({
     return "";
   }, []);
 
+  // Find which chip (trick only) was tapped based on coordinates
+  const findTappedChipIndex = useCallback(
+    (absoluteX: number, absoluteY: number): number | null => {
+      for (const [
+        index,
+        measurement,
+      ] of chipMeasurementsRef.current.entries()) {
+        // Only allow dragging tricks
+        const item = sequenceRef.current[index];
+        if (!item || item.type !== "trick") continue;
+
+        const { pageX, pageY, width, height } = measurement;
+        if (
+          absoluteX >= pageX &&
+          absoluteX <= pageX + width &&
+          absoluteY >= pageY &&
+          absoluteY <= pageY + height
+        ) {
+          return index;
+        }
+      }
+      return null;
+    },
+    []
+  );
+
   // Drag handlers for reordering
   const handleDragStart = useCallback(
     (index: number, absoluteX: number, absoluteY: number) => {
-      const item = sequence[index];
+      const item = sequenceRef.current[index];
       if (!item) return;
 
       const label = getLabelForItem(item);
@@ -224,6 +263,9 @@ export default function ComboComposer({
       const measurement = chipMeasurementsRef.current.get(index);
       const offsetX = measurement ? absoluteX - measurement.pageX : 0;
       const offsetY = measurement ? absoluteY - measurement.pageY : 0;
+
+      // Set the ref immediately for use in handleDragMove
+      dragIndexRef.current = index;
 
       setDragState({
         index,
@@ -235,19 +277,179 @@ export default function ComboComposer({
         offsetY,
       });
     },
-    [sequence, getLabelForItem]
+    [getLabelForItem]
   );
 
-  const handleDragMove = useCallback((absoluteX: number, absoluteY: number) => {
-    setDragState((prev) => {
-      if (!prev) return null;
-      return { ...prev, currentX: absoluteX, currentY: absoluteY };
-    });
+  // Find which trick position the finger is hovering over
+  // Returns the trick position (0 = first trick, 1 = second trick, etc.)
+  const findHoverTrickPosition = useCallback(
+    (
+      absoluteX: number,
+      absoluteY: number,
+      currentSequence: SequenceItem[],
+      draggingIndex: number
+    ): number | null => {
+      // Get all tricks with their indices
+      const tricks = currentSequence
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item.type === "trick");
+
+      for (let trickPos = 0; trickPos < tricks.length; trickPos++) {
+        const { index } = tricks[trickPos];
+
+        // Skip the trick being dragged
+        if (index === draggingIndex) continue;
+
+        const measurement = chipMeasurementsRef.current.get(index);
+        if (!measurement) continue;
+
+        // Check if finger is within this chip's bounds
+        const { pageX, pageY, width, height } = measurement;
+        if (
+          absoluteX >= pageX &&
+          absoluteX <= pageX + width &&
+          absoluteY >= pageY &&
+          absoluteY <= pageY + height
+        ) {
+          return trickPos;
+        }
+      }
+      return null;
+    },
+    []
+  );
+
+  const handleDragMove = useCallback(
+    (absoluteX: number, absoluteY: number) => {
+      const currentDragIndex = dragIndexRef.current;
+      if (currentDragIndex === null) return;
+
+      const currentSequence = sequenceRef.current;
+      const hoverTrickPosition = findHoverTrickPosition(
+        absoluteX,
+        absoluteY,
+        currentSequence,
+        currentDragIndex
+      );
+
+      if (hoverTrickPosition !== null) {
+        // Move the trick to the new position
+        const result = moveTrickToPosition(
+          currentSequence,
+          currentDragIndex,
+          hoverTrickPosition
+        );
+
+        // Only update if the sequence actually changed
+        if (result.newIndex !== currentDragIndex) {
+          // Animate the layout change for smooth reflow
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+          // Update the ref immediately so subsequent moves use correct index
+          dragIndexRef.current = result.newIndex;
+
+          // Update both states together
+          setSequence(result.sequence);
+          setDragState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  currentX: absoluteX,
+                  currentY: absoluteY,
+                  index: result.newIndex,
+                }
+              : null
+          );
+          return;
+        }
+      }
+
+      // Just update position if no reorder happened
+      setDragState((prev) =>
+        prev ? { ...prev, currentX: absoluteX, currentY: absoluteY } : null
+      );
+    },
+    [findHoverTrickPosition]
+  );
+
+  const handleDragEnd = useCallback(
+    (absoluteX: number, absoluteY: number) => {
+      const dragIndex = dragIndexRef.current;
+
+      // Check if dropped in trash zone
+      if (dragIndex !== null && trashZoneBounds) {
+        const { x, y, width, height } = trashZoneBounds;
+        const isInTrashZone =
+          absoluteX >= x &&
+          absoluteX <= x + width &&
+          absoluteY >= y &&
+          absoluteY <= y + height;
+
+        if (isInTrashZone) {
+          // Delete the dragged item
+          setSequence((current) => removeSequenceItem(current, dragIndex));
+          clearStaleMeasurements();
+        }
+      }
+
+      dragIndexRef.current = null;
+      setDragState(null);
+    },
+    [trashZoneBounds, clearStaleMeasurements]
+  );
+
+  // Store handlers in refs so they can be called from worklet via scheduleOnRN
+  const handleGestureStart = useCallback(
+    (absoluteX: number, absoluteY: number) => {
+      const tappedIndex = findTappedChipIndex(absoluteX, absoluteY);
+      if (tappedIndex !== null) {
+        handleDragStart(tappedIndex, absoluteX, absoluteY);
+      }
+    },
+    [findTappedChipIndex, handleDragStart]
+  );
+
+  const handleGestureStartRef = useRef(handleGestureStart);
+  handleGestureStartRef.current = handleGestureStart;
+
+  const handleDragMoveRef = useRef(handleDragMove);
+  handleDragMoveRef.current = handleDragMove;
+
+  const handleDragEndRef = useRef(handleDragEnd);
+  handleDragEndRef.current = handleDragEnd;
+
+  // Wrapper functions that read from refs (stable references for worklet)
+  const onGestureStart = useCallback((x: number, y: number) => {
+    handleGestureStartRef.current(x, y);
   }, []);
 
-  const handleDragEnd = useCallback((index: number) => {
-    setDragState(null);
+  const onGestureUpdate = useCallback((x: number, y: number) => {
+    handleDragMoveRef.current(x, y);
   }, []);
+
+  const onGestureEnd = useCallback((x: number, y: number) => {
+    handleDragEndRef.current(x, y);
+  }, []);
+
+  // Pan gesture for the sequence container - survives reorders since it's on parent
+  const sequencePanGesture = Gesture.Pan()
+    .activateAfterLongPress(150)
+    .minDistance(0)
+    .onStart((event) => {
+      const x = event.absoluteX;
+      const y = event.absoluteY;
+      scheduleOnRN(onGestureStart, x, y);
+    })
+    .onUpdate((event) => {
+      const x = event.absoluteX;
+      const y = event.absoluteY;
+      scheduleOnRN(onGestureUpdate, x, y);
+    })
+    .onEnd((event) => {
+      const x = event.absoluteX;
+      const y = event.absoluteY;
+      scheduleOnRN(onGestureEnd, x, y);
+    });
 
   const handleSave = async () => {
     if (sequence.length === 0) {
@@ -295,12 +497,7 @@ export default function ComboComposer({
           label={item.transition_id}
           index={index}
           isGhost={isBeingDragged}
-          onDragStart={handleDragStart}
-          onDragMove={handleDragMove}
-          onDragEnd={handleDragEnd}
-          onDelete={() => handleRemoveItem(index)}
           onMeasure={handleChipMeasure}
-          trashZoneBounds={trashZoneBounds ?? undefined}
         />
       );
     }
@@ -318,12 +515,7 @@ export default function ComboComposer({
           label={label}
           index={index}
           isGhost={isBeingDragged}
-          onDragStart={handleDragStart}
-          onDragMove={handleDragMove}
-          onDragEnd={handleDragEnd}
-          onDelete={() => handleRemoveItem(index)}
           onMeasure={handleChipMeasure}
-          trashZoneBounds={trashZoneBounds ?? undefined}
         />
       );
     }
@@ -356,11 +548,13 @@ export default function ComboComposer({
             />
           </View>
 
-          {/* Sequence Display */}
+          {/* Sequence Display - wrapped in gesture detector for drag reordering */}
           {sequence.length > 0 && (
-            <View style={styles.sequenceContainer}>
-              {sequence.map((item, index) => renderSequenceItem(item, index))}
-            </View>
+            <GestureDetector gesture={sequencePanGesture}>
+              <View style={styles.sequenceContainer}>
+                {sequence.map((item, index) => renderSequenceItem(item, index))}
+              </View>
+            </GestureDetector>
           )}
 
           {/* Trick Search Input */}

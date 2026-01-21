@@ -201,6 +201,76 @@ export function reorderSequenceItem(
 }
 
 /**
+ * Moves a trick from one position to another, shifting other tricks.
+ * Used during drag preview - doesn't clean up arrows.
+ *
+ * @param sequence - The current sequence of items
+ * @param fromSequenceIndex - The current sequence index of the trick being moved
+ * @param toTrickPosition - The target trick position (0 = first trick, 1 = second trick, etc.)
+ * @returns Object with updated sequence and the new sequence index of the moved trick
+ */
+export function moveTrickToPosition(
+  sequence: SequenceItem[],
+  fromSequenceIndex: number,
+  toTrickPosition: number
+): { sequence: SequenceItem[]; newIndex: number } {
+  if (fromSequenceIndex < 0 || fromSequenceIndex >= sequence.length) {
+    return { sequence, newIndex: fromSequenceIndex };
+  }
+
+  const item = sequence[fromSequenceIndex];
+  if (item.type !== "trick") {
+    return { sequence, newIndex: fromSequenceIndex };
+  }
+
+  // Get all tricks with their indices
+  const tricks = sequence
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.type === "trick");
+
+  const currentTrickPosition = tricks.findIndex(({ index }) => index === fromSequenceIndex);
+  if (currentTrickPosition === -1 || currentTrickPosition === toTrickPosition) {
+    return { sequence, newIndex: fromSequenceIndex };
+  }
+
+  // Clamp toTrickPosition to valid range
+  const clampedPosition = Math.max(0, Math.min(toTrickPosition, tricks.length - 1));
+
+  // Remove the trick from its current position
+  const withoutItem = [
+    ...sequence.slice(0, fromSequenceIndex),
+    ...sequence.slice(fromSequenceIndex + 1),
+  ];
+
+  // Recalculate trick positions after removal
+  const remainingTricks = withoutItem
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.type === "trick");
+
+  // Find the insertion index in the sequence
+  let insertIndex: number;
+  if (clampedPosition === 0) {
+    insertIndex = 0;
+  } else if (clampedPosition >= remainingTricks.length) {
+    // Insert after the last trick
+    const lastTrick = remainingTricks[remainingTricks.length - 1];
+    insertIndex = lastTrick.index + 1;
+  } else {
+    // Insert before the trick at clampedPosition
+    insertIndex = remainingTricks[clampedPosition].index;
+  }
+
+  // Insert the trick at the new position
+  const updatedSequence = [
+    ...withoutItem.slice(0, insertIndex),
+    item,
+    ...withoutItem.slice(insertIndex),
+  ];
+
+  return { sequence: updatedSequence, newIndex: insertIndex };
+}
+
+/**
  * Cleans up a sequence to ensure valid structure:
  * - No consecutive arrows
  * - No arrows at the start or end
