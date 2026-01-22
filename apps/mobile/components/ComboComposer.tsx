@@ -96,6 +96,7 @@ export default function ComboComposer({
   const isInsertDragRef = useRef(false);
   // Track which arrow slot is currently being previewed (for transition drag)
   const previewSlotIndexRef = useRef<number | null>(null);
+  const [previewSlotIndex, setPreviewSlotIndex] = useState<number | null>(null);
 
   // Measure all chips and cache results (called at drag start)
   const measureAllChips = useCallback((): Promise<void> => {
@@ -200,7 +201,6 @@ export default function ComboComposer({
 
     // If last item is already an arrow, update its transition_id
     if (lastItem.type === "arrow") {
-      console.log("Updating last arrow with transition:", transitionId);
       const updatedSequence = [...sequence];
       updatedSequence[updatedSequence.length - 1] = {
         ...lastItem,
@@ -350,6 +350,7 @@ export default function ComboComposer({
       dragIndexRef.current = -1; // -1 means floating, not in sequence yet
       isInsertDragRef.current = true;
       previewSlotIndexRef.current = null;
+      setPreviewSlotIndex(null);
 
       // Start the floating drag state
       setDragState({
@@ -451,7 +452,7 @@ export default function ComboComposer({
     []
   );
 
-  // Find the nearest empty arrow slot to the given coordinates
+  // Find the nearest empty arrow slot based on trick positions
   // Returns the sequence index of the arrow, or null if none found
   const findNearestEmptyArrowSlot = useCallback(
     (
@@ -459,50 +460,66 @@ export default function ComboComposer({
       absoluteY: number,
       currentSequence: SequenceItem[]
     ): number | null => {
-      // Get all arrows that don't have a transition_id (or are the current preview)
-      const emptyArrows = currentSequence
+      // Get all tricks with their indices and measurements
+      const tricks = currentSequence
         .map((item, index) => ({ item, index }))
-        .filter(
-          ({ item, index }) =>
-            item.type === "arrow" &&
-            (!item.transition_id || index === previewSlotIndexRef.current)
-        );
+        .filter(({ item }) => item.type === "trick")
+        .map(({ index }) => ({
+          index,
+          measurement: chipMeasurementsRef.current.get(index),
+        }))
+        .filter(({ measurement }) => measurement !== undefined);
 
-      if (emptyArrows.length === 0) return null;
+      if (tricks.length < 2) return null;
 
-      let nearestIndex: number | null = null;
+      let nearestArrowIndex: number | null = null;
       let nearestDistance = Infinity;
 
-      for (const { index } of emptyArrows) {
-        const measurement = chipMeasurementsRef.current.get(index);
-        if (!measurement) continue;
+      // Check each pair of adjacent tricks to find the slot between them
+      for (let i = 0; i < tricks.length - 1; i++) {
+        const trick1 = tricks[i];
+        const trick2 = tricks[i + 1];
 
-        const { x, y, width, height } = measurement;
-        // Calculate center of the chip
-        const centerX = x + width / 2;
-        const centerY = y + height / 2;
+        if (!trick1.measurement || !trick2.measurement) continue;
 
-        // Calculate distance from finger to chip center
+        // Find the arrow index between these two tricks
+        let arrowIndex: number | null = null;
+        for (let j = trick1.index + 1; j < trick2.index; j++) {
+          const item = currentSequence[j];
+          if (item.type === "arrow") {
+            // Only consider empty arrows or the current preview
+            if (!item.transition_id || j === previewSlotIndexRef.current) {
+              arrowIndex = j;
+              break;
+            }
+          }
+        }
+
+        if (arrowIndex === null) continue;
+
+        // Calculate the midpoint between the two tricks
+        const midX =
+          (trick1.measurement.x +
+            trick1.measurement.width +
+            trick2.measurement.x) /
+          2;
+        const midY =
+          (trick1.measurement.y + trick2.measurement.y) / 2 +
+          trick1.measurement.height / 2;
+
+        // Calculate distance from finger to midpoint
         const distance = Math.sqrt(
-          Math.pow(absoluteX - centerX, 2) + Math.pow(absoluteY - centerY, 2)
+          Math.pow(absoluteX - midX, 2) + Math.pow(absoluteY - midY, 2)
         );
 
-        // Only consider if within a reasonable range (e.g., within 100px or overlapping)
-        const isOverlapping =
-          absoluteX >= x &&
-          absoluteX <= x + width &&
-          absoluteY >= y &&
-          absoluteY <= y + height;
-
-        if (isOverlapping || distance < 100) {
-          if (distance < nearestDistance) {
-            nearestDistance = distance;
-            nearestIndex = index;
-          }
+        // Only consider if within a reasonable range
+        if (distance < 150 && distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestArrowIndex = arrowIndex;
         }
       }
 
-      return nearestIndex;
+      return nearestArrowIndex;
     },
     []
   );
@@ -555,6 +572,7 @@ export default function ComboComposer({
           });
 
           previewSlotIndexRef.current = nearestSlot;
+          setPreviewSlotIndex(nearestSlot);
         }
 
         // Update drag position
@@ -644,6 +662,7 @@ export default function ComboComposer({
         // If dropped inside, keep the preview (it's now permanent)
 
         previewSlotIndexRef.current = null;
+        setPreviewSlotIndex(null);
         dragIndexRef.current = null;
         isInsertDragRef.current = false;
         setDragState(null);
@@ -777,17 +796,17 @@ export default function ComboComposer({
     const isBeingDragged = dragState?.index === index;
 
     if (item.type === "arrow") {
-      // Empty arrow - render placeholder only during transition drag
+      // Empty arrow - render placeholder only for the nearest slot during transition drag
       if (!item.transition_id) {
-        // Only render empty slot placeholder when dragging a transition
-        if (dragState?.type === "transition" && dragState?.index === -1) {
+        // Only render placeholder for the slot nearest to finger
+        if (
+          dragState?.type === "transition" &&
+          dragState?.index === -1 &&
+          previewSlotIndex === index
+        ) {
           return (
             <View
               key={item.id}
-              ref={(ref) => {
-                if (ref) chipRefsRef.current.set(index, ref);
-                else chipRefsRef.current.delete(index);
-              }}
               style={{
                 width: 40,
                 height: 28,
