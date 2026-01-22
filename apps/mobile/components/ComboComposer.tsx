@@ -94,6 +94,8 @@ export default function ComboComposer({
 
   const dragIndexRef = useRef<number | null>(null);
   const isInsertDragRef = useRef(false);
+  // Track which arrow slot is currently being previewed (for transition drag)
+  const previewSlotIndexRef = useRef<number | null>(null);
 
   // Measure all chips and cache results (called at drag start)
   const measureAllChips = useCallback((): Promise<void> => {
@@ -168,17 +170,13 @@ export default function ComboComposer({
     };
 
     const updatedSequence = [...sequence];
-
-    // Add arrow separator if not the first trick
-    if (sequence.length > 0) {
-      const arrowItem: SequenceItem = {
-        id: `${Date.now()}-arrow`,
-        type: "arrow",
-      };
-      updatedSequence.push(arrowItem);
-    }
-
     updatedSequence.push(newItem);
+    const arrowItem: SequenceItem = {
+      id: `${Date.now()}-arrow`,
+      type: "arrow",
+    };
+    updatedSequence.push(arrowItem);
+
     setSequence(updatedSequence);
     setSearchText("");
   };
@@ -202,6 +200,7 @@ export default function ComboComposer({
 
     // If last item is already an arrow, update its transition_id
     if (lastItem.type === "arrow") {
+      console.log("Updating last arrow with transition:", transitionId);
       const updatedSequence = [...sequence];
       updatedSequence[updatedSequence.length - 1] = {
         ...lastItem,
@@ -237,8 +236,17 @@ export default function ComboComposer({
     setSequence(updatedSequence);
   };
 
-  const handleRemoveItem = (index: number) => {
-    setSequence(removeSequenceItem(sequence, index));
+  const clearTransition = (index: number) => {
+    const item = sequence[index];
+    if (!item || item.type !== "arrow") {
+      return;
+    }
+    const updatedSequence = [...sequence];
+    updatedSequence[index] = {
+      ...item,
+      transition_id: undefined,
+    };
+    setSequence(updatedSequence);
   };
 
   // Get label for a sequence item
@@ -335,6 +343,37 @@ export default function ComboComposer({
     [measureAllChips]
   );
 
+  // Handle drag from transition buttons - floating chip, previews in empty arrow slots
+  const handleDragFromTransition = useCallback(
+    (transition: string, absoluteX: number, absoluteY: number) => {
+      // Set refs for drag tracking
+      dragIndexRef.current = -1; // -1 means floating, not in sequence yet
+      isInsertDragRef.current = true;
+      previewSlotIndexRef.current = null;
+
+      // Start the floating drag state
+      setDragState({
+        index: -1,
+        type: "transition",
+        label: transition,
+        currentX: absoluteX,
+        currentY: absoluteY,
+        offsetX: 0,
+        offsetY: 0,
+        isInsertDrag: true,
+      });
+
+      // Measure chips for slot detection during drag
+      // Double requestAnimationFrame to ensure placeholders have rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          measureAllChips();
+        });
+      });
+    },
+    [measureAllChips]
+  );
+
   // Drag handlers for reordering
   const handleDragStart = useCallback(
     (
@@ -412,12 +451,124 @@ export default function ComboComposer({
     []
   );
 
+  // Find the nearest empty arrow slot to the given coordinates
+  // Returns the sequence index of the arrow, or null if none found
+  const findNearestEmptyArrowSlot = useCallback(
+    (
+      absoluteX: number,
+      absoluteY: number,
+      currentSequence: SequenceItem[]
+    ): number | null => {
+      // Get all arrows that don't have a transition_id (or are the current preview)
+      const emptyArrows = currentSequence
+        .map((item, index) => ({ item, index }))
+        .filter(
+          ({ item, index }) =>
+            item.type === "arrow" &&
+            (!item.transition_id || index === previewSlotIndexRef.current)
+        );
+
+      if (emptyArrows.length === 0) return null;
+
+      let nearestIndex: number | null = null;
+      let nearestDistance = Infinity;
+
+      for (const { index } of emptyArrows) {
+        const measurement = chipMeasurementsRef.current.get(index);
+        if (!measurement) continue;
+
+        const { x, y, width, height } = measurement;
+        // Calculate center of the chip
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+
+        // Calculate distance from finger to chip center
+        const distance = Math.sqrt(
+          Math.pow(absoluteX - centerX, 2) + Math.pow(absoluteY - centerY, 2)
+        );
+
+        // Only consider if within a reasonable range (e.g., within 100px or overlapping)
+        const isOverlapping =
+          absoluteX >= x &&
+          absoluteX <= x + width &&
+          absoluteY >= y &&
+          absoluteY <= y + height;
+
+        if (isOverlapping || distance < 100) {
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = index;
+          }
+        }
+      }
+
+      return nearestIndex;
+    },
+    []
+  );
+
   const handleDragMove = useCallback(
     (absoluteX: number, absoluteY: number) => {
       const currentDragIndex = dragIndexRef.current;
+
+      // Handle floating transition drag (not in sequence yet)
+      if (currentDragIndex === -1) {
+        const currentSequence = sequenceRef.current;
+        const currentDragState = dragState;
+
+        // Find nearest empty arrow slot
+        const nearestSlot = findNearestEmptyArrowSlot(
+          absoluteX,
+          absoluteY,
+          currentSequence
+        );
+        const previousSlot = previewSlotIndexRef.current;
+
+        // If slot changed, update the sequence
+        if (nearestSlot !== previousSlot && currentDragState) {
+          setSequence((current) => {
+            const updated = [...current];
+
+            // Clear previous preview slot if it exists
+            if (
+              previousSlot !== null &&
+              updated[previousSlot]?.type === "arrow"
+            ) {
+              updated[previousSlot] = {
+                ...updated[previousSlot],
+                transition_id: undefined,
+              };
+            }
+
+            // Set new preview slot if found
+            if (
+              nearestSlot !== null &&
+              updated[nearestSlot]?.type === "arrow"
+            ) {
+              updated[nearestSlot] = {
+                ...updated[nearestSlot],
+                transition_id: currentDragState.label,
+              };
+            }
+
+            return updated;
+          });
+
+          previewSlotIndexRef.current = nearestSlot;
+        }
+
+        // Update drag position
+        setDragState((prev) =>
+          prev ? { ...prev, currentX: absoluteX, currentY: absoluteY } : null
+        );
+        return;
+      }
+
       if (currentDragIndex === null) return;
 
       const currentSequence = sequenceRef.current;
+
+      // Handle trick dragging (swap positions with other tricks)
       const hoverTrickPosition = findHoverTrickPosition(
         absoluteX,
         absoluteY,
@@ -426,22 +577,15 @@ export default function ComboComposer({
       );
 
       if (hoverTrickPosition !== null) {
-        // Move the trick to the new position
         const result = moveTrickToPosition(
           currentSequence,
           currentDragIndex,
           hoverTrickPosition
         );
 
-        // Only update if the sequence actually changed
         if (result.newIndex !== currentDragIndex) {
-          // Animate the layout change for smooth reflow
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-
-          // Update the ref immediately so subsequent moves use correct index
           dragIndexRef.current = result.newIndex;
-
-          // Update both states together
           setSequence(result.sequence);
           setDragState((prev) =>
             prev
@@ -462,13 +606,49 @@ export default function ComboComposer({
         prev ? { ...prev, currentX: absoluteX, currentY: absoluteY } : null
       );
     },
-    [findHoverTrickPosition]
+    [findHoverTrickPosition, findNearestEmptyArrowSlot, dragState]
   );
 
   const handleDragEnd = useCallback(
     (absoluteX: number, absoluteY: number) => {
       const dragIndex = dragIndexRef.current;
       const isInsertDrag = isInsertDragRef.current;
+
+      // Handle floating transition drag (index === -1)
+      if (dragIndex === -1) {
+        const previewSlot = previewSlotIndexRef.current;
+
+        // Check if dropped inside sequence container
+        const isInSequenceContainer =
+          sequenceContainerBounds &&
+          absoluteX >= sequenceContainerBounds.x &&
+          absoluteX <=
+            sequenceContainerBounds.x + sequenceContainerBounds.width &&
+          absoluteY >= sequenceContainerBounds.y &&
+          absoluteY <=
+            sequenceContainerBounds.y + sequenceContainerBounds.height;
+
+        if (!isInSequenceContainer && previewSlot !== null) {
+          // Dropped outside - clear the preview
+          setSequence((current) => {
+            const updated = [...current];
+            if (updated[previewSlot]?.type === "arrow") {
+              updated[previewSlot] = {
+                ...updated[previewSlot],
+                transition_id: undefined,
+              };
+            }
+            return updated;
+          });
+        }
+        // If dropped inside, keep the preview (it's now permanent)
+
+        previewSlotIndexRef.current = null;
+        dragIndexRef.current = null;
+        isInsertDragRef.current = false;
+        setDragState(null);
+        return;
+      }
 
       if (dragIndex !== null) {
         if (isInsertDrag) {
@@ -597,8 +777,30 @@ export default function ComboComposer({
     const isBeingDragged = dragState?.index === index;
 
     if (item.type === "arrow") {
-      // Only render arrows that have transitions
+      // Empty arrow - render placeholder only during transition drag
       if (!item.transition_id) {
+        // Only render empty slot placeholder when dragging a transition
+        if (dragState?.type === "transition" && dragState?.index === -1) {
+          return (
+            <View
+              key={item.id}
+              ref={(ref) => {
+                if (ref) chipRefsRef.current.set(index, ref);
+                else chipRefsRef.current.delete(index);
+              }}
+              style={{
+                width: 40,
+                height: 28,
+                borderRadius: 6,
+                borderWidth: 1,
+                borderStyle: "dashed",
+                borderColor: "#FF9800",
+                backgroundColor: "#FFF8E1",
+                marginHorizontal: 2,
+              }}
+            />
+          );
+        }
         return null;
       }
 
@@ -607,7 +809,7 @@ export default function ComboComposer({
           key={item.id}
           label={item.transition_id}
           isGhost={isBeingDragged}
-          onDelete={() => handleRemoveItem(index)}
+          onDelete={() => clearTransition(index)}
           viewRef={(ref) => {
             if (ref) chipRefsRef.current.set(index, ref);
             else chipRefsRef.current.delete(index);
@@ -715,6 +917,9 @@ export default function ComboComposer({
               sequence.length === 0 ||
               sequence[sequence.length - 1]?.type !== "trick"
             }
+            onDragTransition={handleDragFromTransition}
+            onDragMove={onGestureUpdate}
+            onDragEnd={onGestureEnd}
           />
 
           {/* Save Button */}

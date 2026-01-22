@@ -163,7 +163,9 @@ export function reorderSequenceItem(
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => item.type === "trick");
 
-  const currentTrickPosition = tricks.findIndex(({ index }) => index === fromIndex);
+  const currentTrickPosition = tricks.findIndex(
+    ({ index }) => index === fromIndex
+  );
   if (currentTrickPosition === -1 || currentTrickPosition === toTrickPosition) {
     return sequence;
   }
@@ -228,13 +230,18 @@ export function moveTrickToPosition(
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => item.type === "trick");
 
-  const currentTrickPosition = tricks.findIndex(({ index }) => index === fromSequenceIndex);
+  const currentTrickPosition = tricks.findIndex(
+    ({ index }) => index === fromSequenceIndex
+  );
   if (currentTrickPosition === -1 || currentTrickPosition === toTrickPosition) {
     return { sequence, newIndex: fromSequenceIndex };
   }
 
   // Clamp toTrickPosition to valid range
-  const clampedPosition = Math.max(0, Math.min(toTrickPosition, tricks.length - 1));
+  const clampedPosition = Math.max(
+    0,
+    Math.min(toTrickPosition, tricks.length - 1)
+  );
 
   // Remove the trick from its current position
   const withoutItem = [
