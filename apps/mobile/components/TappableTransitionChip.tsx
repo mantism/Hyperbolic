@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import ComboChip from "./ComboChip";
 
 interface TappableTransitionChipProps {
   label: string;
   onDelete: () => void;
+  /** Ref callback to allow parent to measure this chip */
+  viewRef?: (ref: View | null) => void;
+  /** When true, renders with reduced opacity (ghost placeholder) */
+  isGhost?: boolean;
 }
 
 /**
@@ -16,6 +20,8 @@ interface TappableTransitionChipProps {
 export default function TappableTransitionChip({
   label,
   onDelete,
+  viewRef,
+  isGhost = false,
 }: TappableTransitionChipProps) {
   const [showDelete, setShowDelete] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,7 +42,7 @@ export default function TappableTransitionChip({
   }, [showDelete]);
 
   const handlePress = () => {
-    setShowDelete(true);
+    setShowDelete((prev) => !prev);
   };
 
   const handleDelete = () => {
@@ -45,12 +51,14 @@ export default function TappableTransitionChip({
   };
 
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
-      <ComboChip
-        type="transition"
-        label={label}
-        onRemove={showDelete ? handleDelete : undefined}
-      />
-    </TouchableOpacity>
+    <View ref={viewRef} style={isGhost && { opacity: 0.4 }}>
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+        <ComboChip
+          type="transition"
+          label={label}
+          onRemove={showDelete ? handleDelete : undefined}
+        />
+      </TouchableOpacity>
+    </View>
   );
 }

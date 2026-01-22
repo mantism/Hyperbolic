@@ -28,6 +28,7 @@ import {
 import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
 import ComboChip from "./ComboChip";
+import TappableTransitionChip from "./TappableTransitionChip";
 import TrickSuggestionChips from "./TrickSuggestionChips";
 import ComboModifierButtons from "./ComboModifierButtons";
 import TrashZone from "./TrashZone";
@@ -602,11 +603,11 @@ export default function ComboComposer({
       }
 
       return (
-        <ComboChip
+        <TappableTransitionChip
           key={item.id}
-          type="transition"
           label={item.transition_id}
           isGhost={isBeingDragged}
+          onDelete={() => handleRemoveItem(index)}
           viewRef={(ref) => {
             if (ref) chipRefsRef.current.set(index, ref);
             else chipRefsRef.current.delete(index);
