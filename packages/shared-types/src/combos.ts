@@ -33,8 +33,8 @@ export type ComboEdge = {
  * Nodes are tricks, edges are transitions between tricks
  */
 export type ComboGraph = {
-  nodes: ComboNode[];
-  edges: ComboEdge[];
+  tricks: ComboNode[];
+  transitions: ComboEdge[];
 };
 
 /**
@@ -55,21 +55,13 @@ export type LandingStanceTransition =
   Database["public"]["Tables"]["LandingStanceTransitions"]["Row"];
 
 /**
- * UserCombo with properly typed trick_sequence (ComboGraph format)
+ * UserCombo with properly typed combo_graph
  */
 export type UserCombo = Omit<
   Database["public"]["Tables"]["UserCombos"]["Row"],
-  "trick_sequence"
+  "combo_graph"
 > & {
-  trick_sequence: ComboGraph;
+  comboGraph: ComboGraph;
 };
 
-/**
- * ComboLog with properly typed trick_sequence (ComboGraph format)
- */
-export type ComboLog = Omit<
-  Database["public"]["Tables"]["ComboLogs"]["Row"],
-  "trick_sequence"
-> & {
-  trick_sequence: ComboGraph;
-};
+export type ComboLog = Database["public"]["Tables"]["ComboLogs"]["Row"];

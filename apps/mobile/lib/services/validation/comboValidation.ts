@@ -14,26 +14,26 @@ export function validateComboGraph(graph: ComboGraph): void {
     throw new Error("Combo graph must be an object");
   }
 
-  if (!Array.isArray(graph.nodes)) {
+  if (!Array.isArray(graph.tricks)) {
     throw new Error("Combo graph nodes must be an array");
   }
 
-  if (!Array.isArray(graph.edges)) {
+  if (!Array.isArray(graph.transitions)) {
     throw new Error("Combo graph edges must be an array");
   }
 
-  if (graph.nodes.length === 0) {
+  if (graph.tricks.length === 0) {
     throw new Error("Combo graph must have at least one node");
   }
 
   // Validate nodes
-  graph.nodes.forEach((node, index) => {
+  graph.tricks.forEach((node, index) => {
     validateComboNode(node, index);
   });
 
   // Validate edges
-  graph.edges.forEach((edge, index) => {
-    validateComboEdge(edge, index, graph.nodes.length);
+  graph.transitions.forEach((edge, index) => {
+    validateComboEdge(edge, index, graph.tricks.length);
   });
 }
 
@@ -124,7 +124,7 @@ export function unmarshalComboGraph(jsonb: unknown): ComboGraph {
  */
 export function createEmptyComboGraph(): ComboGraph {
   return {
-    nodes: [],
-    edges: [],
+    tricks: [],
+    transitions: [],
   };
 }

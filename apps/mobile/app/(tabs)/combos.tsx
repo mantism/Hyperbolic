@@ -2,11 +2,11 @@ import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCombos } from "@/contexts/CombosContext";
-import { Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import PageHeader from "@/components/PageHeader";
 import SearchBar from "@/components/SearchBar";
 import ComboComposer from "@/components/ComboComposer";
+import ComboRenderer from "@/components/ComboRenderer";
 
 export default function CombosScreen() {
   const { user } = useAuth();
@@ -61,8 +61,13 @@ export default function CombosScreen() {
           return (
             <View style={styles.comboCard}>
               <Text style={styles.comboName}>{combo.name}</Text>
+              <ComboRenderer
+                combo={combo.comboGraph}
+                style={styles.comboSequence}
+                preview
+              />
               <Text style={styles.comboDetails}>
-                {combo.trick_sequence.nodes.length} tricks • {combo.attempts}{" "}
+                {combo.comboGraph.tricks.length} tricks • {combo.attempts}{" "}
                 attempts • {combo.stomps} stomps
               </Text>
             </View>
@@ -105,7 +110,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  comboSequence: {
+    marginBottom: 8,
   },
   comboDetails: {
     fontSize: 14,

@@ -139,8 +139,8 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
+    height: 32,
     paddingHorizontal: 8,
-    paddingVertical: 4,
     borderRadius: 6,
     gap: 4,
     marginHorizontal: 2,

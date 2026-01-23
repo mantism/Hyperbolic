@@ -66,7 +66,7 @@ export async function createComboLog(
     // Auto-create combo: Try to find existing combo with same graph
     const existingCombos = await getUserCombos(userId);
     const matchingCombo = existingCombos.find((combo) =>
-      areGraphsEqual(combo.trick_sequence, comboGraph)
+      areGraphsEqual(combo.comboGraph, comboGraph)
     );
 
     if (matchingCombo) {
@@ -87,8 +87,6 @@ export async function createComboLog(
     .from("ComboLogs")
     .insert({
       user_combo_id: comboId,
-      trick_sequence:
-        marshaledGraph as unknown as Database["public"]["Tables"]["ComboLogs"]["Insert"]["trick_sequence"],
       logged_at: loggedAt,
       landed,
       rating,
@@ -97,7 +95,6 @@ export async function createComboLog(
       surface_type: surfaceType,
       video_urls: videoUrls,
       thumbnail_url: thumbnailUrl,
-      weather_conditions: weatherConditions,
       is_public: isPublic,
     })
     .select()
@@ -113,7 +110,7 @@ export async function createComboLog(
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
@@ -122,23 +119,23 @@ export async function createComboLog(
  */
 function areGraphsEqual(graph1: ComboGraph, graph2: ComboGraph): boolean {
   // Compare nodes
-  if (graph1.nodes.length !== graph2.nodes.length) return false;
-  const nodesEqual = graph1.nodes.every(
+  if (graph1.tricks.length !== graph2.tricks.length) return false;
+  const nodesEqual = graph1.tricks.every(
     (node, i) =>
-      node.trick_id === graph2.nodes[i].trick_id &&
-      node.landing_stance === graph2.nodes[i].landing_stance
+      node.trick_id === graph2.tricks[i].trick_id &&
+      node.landing_stance === graph2.tricks[i].landing_stance
   );
   if (!nodesEqual) {
     return false;
   }
 
   // Compare edges
-  if (graph1.edges.length !== graph2.edges.length) return false;
-  return graph1.edges.every(
+  if (graph1.transitions.length !== graph2.transitions.length) return false;
+  return graph1.transitions.every(
     (edge, i) =>
-      edge.from_index === graph2.edges[i].from_index &&
-      edge.to_index === graph2.edges[i].to_index &&
-      edge.transition_id === graph2.edges[i].transition_id
+      edge.from_index === graph2.transitions[i].from_index &&
+      edge.to_index === graph2.transitions[i].to_index &&
+      edge.transition_id === graph2.transitions[i].transition_id
   );
 }
 
@@ -146,7 +143,7 @@ function areGraphsEqual(graph1: ComboGraph, graph2: ComboGraph): boolean {
  * Helper: Generate combo name from combo graph
  */
 function generateComboName(graph: ComboGraph): string {
-  const nodes = graph.nodes;
+  const nodes = graph.tricks;
   if (nodes.length === 0) {
     return "Empty Combo";
   }
@@ -184,7 +181,7 @@ export async function getComboLogs(
   return (
     data?.map((log) => ({
       ...log,
-      trick_sequence: unmarshalComboGraph(log.trick_sequence),
+      combo_graph: unmarshalComboGraph(log.combo_graph),
     })) || []
   );
 }
@@ -211,7 +208,7 @@ export async function getComboLogsByComboId(
   return (
     data?.map((log) => ({
       ...log,
-      trick_sequence: unmarshalComboGraph(log.trick_sequence),
+      combo_graph: unmarshalComboGraph(log.combo_graph),
     })) || []
   );
 }
@@ -237,7 +234,7 @@ export async function getComboLog(logId: string): Promise<ComboLog | null> {
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
@@ -249,7 +246,6 @@ interface UpdateComboLogParams {
   surfaceType?: string;
   videoUrls?: string[];
   thumbnailUrl?: string;
-  weatherConditions?: string;
   isPublic?: boolean;
 }
 
@@ -262,20 +258,30 @@ export async function updateComboLog(
 ): Promise<ComboLog> {
   const updateData: Database["public"]["Tables"]["ComboLogs"]["Update"] = {};
 
-  if (updates.landed !== undefined) updateData.landed = updates.landed;
-  if (updates.rating !== undefined) updateData.rating = updates.rating;
-  if (updates.notes !== undefined) updateData.notes = updates.notes;
-  if (updates.locationName !== undefined)
+  if (updates.landed !== undefined) {
+    updateData.landed = updates.landed;
+  }
+  if (updates.rating !== undefined) {
+    updateData.rating = updates.rating;
+  }
+  if (updates.notes !== undefined) {
+    updateData.notes = updates.notes;
+  }
+  if (updates.locationName !== undefined) {
     updateData.location_name = updates.locationName;
-  if (updates.surfaceType !== undefined)
+  }
+  if (updates.surfaceType !== undefined) {
     updateData.surface_type = updates.surfaceType;
-  if (updates.videoUrls !== undefined)
+  }
+  if (updates.videoUrls !== undefined) {
     updateData.video_urls = updates.videoUrls;
-  if (updates.thumbnailUrl !== undefined)
+  }
+  if (updates.thumbnailUrl !== undefined) {
     updateData.thumbnail_url = updates.thumbnailUrl;
-  if (updates.weatherConditions !== undefined)
-    updateData.weather_conditions = updates.weatherConditions;
-  if (updates.isPublic !== undefined) updateData.is_public = updates.isPublic;
+  }
+  if (updates.isPublic !== undefined) {
+    updateData.is_public = updates.isPublic;
+  }
 
   const { data, error } = await supabase
     .from("ComboLogs")
@@ -291,7 +297,7 @@ export async function updateComboLog(
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
@@ -326,7 +332,7 @@ export async function getPublicComboLogs(limit = 50): Promise<ComboLog[]> {
   return (
     data?.map((log) => ({
       ...log,
-      trick_sequence: unmarshalComboGraph(log.trick_sequence),
+      combo_graph: unmarshalComboGraph(log.combo_graph),
     })) || []
   );
 }

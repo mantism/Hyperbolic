@@ -18,11 +18,11 @@ export function comboGraphToSequence(graph: ComboGraph): SequenceItem[] {
 
   // Build a map of edges by from_index for quick lookup
   const edgesByFromIndex = new Map<number, ComboEdge>();
-  graph.edges.forEach((edge) => {
+  graph.transitions.forEach((edge) => {
     edgesByFromIndex.set(edge.from_index, edge);
   });
 
-  graph.nodes.forEach((node, index) => {
+  graph.tricks.forEach((node, index) => {
     // Add arrow before trick (except for first trick)
     if (index > 0) {
       // Check if there's an edge from the previous node to this one
@@ -88,7 +88,7 @@ export function sequenceToComboGraph(sequence: SequenceItem[]): ComboGraph {
     }
   });
 
-  return { nodes, edges };
+  return { tricks: nodes, transitions: edges };
 }
 
 /**

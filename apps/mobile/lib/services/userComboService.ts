@@ -39,8 +39,8 @@ export async function createUserCombo(
     .insert({
       user_id: userId,
       name,
-      trick_sequence:
-        marshaledGraph as unknown as Database["public"]["Tables"]["UserCombos"]["Insert"]["trick_sequence"],
+      combo_graph:
+        marshaledGraph as unknown as Database["public"]["Tables"]["UserCombos"]["Insert"]["combo_graph"],
     })
     .select()
     .single();
@@ -58,7 +58,7 @@ export async function createUserCombo(
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
@@ -80,7 +80,7 @@ export async function getUserCombos(userId: string): Promise<UserCombo[]> {
   return (
     data?.map((combo) => ({
       ...combo,
-      trick_sequence: unmarshalComboGraph(combo.trick_sequence),
+      comboGraph: unmarshalComboGraph(combo.combo_graph),
     })) || []
   );
 }
@@ -106,7 +106,7 @@ export async function getUserCombo(comboId: string): Promise<UserCombo | null> {
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
@@ -131,7 +131,7 @@ export async function updateUserComboStats(
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
@@ -170,8 +170,8 @@ export async function updateUserComboGraph(
   const { data, error } = await supabase
     .from("UserCombos")
     .update({
-      trick_sequence:
-        marshaledGraph as unknown as Database["public"]["Tables"]["UserCombos"]["Update"]["trick_sequence"],
+      combo_graph:
+        marshaledGraph as unknown as Database["public"]["Tables"]["UserCombos"]["Update"]["combo_graph"],
     })
     .eq("id", comboId)
     .select()
@@ -184,7 +184,7 @@ export async function updateUserComboGraph(
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
@@ -215,7 +215,7 @@ export async function renameUserCombo(
 
   return {
     ...data,
-    trick_sequence: unmarshalComboGraph(data.trick_sequence),
+    comboGraph: unmarshalComboGraph(data.combo_graph),
   };
 }
 
