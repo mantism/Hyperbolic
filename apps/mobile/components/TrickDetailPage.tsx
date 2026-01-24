@@ -291,6 +291,8 @@ export default function TrickDetailPage({
       Alert.alert("Sign In Required", "Please sign in to log tricks");
       return;
     }
+    // TODO: Remove this restriction, allow logging attempts even if trick not yet tracked
+    // this will start tracking the trick for the user
     if (!userTrick) {
       Alert.alert(
         "Mark as Landed",
@@ -409,22 +411,24 @@ export default function TrickDetailPage({
         </TouchableOpacity>
 
         {user && (
-          <TouchableOpacity
-            style={styles.fabSmall}
-            onPress={handleLogPress}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={20} color="#000" />
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.fabSmall}
+              onPress={handleLogPress}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={20} color="#000" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.fabSmall}
+              onPress={handleUploadVideo}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="videocam-outline" size={18} color="#000" />
+            </TouchableOpacity>
+          </>
         )}
-        {/* Upload video FAB */}
-        <TouchableOpacity
-          style={styles.fabSmall}
-          onPress={handleUploadVideo}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="videocam-outline" size={18} color="#000" />
-        </TouchableOpacity>
       </View>
 
       {/* Video Hero - not clickable, just visual */}
@@ -584,13 +588,9 @@ export default function TrickDetailPage({
             </View>
 
             {/* Surfaces Section */}
-            {user ? (
+            {userTrick ? (
               <SurfaceBadges
-                landedSurfaces={
-                  userTrick?.landedSurfaces
-                    ? new Set(userTrick.landedSurfaces)
-                    : new Set<string>()
-                }
+                landedSurfaces={userTrick.landedSurfaces || []}
                 showTitle={true}
                 interactive={true}
               />

@@ -24,7 +24,7 @@ import {
   removeSequenceItem,
   sequenceToComboGraph,
   moveTrickToPosition,
-} from "../lib/utils/comboRendering";
+} from "@/lib/utils/comboRendering";
 import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
 import ComboChip from "./ComboChip";

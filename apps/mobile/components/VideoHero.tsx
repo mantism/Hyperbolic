@@ -1,18 +1,21 @@
 import React from "react";
 import { View, StyleSheet, Image, Animated } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { TrickVideo } from "@hyperbolic/shared-types";
+import { UserVideo } from "@hyperbolic/shared-types";
+
+const DEFAULT_COLOR = "#999999";
 
 interface VideoHeroProps {
-  video: TrickVideo | null;
-  categoryColor: string;
+  video: UserVideo | null;
+
   scrollY: Animated.Value;
+  categoryColor?: string;
 }
 
 export default function VideoHero({
   video,
-  categoryColor,
   scrollY,
+  categoryColor = DEFAULT_COLOR,
 }: VideoHeroProps) {
   if (!video || !video.thumbnail_url) {
     // Fallback to category color with icon

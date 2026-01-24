@@ -7,10 +7,11 @@ import {
 } from "@/lib/surfaceTypes";
 
 interface SurfaceBadgesProps {
-  landedSurfaces: Set<string>;
+  landedSurfaces: string[];
   showTitle?: boolean;
   showLabels?: boolean;
   interactive?: boolean;
+  emptyMessage?: string;
 }
 
 export default function SurfaceBadges({
@@ -18,15 +19,16 @@ export default function SurfaceBadges({
   showTitle = true,
   showLabels: initialShowLabels = false,
   interactive = true,
+  emptyMessage,
 }: SurfaceBadgesProps) {
   const [showLabels, setShowLabels] = useState(initialShowLabels);
 
   const content = (
     <View style={[styles.container, !showTitle && styles.containerNoMargin]}>
       {showTitle && <Text style={styles.title}>SURFACES</Text>}
-      {landedSurfaces.size > 0 ? (
+      {landedSurfaces.length > 0 ? (
         <View style={styles.badges}>
-          {Array.from(landedSurfaces).map((surfaceType) => (
+          {landedSurfaces.map((surfaceType) => (
             <View key={surfaceType} style={styles.badgeContainer}>
               <View
                 style={[
@@ -50,13 +52,14 @@ export default function SurfaceBadges({
         </View>
       ) : (
         <Text style={styles.emptyText}>
-          Log a trick in detail to earn your first surface badge
+          {emptyMessage ||
+            "Log a trick in detail to earn your first surface badge"}
         </Text>
       )}
     </View>
   );
 
-  if (interactive && landedSurfaces.size > 0) {
+  if (interactive && landedSurfaces.length > 0) {
     return (
       <TouchableOpacity
         activeOpacity={1}

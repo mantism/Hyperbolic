@@ -336,6 +336,7 @@ export type Database = {
           created_at: string | null;
           id: string;
           landed: boolean | null;
+          landedSurfaces: string[] | null;
           name: string;
           stomps: number | null;
           user_id: string;
@@ -346,6 +347,7 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           landed?: boolean | null;
+          landedSurfaces?: string[] | null;
           name: string;
           stomps?: number | null;
           user_id: string;
@@ -356,6 +358,7 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           landed?: boolean | null;
+          landedSurfaces?: string[] | null;
           name?: string;
           stomps?: number | null;
           user_id?: string;
