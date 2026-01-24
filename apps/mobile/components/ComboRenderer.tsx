@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View, StyleSheet, ViewStyle, TouchableOpacity } from "react-native";
 import { ComboGraph, SequenceItem } from "@hyperbolic/shared-types";
 import { comboGraphToSequence } from "@/lib/utils/comboRendering";
 import ComboChip from "./ComboChip";
@@ -14,6 +14,8 @@ interface ComboRendererProps {
   style?: ViewStyle;
   /** When true, renders at a smaller fixed scale for card previews */
   preview?: boolean;
+  /** When provided, triggers the onTrickPress callback with the trick ID when a trick chip is pressed */
+  onTrickPress?: (trickId: string) => void;
 }
 
 /**
@@ -24,6 +26,7 @@ export default function ComboRenderer({
   combo,
   style,
   preview = false,
+  onTrickPress,
 }: ComboRendererProps) {
   // Convert ComboGraph to SequenceItem[] if needed
   const sequence = useMemo(() => {
@@ -49,7 +52,17 @@ export default function ComboRenderer({
         ? `${trick_id} (${landing_stance})`
         : trick_id;
 
-      return <ComboChip key={item.id} type="trick" label={label} />;
+      return (
+        <TouchableOpacity
+          key={item.id}
+          onPress={
+            onTrickPress ? () => onTrickPress(item.data.trick_id) : undefined
+          }
+          disabled={!onTrickPress}
+        >
+          <ComboChip key={item.id} type="trick" label={label} />
+        </TouchableOpacity>
+      );
     }
 
     return null;

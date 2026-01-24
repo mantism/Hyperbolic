@@ -14,6 +14,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import ComboRenderer from "./ComboRenderer";
 import VideoHero from "./VideoHero";
 import SurfaceBadges from "./SurfaceBadges";
+import { useTricks } from "@/contexts/TricksContext";
+import { useRouter } from "expo-router";
 
 interface ComboDetailPageProps {
   combo: UserCombo;
@@ -27,6 +29,8 @@ export default function ComboDetailPage({
   onClose,
 }: ComboDetailPageProps) {
   const { user } = useAuth();
+  const { allTricks } = useTricks();
+  const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
@@ -62,6 +66,13 @@ export default function ComboDetailPage({
   const handlePlayVideo = (video: ComboVideo) => {
     setSelectedVideo(video);
     setShowVideoPlayer(true);
+  };
+
+  const handleTrickPress = (trickId: string) => {
+    const trick = allTricks.find((t) => t.id === trickId);
+    if (trick) {
+      router.push(`/trick/${trickId}`);
+    }
   };
 
   const featuredVideo = videos.length > 0 ? videos[0] : null;
@@ -156,7 +167,10 @@ export default function ComboDetailPage({
         <Text style={styles.stickyHeaderTitle}>{combo.name}</Text>
         <View style={styles.comboRendererContainer}>
           {/* TODO: When isEditing, render ComboComposer instead */}
-          <ComboRenderer combo={combo.comboGraph} />
+          <ComboRenderer
+            combo={combo.comboGraph}
+            onTrickPress={handleTrickPress}
+          />
         </View>
       </Animated.View>
       {/* Play button overlaying the VideoHero */}
@@ -203,7 +217,10 @@ export default function ComboDetailPage({
             <Text style={styles.comboName}>{combo.name}</Text>
             <View style={styles.comboRendererContainer}>
               {/* TODO: When isEditing, render ComboComposer instead */}
-              <ComboRenderer combo={combo.comboGraph} />
+              <ComboRenderer
+                combo={combo.comboGraph}
+                onTrickPress={handleTrickPress}
+              />
             </View>
           </View>
           {/* Stats section */}
