@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hyperbolic/dolos-web-service/clients"
 	"github.com/hyperbolic/dolos-web-service/handlers"
 	"github.com/hyperbolic/dolos-web-service/middleware"
 	"github.com/joho/godotenv"
@@ -17,7 +18,7 @@ func main() {
 	}
 
 	// Initialize clients (must be after loading env vars)
-	handlers.InitClients()
+	clients.Init()
 
 	// Initialize Gin router
 	r := gin.Default()
@@ -39,11 +40,19 @@ func main() {
 		videos := v1.Group("/videos")
 		videos.Use(middleware.Auth()) // Require authentication
 		{
-			videos.POST("/upload/request", handlers.RequestVideoUpload)
-			videos.POST("/upload/complete", handlers.CompleteVideoUpload)
-			videos.POST("/:videoId/thumbnail", handlers.UploadThumbnail)
+			// Trick video endpoints
+			videos.POST("/trick/upload/request", handlers.RequestTrickVideoUpload)
+			videos.POST("/trick/upload/complete", handlers.CompleteTrickVideoUpload)
+			videos.POST("/trick/:videoId/thumbnail", handlers.UploadTrickThumbnail)
 			videos.GET("/trick/:trickId", handlers.GetTrickVideos)
-			videos.DELETE("/:videoId", handlers.DeleteVideo)
+			videos.DELETE("/trick/:videoId", handlers.DeleteTrickVideo)
+
+			// Combo video endpoints
+			videos.POST("/combo/upload/request", handlers.RequestComboVideoUpload)
+			videos.POST("/combo/upload/complete", handlers.CompleteComboVideoUpload)
+			videos.POST("/combo/:videoId/thumbnail", handlers.UploadComboThumbnail)
+			videos.GET("/combo/:comboId", handlers.GetComboVideos)
+			videos.DELETE("/combo/:videoId", handlers.DeleteComboVideo)
 		}
 	}
 
