@@ -72,6 +72,7 @@ export default function ComboRenderer({
           {
             transform: [{ scale: previewScale }],
             transformOrigin: "left top",
+            flexWrap: "nowrap",
           },
         ]}
       >
@@ -84,7 +85,7 @@ export default function ComboRenderer({
 const styles = StyleSheet.create({
   content: {
     flexDirection: "row",
-    flexWrap: "nowrap",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 4,
   },

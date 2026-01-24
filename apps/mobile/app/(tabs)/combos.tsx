@@ -1,5 +1,13 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+} from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCombos } from "@/contexts/CombosContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -9,6 +17,7 @@ import ComboComposer from "@/components/ComboComposer";
 import ComboRenderer from "@/components/ComboRenderer";
 
 export default function CombosScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const { userCombos, loading, refreshing, refetchUserCombos } = useCombos();
   const [showComposer, setShowComposer] = useState(false);
@@ -59,7 +68,11 @@ export default function CombosScreen() {
           // Render combo item
           const combo = item as (typeof userCombos)[number];
           return (
-            <View style={styles.comboCard}>
+            <TouchableOpacity
+              style={styles.comboCard}
+              onPress={() => router.push(`/combo/${combo.id}`)}
+              activeOpacity={0.7}
+            >
               <Text style={styles.comboName}>{combo.name}</Text>
               <ComboRenderer
                 combo={combo.comboGraph}
@@ -70,7 +83,7 @@ export default function CombosScreen() {
                 {combo.comboGraph.tricks.length} tricks • {combo.attempts}{" "}
                 attempts • {combo.stomps} stomps
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         }}
         refreshControl={
