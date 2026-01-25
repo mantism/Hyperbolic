@@ -67,6 +67,69 @@ export type Database = {
           },
         ];
       };
+      ComboMedia: {
+        Row: {
+          combolog_id: string | null;
+          created_at: string | null;
+          duration_seconds: number | null;
+          file_size_bytes: number | null;
+          id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          metadata: Json | null;
+          mime_type: string | null;
+          thumbnail_url: string | null;
+          updated_at: string | null;
+          upload_status: Database["public"]["Enums"]["upload_status"];
+          url: string;
+          user_combo_id: string;
+        };
+        Insert: {
+          combolog_id?: string | null;
+          created_at?: string | null;
+          duration_seconds?: number | null;
+          file_size_bytes?: number | null;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          metadata?: Json | null;
+          mime_type?: string | null;
+          thumbnail_url?: string | null;
+          updated_at?: string | null;
+          upload_status?: Database["public"]["Enums"]["upload_status"];
+          url: string;
+          user_combo_id: string;
+        };
+        Update: {
+          combolog_id?: string | null;
+          created_at?: string | null;
+          duration_seconds?: number | null;
+          file_size_bytes?: number | null;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          metadata?: Json | null;
+          mime_type?: string | null;
+          thumbnail_url?: string | null;
+          updated_at?: string | null;
+          upload_status?: Database["public"]["Enums"]["upload_status"];
+          url?: string;
+          user_combo_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ComboMedia_combolog_id_fkey";
+            columns: ["combolog_id"];
+            isOneToOne: false;
+            referencedRelation: "ComboLogs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ComboMedia_user_combo_id_fkey";
+            columns: ["user_combo_id"];
+            isOneToOne: false;
+            referencedRelation: "UserCombos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       LandingStances: {
         Row: {
           aliases: string[] | null;

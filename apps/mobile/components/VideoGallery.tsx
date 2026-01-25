@@ -10,28 +10,35 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { TrickVideo } from "@hyperbolic/shared-types";
+import {
+  isComboVideo,
+  isTrickVideo,
+  UserVideo,
+  VideoType,
+} from "@hyperbolic/shared-types";
 import { deleteVideo } from "@/lib/services/videoService";
 
-interface VideoGalleryProps {
+interface VideoGalleryProps<T extends UserVideo> {
   title?: string;
-  videos: TrickVideo[];
-  onVideoPress?: (video: TrickVideo) => void;
+  videos: T[];
+  onVideoPress?: (video: T) => void;
   onVideoDeleted?: () => void;
   showDeleteOption?: boolean; // Only allow delete for user's own videos
   showMetadata?: boolean; // Show trick name and upload date below thumbnail
 }
 
-export default function VideoGallery({
+export default function VideoGallery<T extends UserVideo>({
   title,
   videos,
   onVideoPress,
   onVideoDeleted,
   showDeleteOption = false,
   showMetadata = false,
-}: VideoGalleryProps) {
-  const handleLongPress = (video: TrickVideo) => {
-    if (!showDeleteOption) return;
+}: VideoGalleryProps<T>) {
+  const handleLongPress = (video: T) => {
+    if (!showDeleteOption) {
+      return;
+    }
 
     Alert.alert(
       "Delete Video",
@@ -46,7 +53,11 @@ export default function VideoGallery({
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteVideo(video.id);
+              if (isTrickVideo(video)) {
+                await deleteVideo(video.id, VideoType.Trick);
+              } else if (isComboVideo(video)) {
+                await deleteVideo(video.id, VideoType.Combo);
+              }
               onVideoDeleted?.();
               Alert.alert("Success", "Video deleted successfully");
             } catch (error) {
@@ -62,6 +73,44 @@ export default function VideoGallery({
         },
       ]
     );
+  };
+
+  const metadataContent = (video: UserVideo) => {
+    if (!showMetadata) {
+      return null;
+    }
+
+    if (isTrickVideo(video)) {
+      <View style={styles.metadataContainer}>
+        {video.trick_name && (
+          <Link
+            href={{
+              pathname: "/trick/[id]",
+              params: { id: video.trick_id },
+            }}
+          >
+            <Text style={styles.metadataLabel} numberOfLines={1}>
+              {video.trick_name}
+            </Text>
+          </Link>
+        )}
+        {video.created_at && (
+          <Text style={styles.uploadDate} numberOfLines={1}>
+            {formatUploadDate(video.created_at)}
+          </Text>
+        )}
+      </View>;
+    }
+
+    if (isComboVideo(video)) {
+      <View style={styles.metadataContainer}>
+        {video.created_at && (
+          <Text style={styles.uploadDate} numberOfLines={1}>
+            {formatUploadDate(video.created_at)}
+          </Text>
+        )}
+      </View>;
+    }
   };
 
   if (videos.length === 0) {
@@ -121,29 +170,7 @@ export default function VideoGallery({
                 </View>
               )}
             </TouchableOpacity>
-
-            {/* Metadata section */}
-            {showMetadata && (
-              <View style={styles.metadataContainer}>
-                {video.trick_name && (
-                  <Link
-                    href={{
-                      pathname: "/trick/[id]",
-                      params: { id: video.trick_id },
-                    }}
-                  >
-                    <Text style={styles.trickName} numberOfLines={1}>
-                      {video.trick_name}
-                    </Text>
-                  </Link>
-                )}
-                {video.created_at && (
-                  <Text style={styles.uploadDate} numberOfLines={1}>
-                    {formatUploadDate(video.created_at)}
-                  </Text>
-                )}
-              </View>
-            )}
+            {metadataContent(video)}
           </View>
         ))}
       </ScrollView>
@@ -207,7 +234,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 2,
   },
-  trickName: {
+  metadataLabel: {
     fontSize: 13,
     fontWeight: "600",
     color: "#000",

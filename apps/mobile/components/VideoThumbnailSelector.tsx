@@ -11,7 +11,7 @@ import {
 import { VideoView, useVideoPlayer } from "expo-video";
 import Slider from "@react-native-community/slider";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import { uploadThumbnail } from "@/lib/services/videoService";
+import { uploadTrickThumbnail } from "@/lib/services/videoService";
 
 interface VideoThumbnailSelectorProps {
   visible: boolean;
@@ -78,7 +78,7 @@ export function VideoThumbnailSelector({
 
     setIsUploading(true);
     try {
-      const thumbnailUrl = await uploadThumbnail(videoId, thumbnailUri);
+      const thumbnailUrl = await uploadTrickThumbnail(videoId, thumbnailUri);
       onComplete(thumbnailUrl);
     } catch (error) {
       console.error("Failed to upload thumbnail:", error);
@@ -106,7 +106,10 @@ export function VideoThumbnailSelector({
             <Text style={styles.cancelButton}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Select Thumbnail</Text>
-          <TouchableOpacity onPress={handleConfirm} disabled={isUploading || isGenerating}>
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={isUploading || isGenerating}
+          >
             <Text
               style={[
                 styles.confirmButton,
@@ -134,7 +137,8 @@ export function VideoThumbnailSelector({
 
         <View style={styles.controls}>
           <Text style={styles.timeText}>
-            {(selectedTime / 1000).toFixed(1)}s / {durationInSeconds.toFixed(1)}s
+            {(selectedTime / 1000).toFixed(1)}s / {durationInSeconds.toFixed(1)}
+            s
           </Text>
           <Slider
             style={styles.slider}

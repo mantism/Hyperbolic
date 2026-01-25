@@ -1,13 +1,19 @@
 // Video upload related types
+
+export enum VideoType {
+  Trick = "trick",
+  Combo = "combo",
+}
+
 export interface VideoUploadRequest {
-  trickId: string;
+  type: VideoType;
+  parentId: string;
   userId: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
   duration?: number;
 }
-
 export interface VideoUploadResponse {
   uploadUrl: string;
   videoId: string;
@@ -45,6 +51,14 @@ export interface ComboVideo extends BaseVideo {
 
 export type UserVideo = TrickVideo | ComboVideo;
 
+export function isTrickVideo(video: UserVideo): video is TrickVideo {
+  return "trick_id" in video;
+}
+
+export function isComboVideo(video: UserVideo): video is ComboVideo {
+  return "user_combo_id" in video;
+}
+
 export interface PresignedUrlRequest {
   fileName: string;
   fileSize: number;
@@ -68,4 +82,19 @@ export interface VideoProcessingStatus {
     preview?: string;
     transcoded?: string[];
   };
+}
+
+/**
+ * Represents a video selected for upload, either directly from the library
+ * or after trimming.
+ */
+export interface SelectedVideo {
+  /** The local file URI of the video */
+  uri: string;
+  /** Duration in seconds */
+  duration: number;
+  /** Original filename or generated name */
+  filename: string;
+  /** Whether this video was trimmed */
+  isTrimmed: boolean;
 }

@@ -1,4 +1,4 @@
-import { TrickVideo } from "@hyperbolic/shared-types";
+import { TrickVideo, VideoUploadStatus } from "@hyperbolic/shared-types";
 
 /**
  * Create a mock TrickVideo object with default values
@@ -8,13 +8,14 @@ export const createMockVideo = (
 ): TrickVideo => ({
   id: "video-123",
   user_trick_id: "user-trick-456",
+  trick_id: "trick-789",
   url: "https://test.r2.dev/video.mp4",
   thumbnail_url: "https://test.r2.dev/thumbnail.jpg",
   duration_seconds: 10,
   file_size_bytes: 1024000,
   mime_type: "video/mp4",
   media_type: "video",
-  upload_status: "completed",
+  upload_status: VideoUploadStatus.Completed,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   ...overrides,

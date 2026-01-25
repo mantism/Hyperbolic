@@ -18,11 +18,15 @@ import {
   mockNoAuthSession,
   resetSupabaseMocks,
 } from "@/lib/testing";
+import { VideoType } from "@hyperbolic/shared-types";
 import {
   getTrickVideos,
+  getComboVideos,
   getUserVideos,
   deleteVideo,
   uploadThumbnail,
+  uploadTrickThumbnail,
+  uploadComboThumbnail,
   uploadVideo,
 } from "./videoService";
 
@@ -183,6 +187,70 @@ describe("videoService", () => {
     });
   });
 
+  describe("getComboVideos", () => {
+    const comboId = "combo-123";
+
+    it("should fetch videos for a combo", async () => {
+      const mockVideos = createMockVideos(2);
+
+      mockFrom.mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockResolvedValue({
+                data: mockVideos,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const result = await getComboVideos(comboId);
+
+      expect(result).toEqual(mockVideos);
+      expect(supabase.from).toHaveBeenCalledWith("ComboMedia");
+    });
+
+    it("should return empty array when no videos found", async () => {
+      mockFrom.mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const result = await getComboVideos(comboId);
+
+      expect(result).toEqual([]);
+    });
+
+    it("should throw error when query fails", async () => {
+      mockFrom.mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockResolvedValue({
+                data: null,
+                error: { message: "Database error" },
+              }),
+            }),
+          }),
+        }),
+      });
+
+      await expect(getComboVideos(comboId)).rejects.toThrow(
+        "Failed to fetch combo media"
+      );
+    });
+  });
+
   describe("getUserVideos", () => {
     const userId = "user-456";
 
@@ -310,44 +378,68 @@ describe("videoService", () => {
   describe("deleteVideo", () => {
     const videoId = "video-123";
 
-    it("should delete video successfully", async () => {
+    it("should delete trick video with correct endpoint", async () => {
       mockAuthSession({
         access_token: "valid-token",
       });
       mockFetchResponse(createMockFetchResponse({}));
 
-      await deleteVideo(videoId);
+      await deleteVideo(videoId, VideoType.Trick);
 
-      expectFetchCalledWith(`http://localhost:8080/api/v1/videos/${videoId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: "Bearer valid-token",
-        },
+      expectFetchCalledWith(
+        `http://localhost:8080/api/v1/videos/${videoId}?type=trick`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: "Bearer valid-token",
+          },
+        }
+      );
+    });
+
+    it("should delete combo video with correct endpoint", async () => {
+      mockAuthSession({
+        access_token: "valid-token",
       });
+      mockFetchResponse(createMockFetchResponse({}));
+
+      await deleteVideo(videoId, VideoType.Combo);
+
+      expectFetchCalledWith(
+        `http://localhost:8080/api/v1/videos/${videoId}?type=combo`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: "Bearer valid-token",
+          },
+        }
+      );
     });
 
     it("should throw error when not authenticated", async () => {
       mockNoAuthSession();
 
-      await expect(deleteVideo(videoId)).rejects.toThrow("Not authenticated");
+      await expect(deleteVideo(videoId, VideoType.Trick)).rejects.toThrow(
+        "Not authenticated"
+      );
     });
 
     it("should throw error when deletion fails", async () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
-
       mockAuthSession({ access_token: "valid-token" });
       mockFetchResponse(createMockErrorResponse("Video not found", 404));
 
-      await expect(deleteVideo(videoId)).rejects.toThrow("Video not found");
-
-      consoleErrorSpy.mockRestore();
+      await expect(deleteVideo(videoId, VideoType.Trick)).rejects.toThrow(
+        "Video not found"
+      );
     });
 
     it("should handle network errors", async () => {
       mockAuthSession({ access_token: "valid-token" });
       mockFetchError(new Error("Network error"));
 
-      await expect(deleteVideo(videoId)).rejects.toThrow("Network error");
+      await expect(deleteVideo(videoId, VideoType.Trick)).rejects.toThrow(
+        "Network error"
+      );
     });
   });
 
@@ -355,7 +447,7 @@ describe("videoService", () => {
     const videoId = "video-123";
     const imageUri = "file:///path/to/image.jpg";
 
-    it("should upload thumbnail successfully", async () => {
+    it("should upload trick thumbnail with correct endpoint", async () => {
       mockAuthSession({ access_token: "valid-token" });
       mockFetchResponse(
         createMockFetchResponse({
@@ -363,11 +455,11 @@ describe("videoService", () => {
         })
       );
 
-      const result = await uploadThumbnail(videoId, imageUri);
+      const result = await uploadThumbnail(videoId, imageUri, VideoType.Trick);
 
       expect(result).toBe("https://test.r2.dev/thumbnail.jpg");
       expect(mockFetch).toHaveBeenCalledWith(
-        `http://localhost:8080/api/v1/videos/${videoId}/thumbnail`,
+        `http://localhost:8080/api/v1/videos/${videoId}/thumbnail?type=trick`,
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
@@ -377,40 +469,101 @@ describe("videoService", () => {
       );
     });
 
-    it("should throw error when not authenticated", async () => {
-      mockNoAuthSession();
+    it("should upload combo thumbnail with correct endpoint", async () => {
+      mockAuthSession({ access_token: "valid-token" });
+      mockFetchResponse(
+        createMockFetchResponse({
+          thumbnailUrl: "https://test.r2.dev/thumbnail.jpg",
+        })
+      );
 
-      await expect(uploadThumbnail(videoId, imageUri)).rejects.toThrow(
-        "Not authenticated"
+      const result = await uploadThumbnail(videoId, imageUri, VideoType.Combo);
+
+      expect(result).toBe("https://test.r2.dev/thumbnail.jpg");
+      expect(mockFetch).toHaveBeenCalledWith(
+        `http://localhost:8080/api/v1/videos/${videoId}/thumbnail?type=combo`,
+        expect.objectContaining({
+          method: "POST",
+        })
       );
     });
 
-    it("should throw error when upload fails", async () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+    it("should throw error when not authenticated", async () => {
+      mockNoAuthSession();
 
+      await expect(
+        uploadThumbnail(videoId, imageUri, VideoType.Trick)
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    it("should throw error when upload fails", async () => {
       mockAuthSession({ access_token: "valid-token" });
       mockFetchResponse(createMockErrorResponse("Upload failed", 500));
 
-      await expect(uploadThumbnail(videoId, imageUri)).rejects.toThrow(
-        "Upload failed"
+      await expect(
+        uploadThumbnail(videoId, imageUri, VideoType.Trick)
+      ).rejects.toThrow("Upload failed");
+    });
+  });
+
+  describe("uploadTrickThumbnail", () => {
+    it("should call uploadThumbnail with VideoType.Trick", async () => {
+      mockAuthSession({ access_token: "valid-token" });
+      mockFetchResponse(
+        createMockFetchResponse({
+          thumbnailUrl: "https://test.r2.dev/thumbnail.jpg",
+        })
       );
 
-      consoleErrorSpy.mockRestore();
+      await uploadTrickThumbnail("video-123", "file:///image.jpg");
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/v1/videos/video-123/thumbnail?type=trick",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+  });
+
+  describe("uploadComboThumbnail", () => {
+    it("should call uploadThumbnail with VideoType.Combo", async () => {
+      mockAuthSession({ access_token: "valid-token" });
+      mockFetchResponse(
+        createMockFetchResponse({
+          thumbnailUrl: "https://test.r2.dev/thumbnail.jpg",
+        })
+      );
+
+      await uploadComboThumbnail("video-123", "file:///image.jpg");
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/v1/videos/video-123/thumbnail?type=combo",
+        expect.objectContaining({ method: "POST" })
+      );
     });
   });
 
   describe("uploadVideo", () => {
-    const mockParams = {
-      videoUri: "file:///path/to/video.mp4",
+    const mockTrickRequest = {
+      type: VideoType.Trick as const,
+      trickId: "trick-123",
+      userId: "user-456",
       fileName: "video.mp4",
       fileSize: 1024000,
       mimeType: "video/mp4",
-      trickId: "trick-123",
-      userId: "user-456",
       duration: 10000,
     };
 
-    it("should complete full upload flow with progress callbacks", async () => {
+    const mockComboRequest = {
+      type: VideoType.Combo as const,
+      comboId: "combo-123",
+      userId: "user-456",
+      fileName: "video.mp4",
+      fileSize: 1024000,
+      mimeType: "video/mp4",
+      duration: 10000,
+    };
+
+    it("should complete full trick upload flow with progress callbacks", async () => {
       mockAuthSession({ access_token: "valid-token" });
 
       const { callback: onProgress, getProgressValues } =
@@ -433,13 +586,8 @@ describe("videoService", () => {
 
       // Execute
       const videoId = await uploadVideo(
-        mockParams.videoUri,
-        mockParams.fileName,
-        mockParams.fileSize,
-        mockParams.mimeType,
-        mockParams.trickId,
-        mockParams.userId,
-        mockParams.duration,
+        "file:///path/to/video.mp4",
+        mockTrickRequest,
         onProgress
       );
 
@@ -454,6 +602,54 @@ describe("videoService", () => {
 
       // Verify all three API calls were made
       expect(mockFetch).toHaveBeenCalledTimes(3);
+
+      // Verify correct endpoints were called
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/v1/videos/upload/request",
+        expect.objectContaining({ method: "POST" })
+      );
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/v1/videos/upload/complete",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+
+    it("should complete full combo upload flow", async () => {
+      mockAuthSession({ access_token: "valid-token" });
+
+      // Mock upload request response
+      mockFetchResponse(
+        createMockFetchResponse({
+          uploadUrl: "https://r2.dev/presigned-url",
+          videoId: "new-video-id",
+          expiresAt: new Date(Date.now() + 900000).toISOString(),
+        })
+      );
+
+      // Mock R2 upload response
+      mockFetchResponse(createMockFetchResponse({}));
+
+      // Mock complete response
+      mockFetchResponse(createMockFetchResponse({}));
+
+      // Execute
+      const videoId = await uploadVideo(
+        "file:///path/to/video.mp4",
+        mockComboRequest
+      );
+
+      // Assert
+      expect(videoId).toBe("new-video-id");
+
+      // Verify correct endpoints were called
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/v1/videos/upload/request",
+        expect.objectContaining({ method: "POST" })
+      );
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/v1/videos/upload/complete",
+        expect.objectContaining({ method: "POST" })
+      );
     });
 
     it("should throw error if upload request fails", async () => {
@@ -463,14 +659,7 @@ describe("videoService", () => {
       mockFetchResponse(createMockErrorResponse("Invalid request", 400));
 
       await expect(
-        uploadVideo(
-          mockParams.videoUri,
-          mockParams.fileName,
-          mockParams.fileSize,
-          mockParams.mimeType,
-          mockParams.trickId,
-          mockParams.userId
-        )
+        uploadVideo("file:///path/to/video.mp4", mockTrickRequest)
       ).rejects.toThrow();
 
       consoleErrorSpy.mockRestore();
@@ -494,14 +683,7 @@ describe("videoService", () => {
       mockFetchResponse(createMockErrorResponse("R2 error", 500));
 
       await expect(
-        uploadVideo(
-          mockParams.videoUri,
-          mockParams.fileName,
-          mockParams.fileSize,
-          mockParams.mimeType,
-          mockParams.trickId,
-          mockParams.userId
-        )
+        uploadVideo("file:///path/to/video.mp4", mockTrickRequest)
       ).rejects.toThrow();
 
       consoleErrorSpy.mockRestore();
@@ -523,12 +705,8 @@ describe("videoService", () => {
 
       // Should not throw even without progress callback
       const videoId = await uploadVideo(
-        mockParams.videoUri,
-        mockParams.fileName,
-        mockParams.fileSize,
-        mockParams.mimeType,
-        mockParams.trickId,
-        mockParams.userId
+        "file:///path/to/video.mp4",
+        mockTrickRequest
       );
 
       expect(videoId).toBe("new-video-id");

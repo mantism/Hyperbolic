@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { TrickVideo } from "@/lib/services/videoService";
+import { TrickVideo } from "@hyperbolic/shared-types";
 
 interface VideoPlayerModalProps {
   visible: boolean;

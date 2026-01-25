@@ -8,15 +8,14 @@ import {
   ActivityIndicator,
   ScrollView,
 } from "react-native";
-import * as MediaLibrary from "expo-media-library";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Trick } from "@hyperbolic/shared-types";
+import { Trick, SelectedVideo } from "@hyperbolic/shared-types";
 
 interface VideoDetailsProps {
   trick: Trick;
-  video: MediaLibrary.Asset;
+  video: SelectedVideo;
   onBack: () => void;
   onProceedToUpload: (thumbnailUri: string) => void;
 }
@@ -29,34 +28,16 @@ export default function VideoDetails({
 }: VideoDetailsProps) {
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [generatingThumbnail, setGeneratingThumbnail] = useState(false);
-  const [videoUri, setVideoUri] = useState<string | null>(null);
 
-  const player = useVideoPlayer(videoUri ?? "", (player) => {
+  const player = useVideoPlayer(video.uri, (player) => {
     player.loop = true;
     player.play();
   });
 
-  // Get video URI and generate thumbnail on mount
+  // Generate thumbnail on mount
   useEffect(() => {
-    loadVideo();
-  }, []);
-
-  const loadVideo = async () => {
-    try {
-      // Get the actual file URI
-      const assetInfo = await MediaLibrary.getAssetInfoAsync(video);
-
-      if (assetInfo.localUri) {
-        setVideoUri(assetInfo.localUri);
-        generateThumbnail(assetInfo.localUri);
-      } else {
-        Alert.alert("Error", "Could not access video file");
-      }
-    } catch (error) {
-      console.error("Error loading video:", error);
-      Alert.alert("Error", "Failed to load video");
-    }
-  };
+    generateThumbnail(video.uri);
+  }, [video.uri]);
 
   const generateThumbnail = async (uri: string) => {
     setGeneratingThumbnail(true);
@@ -109,26 +90,19 @@ export default function VideoDetails({
         </View>
 
         {/* Video Preview */}
-        {videoUri ? (
-          <View style={styles.videoPreview}>
-            <VideoView
-              style={styles.videoPlayer}
-              player={player}
-              nativeControls
-              contentFit="contain"
-            />
-            <View style={styles.videoInfo}>
-              <Text style={styles.videoDetails}>
-                {formatDuration(video.duration)}
-              </Text>
-            </View>
+        <View style={styles.videoPreview}>
+          <VideoView
+            style={styles.videoPlayer}
+            player={player}
+            nativeControls
+            contentFit="contain"
+          />
+          <View style={styles.videoInfo}>
+            <Text style={styles.videoDetails}>
+              {formatDuration(video.duration)}
+            </Text>
           </View>
-        ) : (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#000" />
-            <Text style={styles.loadingText}>Loading video...</Text>
-          </View>
-        )}
+        </View>
 
         {/* Guidelines */}
         <View style={styles.guidelines}>

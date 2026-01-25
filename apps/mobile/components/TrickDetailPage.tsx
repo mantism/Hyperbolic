@@ -120,11 +120,9 @@ export default function TrickDetailPage({
   }, [user, trick.id]);
 
   const fetchVideos = useCallback(async () => {
-    if (!user) return;
-
     setLoadingVideos(true);
     try {
-      const userId = videoTab === "my" ? user.id : undefined;
+      const userId = videoTab === "my" && user ? user.id : undefined;
       const fetchedVideos = await getTrickVideos(trick.id, userId);
       setVideos(fetchedVideos);
     } catch (error) {

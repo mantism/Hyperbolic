@@ -3,7 +3,9 @@ import { File } from "expo-file-system";
 import { supabase } from "@/lib/supabase/supabase";
 
 import {
+  ComboVideo,
   TrickVideo,
+  VideoType,
   VideoUploadRequest,
   VideoUploadResponse,
 } from "@hyperbolic/shared-types";
@@ -110,7 +112,6 @@ export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
     // Don't throw - we can still return videos without trick names
   }
 
-  // Create a map of trick_id -> trick_name
   const trickNameMap = new Map(
     tricks?.map((trick) => [trick.id, trick.name]) || []
   );
@@ -124,9 +125,24 @@ export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
 }
 
 /**
- * Delete a video
+ * Fetch all videos for a combo
  */
-export async function deleteVideo(videoId: string): Promise<void> {
+export async function getComboVideos(comboId: string): Promise<ComboVideo[]> {
+  const { data: comboMedia, error: mediaError } = await supabase
+    .from("ComboMedia")
+    .select("*")
+    .eq("user_combo_id", comboId)
+    .eq("upload_status", "completed")
+    .order("created_at", { ascending: false });
+
+  if (mediaError) {
+    throw new Error(`Failed to fetch combo media: ${mediaError.message}`);
+  }
+
+  return comboMedia || [];
+}
+
+export async function deleteVideo(videoId: string, type: VideoType) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -135,7 +151,8 @@ export async function deleteVideo(videoId: string): Promise<void> {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/api/v1/videos/${videoId}`, {
+  const endpoint = `${API_URL}/api/v1/videos/${videoId}?type=${type}`;
+  const response = await fetch(endpoint, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${session.access_token}`,
@@ -150,12 +167,10 @@ export async function deleteVideo(videoId: string): Promise<void> {
   }
 }
 
-/**
- * Upload a thumbnail image for a video
- */
 export async function uploadThumbnail(
   videoId: string,
-  imageUri: string
+  imageUri: string,
+  type: VideoType
 ): Promise<string> {
   const {
     data: { session },
@@ -180,7 +195,7 @@ export async function uploadThumbnail(
   });
 
   const response = await fetch(
-    `${API_URL}/api/v1/videos/${videoId}/thumbnail`,
+    `${API_URL}/api/v1/videos/${videoId}/thumbnail?type=${type}`,
     {
       method: "POST",
       headers: {
@@ -202,13 +217,19 @@ export async function uploadThumbnail(
   return result.thumbnailUrl;
 }
 
+/**
+ * Upload a thumbnail image for a trick video
+ */
+export const uploadTrickThumbnail = (videoId: string, imageUri: string) =>
+  uploadThumbnail(videoId, imageUri, VideoType.Trick);
+
+export const uploadComboThumbnail = (videoId: string, imageUri: string) =>
+  uploadThumbnail(videoId, imageUri, VideoType.Combo);
+
 // ============================================================================
 // Video Upload Functions
 // ============================================================================
 
-/**
- * Request a presigned upload URL from the backend
- */
 async function requestVideoUpload(
   request: VideoUploadRequest
 ): Promise<VideoUploadResponse> {
@@ -220,7 +241,9 @@ async function requestVideoUpload(
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/api/v1/videos/upload/request`, {
+  const endpoint = `${API_URL}/api/v1/videos/upload/request`;
+
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -264,9 +287,9 @@ async function uploadVideoToR2(
 }
 
 /**
- * Notify backend that upload is complete
+ * Notify backend that video upload is complete
  */
-async function completeVideoUpload(videoId: string): Promise<void> {
+async function completeVideoUpload(videoId: string, type: VideoType) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -275,58 +298,49 @@ async function completeVideoUpload(videoId: string): Promise<void> {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/api/v1/videos/upload/complete`, {
+  const endpoint = `${API_URL}/api/v1/videos/upload/complete`;
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ videoId }),
+    body: JSON.stringify({ type, videoId }),
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(
-      error.error || `Complete upload failed: ${response.status}`
+      error.error || `Complete video upload failed: ${response.status}`
     );
   }
 }
 
-/**
- * Full video upload flow: request URL, upload to R2, mark complete
- */
 export async function uploadVideo(
   videoUri: string,
-  fileName: string,
-  fileSize: number,
-  mimeType: string,
-  trickId: string,
-  userId: string,
-  duration?: number,
+  request: VideoUploadRequest,
   onProgress?: (progress: number) => void
 ): Promise<string> {
   try {
     // Step 1: Request presigned upload URL
     onProgress?.(10);
-    const uploadResponse = await requestVideoUpload({
-      trickId,
-      userId,
-      fileName,
-      fileSize,
-      mimeType,
-      duration,
-    });
+    const uploadResponse = await requestVideoUpload(request);
 
     // Step 2: Upload video to R2
     onProgress?.(20);
-    await uploadVideoToR2(videoUri, uploadResponse.uploadUrl, mimeType, (p) => {
-      // Map file upload progress (20-90%)
-      onProgress?.(20 + p * 0.7);
-    });
+    await uploadVideoToR2(
+      videoUri,
+      uploadResponse.uploadUrl,
+      request.mimeType,
+      (p) => {
+        // Map file upload progress (20-90%)
+        onProgress?.(20 + p * 0.7);
+      }
+    );
 
     // Step 3: Mark upload as complete
     onProgress?.(90);
-    await completeVideoUpload(uploadResponse.videoId);
+    await completeVideoUpload(uploadResponse.videoId, request.type);
 
     onProgress?.(100);
     return uploadResponse.videoId;

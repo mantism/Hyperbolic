@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
-import * as MediaLibrary from "expo-media-library";
 import { File } from "expo-file-system";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Trick } from "@hyperbolic/shared-types";
-import { uploadVideo, uploadThumbnail } from "@/lib/services/videoService";
+import { Trick, VideoType, SelectedVideo } from "@hyperbolic/shared-types";
+import { uploadVideo, uploadTrickThumbnail } from "@/lib/services/videoService";
 
 interface UploadProgressProps {
   trick: Trick;
-  video: MediaLibrary.Asset;
+  video: SelectedVideo;
   thumbnailUri: string;
   userId: string;
   onComplete: () => void;
@@ -33,37 +32,33 @@ export default function UploadProgress({
 
   const startUpload = async () => {
     try {
-      // Get video file info
-      const assetInfo = await MediaLibrary.getAssetInfoAsync(video);
-
-      if (!assetInfo.localUri) {
-        throw new Error("Could not access video file");
-      }
-
-      const file = new File(assetInfo.localUri);
+      const file = new File(video.uri);
       const fileSize = await file.size;
 
       setUploadStatus("uploading_video");
 
       // Upload video
       const videoId = await uploadVideo(
-        assetInfo.localUri,
-        video.filename || "video.mp4",
-        fileSize,
-        video.mediaType === "video" ? "video/mp4" : "video/mp4",
-        trick.id,
-        userId,
-        video.duration,
+        video.uri,
+        {
+          fileName: video.filename,
+          fileSize,
+          mimeType: "video/mp4",
+          parentId: trick.id,
+          userId,
+          duration: video.duration,
+          type: VideoType.Trick,
+        },
         (progress) => {
           setUploadProgress(Math.round(progress));
-        }
+        },
       );
 
       setUploadStatus("uploading_thumbnail");
       setUploadProgress(0);
 
       // Upload thumbnail
-      await uploadThumbnail(videoId, thumbnailUri);
+      await uploadTrickThumbnail(videoId, thumbnailUri);
 
       setUploadStatus("complete");
       setUploadProgress(100);
@@ -79,7 +74,7 @@ export default function UploadProgress({
       Alert.alert(
         "Upload Failed",
         "Failed to upload video. Please try again.",
-        [{ text: "OK", onPress: onComplete }]
+        [{ text: "OK", onPress: onComplete }],
       );
     }
   };

@@ -6,9 +6,8 @@ import React, {
 } from "react";
 import { View, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
-import * as MediaLibrary from "expo-media-library";
 import { supabase } from "@/lib/supabase/supabase";
-import { Trick } from "@hyperbolic/shared-types";
+import { Trick, SelectedVideo } from "@hyperbolic/shared-types";
 import { useAuth } from "@/contexts/AuthContext";
 import MediaSelector from "./components/MediaSelector";
 import VideoDetails from "./components/VideoDetails";
@@ -26,7 +25,7 @@ export default function VideoUploadScreen() {
 
   // Upload flow state
   const [currentStep, setCurrentStep] = useState<UploadStep>("select");
-  const [selectedVideo, setSelectedVideo] = useState<MediaLibrary.Asset | null>(
+  const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(
     null
   );
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
@@ -81,7 +80,7 @@ export default function VideoUploadScreen() {
   }, [trickId, user, fetchTrick]);
 
   // Step navigation handlers
-  const handleVideoSelected = (video: MediaLibrary.Asset) => {
+  const handleVideoSelected = (video: SelectedVideo) => {
     setSelectedVideo(video);
     setCurrentStep("details");
   };
