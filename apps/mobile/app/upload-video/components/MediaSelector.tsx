@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -12,12 +12,19 @@ import {
 } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import * as VideoThumbnails from "expo-video-thumbnails";
+import VideoTrim, {
+  isValidFile,
+  showEditor,
+} from "react-native-video-trim";
+import type { Spec } from "react-native-video-trim";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Trick } from "@hyperbolic/shared-types";
+import { Trick, SelectedVideo } from "@hyperbolic/shared-types";
+
+const MAX_VIDEO_DURATION_SECONDS = 10;
 
 interface MediaSelectorProps {
   trick: Trick;
-  onVideoSelected: (asset: MediaLibrary.Asset) => void;
+  onVideoSelected: (video: SelectedVideo) => void;
   onCancel: () => void;
 }
 
@@ -39,6 +46,49 @@ export default function MediaSelector({
   const [loading, setLoading] = useState(true);
   const [hasPermission, setHasPermission] = useState(false);
   const [loadingThumbnails, setLoadingThumbnails] = useState(false);
+  const listenersRef = useRef<{ [key: string]: { remove: () => void } }>({});
+
+  // Set up video trim event listeners
+  useEffect(() => {
+    const NativeVideoTrim = VideoTrim as Spec;
+
+    // Handle successful trim completion
+    listenersRef.current.onFinishTrimming = NativeVideoTrim.onFinishTrimming(
+      ({ outputPath, duration }) => {
+        // Duration from trimmer is in milliseconds, convert to seconds
+        const durationSeconds = duration / 1000;
+        const filename = outputPath.split("/").pop() || "trimmed_video.mp4";
+
+        onVideoSelected({
+          uri: outputPath,
+          duration: durationSeconds,
+          filename,
+          isTrimmed: true,
+        });
+      }
+    );
+
+    // Handle errors
+    listenersRef.current.onError = NativeVideoTrim.onError(
+      ({ message, errorCode }) => {
+        console.error("Video trim error:", errorCode, message);
+        Alert.alert("Error", message || "Failed to process video");
+      }
+    );
+
+    // Handle user cancel
+    listenersRef.current.onCancel = NativeVideoTrim.onCancel(() => {
+      // User cancelled trimming, stay on selection screen
+      console.log("User cancelled video trimming");
+    });
+
+    return () => {
+      // Cleanup listeners
+      Object.values(listenersRef.current).forEach((listener) =>
+        listener?.remove()
+      );
+    };
+  }, [onVideoSelected]);
 
   useEffect(() => {
     loadVideos();
@@ -114,22 +164,7 @@ export default function MediaSelector({
   };
 
   const handleVideoPress = async (asset: MediaLibrary.Asset) => {
-    // TODO: Add custom video trimming UI for better UX
-    // For now, users should trim videos in their camera app before uploading
-
     try {
-      // Validate video duration
-      const durationMs = asset.duration * 1000;
-
-      if (durationMs > 10000) {
-        Alert.alert(
-          "Video Too Long",
-          "Please select a video under 10 seconds. You can trim your video in the Photos app before uploading.",
-          [{ text: "OK" }]
-        );
-        return;
-      }
-
       // Get full asset info to access the file
       const assetInfo = await MediaLibrary.getAssetInfoAsync(asset);
 
@@ -138,8 +173,24 @@ export default function MediaSelector({
         return;
       }
 
-      // Proceed with selected video
-      onVideoSelected(asset);
+      const videoUri = assetInfo.localUri;
+
+      // Validate video format
+      const validationResult = await isValidFile(videoUri);
+      if (!validationResult.isValid) {
+        Alert.alert("Error", "This video format is not supported.");
+        return;
+      }
+
+      // Always show the native video trimmer so users can optionally trim
+      showEditor(videoUri, {
+        maxDuration: MAX_VIDEO_DURATION_SECONDS,
+        minDuration: 1,
+        saveToPhoto: false,
+        removeAfterSavedToPhoto: false,
+        enableSaveDialog: false,
+        trimmingText: "Trimming...",
+      });
     } catch (error) {
       console.error("Error selecting video:", error);
       Alert.alert("Error", "Failed to select video. Please try again.");

@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.hyperbolic"
+      "bundleIdentifier": "com.anonymous.hyperbolic",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save trimmed videos."
+      }
     },
     "android": {
       "adaptiveIcon": {
