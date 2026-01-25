@@ -57,6 +57,8 @@ export default function VideoGallery<T extends UserVideo>({
                 await deleteVideo(video.id, VideoType.Trick);
               } else if (isComboVideo(video)) {
                 await deleteVideo(video.id, VideoType.Combo);
+              } else {
+                throw new Error("Unknown video type");
               }
               onVideoDeleted?.();
               Alert.alert("Success", "Video deleted successfully");
@@ -66,12 +68,12 @@ export default function VideoGallery<T extends UserVideo>({
                 "Error",
                 error instanceof Error
                   ? error.message
-                  : "Failed to delete video"
+                  : "Failed to delete video",
               );
             }
           },
         },
-      ]
+      ],
     );
   };
 

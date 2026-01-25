@@ -52,7 +52,7 @@ export interface ComboVideo extends BaseVideo {
 export type UserVideo = TrickVideo | ComboVideo;
 
 export function isTrickVideo(video: UserVideo): video is TrickVideo {
-  return "trick_id" in video;
+  return "user_trick_id" in video;
 }
 
 export function isComboVideo(video: UserVideo): video is ComboVideo {

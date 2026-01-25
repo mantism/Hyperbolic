@@ -17,7 +17,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
  */
 export async function getTrickVideos(
   trickId: string,
-  userId?: string
+  userId?: string,
 ): Promise<TrickVideo[]> {
   // First, get the UserToTricks record for this trick
   let query = supabase.from("UserToTricks").select("id").eq("trickID", trickId);
@@ -98,7 +98,7 @@ export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
 
   // Get unique trick IDs from the media
   const uniqueTrickIds = Array.from(
-    new Set(trickMedia.map((media) => trickIdMap.get(media.user_trick_id)))
+    new Set(trickMedia.map((media) => trickIdMap.get(media.user_trick_id))),
   ).filter((id): id is string => id !== undefined);
 
   // Fetch trick names
@@ -113,7 +113,7 @@ export async function getUserVideos(userId: string): Promise<TrickVideo[]> {
   }
 
   const trickNameMap = new Map(
-    tricks?.map((trick) => [trick.id, trick.name]) || []
+    tricks?.map((trick) => [trick.id, trick.name]) || [],
   );
 
   // Add trick names to videos
@@ -162,7 +162,7 @@ export async function deleteVideo(videoId: string, type: VideoType) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(
-      error.error || `Failed to delete video: ${response.status}`
+      error.error || `Failed to delete video: ${response.status}`,
     );
   }
 }
@@ -170,7 +170,7 @@ export async function deleteVideo(videoId: string, type: VideoType) {
 export async function uploadThumbnail(
   videoId: string,
   imageUri: string,
-  type: VideoType
+  type: VideoType,
 ): Promise<string> {
   const {
     data: { session },
@@ -203,13 +203,13 @@ export async function uploadThumbnail(
         // Don't set Content-Type - let fetch set it with boundary
       },
       body: formData,
-    }
+    },
   );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(
-      error.error || `Failed to upload thumbnail: ${response.status}`
+      error.error || `Failed to upload thumbnail: ${response.status}`,
     );
   }
 
@@ -231,7 +231,7 @@ export const uploadComboThumbnail = (videoId: string, imageUri: string) =>
 // ============================================================================
 
 async function requestVideoUpload(
-  request: VideoUploadRequest
+  request: VideoUploadRequest,
 ): Promise<VideoUploadResponse> {
   const {
     data: { session },
@@ -268,7 +268,7 @@ async function uploadVideoToR2(
   fileUri: string,
   uploadUrl: string,
   mimeType: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<void> {
   const file = new File(fileUri);
   const fileContent = await file.arrayBuffer();
@@ -311,7 +311,7 @@ async function completeVideoUpload(videoId: string, type: VideoType) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(
-      error.error || `Complete video upload failed: ${response.status}`
+      error.error || `Complete video upload failed: ${response.status}`,
     );
   }
 }
@@ -319,7 +319,7 @@ async function completeVideoUpload(videoId: string, type: VideoType) {
 export async function uploadVideo(
   videoUri: string,
   request: VideoUploadRequest,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<string> {
   try {
     // Step 1: Request presigned upload URL
@@ -335,7 +335,7 @@ export async function uploadVideo(
       (p) => {
         // Map file upload progress (20-90%)
         onProgress?.(20 + p * 0.7);
-      }
+      },
     );
 
     // Step 3: Mark upload as complete
