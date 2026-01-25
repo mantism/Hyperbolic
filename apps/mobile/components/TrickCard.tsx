@@ -20,11 +20,6 @@ function TrickCard({ trick, userTrick, onPress }: TrickCardProps) {
   // Determine border tier based on stomps count
   const stompsCount = userTrick?.stomps || 0;
 
-  // Get landed surfaces from userTrick
-  const landedSurfaces = userTrick?.landedSurfaces
-    ? new Set(userTrick.landedSurfaces)
-    : new Set<string>();
-
   // Check if trick has been landed
   const isLanded = userTrick?.landed === true;
 
@@ -65,16 +60,17 @@ function TrickCard({ trick, userTrick, onPress }: TrickCardProps) {
                   {trick.categories?.join(", ")}
                 </Text>
               </View>
-              {landedSurfaces.size > 0 && (
-                <View style={styles.surfaceBadgesContainer}>
-                  <SurfaceBadges
-                    landedSurfaces={landedSurfaces}
-                    showTitle={false}
-                    interactive={false}
-                    showLabels={false}
-                  />
-                </View>
-              )}
+              {userTrick?.landedSurfaces &&
+                userTrick.landedSurfaces.length > 0 && (
+                  <View style={styles.surfaceBadgesContainer}>
+                    <SurfaceBadges
+                      landedSurfaces={userTrick.landedSurfaces}
+                      showTitle={false}
+                      interactive={false}
+                      showLabels={false}
+                    />
+                  </View>
+                )}
             </View>
             {isLanded && <Text style={styles.landedCount}>{stompsCount}</Text>}
           </View>
