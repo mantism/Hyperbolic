@@ -12,10 +12,7 @@ import {
 } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import VideoTrim, {
-  isValidFile,
-  showEditor,
-} from "react-native-video-trim";
+import VideoTrim, { isValidFile, showEditor } from "react-native-video-trim";
 import type { Spec } from "react-native-video-trim";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trick, SelectedVideo } from "@hyperbolic/shared-types";
@@ -65,7 +62,7 @@ export default function MediaSelector({
           filename,
           isTrimmed: true,
         });
-      }
+      },
     );
 
     // Handle errors
@@ -73,7 +70,7 @@ export default function MediaSelector({
       ({ message, errorCode }) => {
         console.error("Video trim error:", errorCode, message);
         Alert.alert("Error", message || "Failed to process video");
-      }
+      },
     );
 
     // Handle user cancel
@@ -85,7 +82,7 @@ export default function MediaSelector({
     return () => {
       // Cleanup listeners
       Object.values(listenersRef.current).forEach((listener) =>
-        listener?.remove()
+        listener?.remove(),
       );
     };
   }, [onVideoSelected]);
@@ -103,7 +100,7 @@ export default function MediaSelector({
         Alert.alert(
           "Permission Required",
           "Please allow access to your media library to select videos",
-          [{ text: "OK", onPress: onCancel }]
+          [{ text: "OK", onPress: onCancel }],
         );
         setLoading(false);
         return;
@@ -145,18 +142,21 @@ export default function MediaSelector({
             {
               time: 0, // First frame
               quality: 0.5,
-            }
+            },
           );
 
           // Update this specific video with its thumbnail
           setVideos((prevVideos) =>
             prevVideos.map((v) =>
-              v.id === asset.id ? { ...v, thumbnailUri: thumbnail.uri } : v
-            )
+              v.id === asset.id ? { ...v, thumbnailUri: thumbnail.uri } : v,
+            ),
           );
         }
       } catch (error) {
-        console.error(`Error generating thumbnail for video ${asset.id}:`, error);
+        console.error(
+          `Error generating thumbnail for video ${asset.id}:`,
+          error,
+        );
         // Continue with next video even if this one fails
       }
     }
@@ -190,6 +190,7 @@ export default function MediaSelector({
         removeAfterSavedToPhoto: false,
         enableSaveDialog: false,
         trimmingText: "Trimming...",
+        fullScreenModalIOS: true,
       });
     } catch (error) {
       console.error("Error selecting video:", error);
@@ -246,7 +247,9 @@ export default function MediaSelector({
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="lock-closed-outline" size={64} color="#CCC" />
-        <Text style={styles.emptyText}>No permission to access media library</Text>
+        <Text style={styles.emptyText}>
+          No permission to access media library
+        </Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadVideos}>
           <Text style={styles.retryButtonText}>Request Permission</Text>
         </TouchableOpacity>
