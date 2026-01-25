@@ -36,23 +36,14 @@ func main() {
 	// API v1 routes
 	v1 := r.Group("/api/v1")
 	{
-		// Video upload endpoints
 		videos := v1.Group("/videos")
 		videos.Use(middleware.Auth()) // Require authentication
 		{
-			// Trick video endpoints
-			videos.POST("/trick/upload/request", handlers.RequestTrickVideoUpload)
-			videos.POST("/trick/upload/complete", handlers.CompleteTrickVideoUpload)
-			videos.POST("/trick/:videoId/thumbnail", handlers.UploadTrickThumbnail)
-			videos.GET("/trick/:trickId", handlers.GetTrickVideos)
-			videos.DELETE("/trick/:videoId", handlers.DeleteTrickVideo)
-
-			// Combo video endpoints
-			videos.POST("/combo/upload/request", handlers.RequestComboVideoUpload)
-			videos.POST("/combo/upload/complete", handlers.CompleteComboVideoUpload)
-			videos.POST("/combo/:videoId/thumbnail", handlers.UploadComboThumbnail)
-			videos.GET("/combo/:comboId", handlers.GetComboVideos)
-			videos.DELETE("/combo/:videoId", handlers.DeleteComboVideo)
+			videos.POST("/upload/request", handlers.RequestVideoUpload)   // type in body
+			videos.POST("/upload/complete", handlers.CompleteVideoUpload) // type in body
+			videos.POST("/:videoId/thumbnail", handlers.UploadThumbnail)  // ?type=trick
+			videos.GET("/:parentId", handlers.GetVideos)                  // ?type=trick
+			videos.DELETE("/:videoId", handlers.DeleteVideo)              // ?type=trick
 		}
 	}
 

@@ -20,7 +20,7 @@ import (
 )
 
 // RequestUploadCore is the shared implementation for video upload requests
-func RequestUploadCore(c *gin.Context, cfg types.MediaConfig, parentID string, userID string, fileSize int64, mimeType string, duration *float64, autoCreateParent bool) {
+func RequestUploadCore(c *gin.Context, cfg types.MediaConfig, parentID string, userID string, fileSize int64, mimeType string, duration *float64) {
 	// Validate file size (100MB max)
 	if fileSize > 100*1024*1024 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "File size exceeds 100MB limit"})
@@ -78,7 +78,7 @@ func RequestUploadCore(c *gin.Context, cfg types.MediaConfig, parentID string, u
 
 	if len(parentRecords) > 0 {
 		parentRecordID = parentRecords[0]["id"].(string)
-	} else if autoCreateParent {
+	} else if cfg.AutoCreateUserLink {
 		// Create new parent record (only for tricks)
 		newParent := map[string]interface{}{
 			cfg.UserIDCol:   userID,

@@ -2,24 +2,23 @@ package types
 
 import "time"
 
-// TrickVideoUploadRequest for trick video uploads
-type TrickVideoUploadRequest struct {
-	TrickID  string   `json:"trickId" binding:"required"`
-	UserID   string   `json:"userId" binding:"required"`
-	FileName string   `json:"fileName" binding:"required"`
-	FileSize int64    `json:"fileSize" binding:"required"`
-	MimeType string   `json:"mimeType" binding:"required"`
-	Duration *float64 `json:"duration,omitempty"` // in milliseconds
-}
+// VideoType represents the type of video (trick or combo)
+type VideoType string
 
-// ComboVideoUploadRequest for combo video uploads
-type ComboVideoUploadRequest struct {
-	ComboID  string   `json:"comboId" binding:"required"`
-	UserID   string   `json:"userId" binding:"required"`
-	FileName string   `json:"fileName" binding:"required"`
-	FileSize int64    `json:"fileSize" binding:"required"`
-	MimeType string   `json:"mimeType" binding:"required"`
-	Duration *float64 `json:"duration,omitempty"` // in milliseconds
+const (
+	VideoTypeTrick VideoType = "trick"
+	VideoTypeCombo VideoType = "combo"
+)
+
+// VideoUploadRequest unified request for video uploads
+type VideoUploadRequest struct {
+	Type     VideoType `json:"type" binding:"required"`
+	ParentID string    `json:"parentId" binding:"required"` // trickId or comboId depending on type
+	UserID   string    `json:"userId" binding:"required"`
+	FileName string    `json:"fileName" binding:"required"`
+	FileSize int64     `json:"fileSize" binding:"required"`
+	MimeType string    `json:"mimeType" binding:"required"`
+	Duration *float64  `json:"duration,omitempty"` // in milliseconds
 }
 
 // VideoUploadResponse matches TypeScript interface
@@ -46,6 +45,6 @@ type VideoMetadata struct {
 
 // VideoUploadCompleteRequest for confirming upload
 type VideoUploadCompleteRequest struct {
-	VideoID string `json:"videoId" binding:"required"`
-	UserID  string `json:"userId" binding:"required"`
+	Type    VideoType `json:"type" binding:"required"`
+	VideoID string    `json:"videoId" binding:"required"`
 }
