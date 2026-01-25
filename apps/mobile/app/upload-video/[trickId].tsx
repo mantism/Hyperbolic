@@ -7,7 +7,7 @@ import React, {
 import { View, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { supabase } from "@/lib/supabase/supabase";
-import { Trick, SelectedVideo } from "@hyperbolic/shared-types";
+import { Trick, SelectedVideo, VideoType } from "@hyperbolic/shared-types";
 import { useAuth } from "@/contexts/AuthContext";
 import MediaSelector from "./components/MediaSelector";
 import VideoDetails from "./components/VideoDetails";
@@ -169,7 +169,9 @@ export default function VideoUploadScreen() {
 
       {currentStep === "upload" && selectedVideo && thumbnailUri && user && (
         <UploadProgress
-          trick={trick}
+          parentId={trick.id}
+          name={trick.name}
+          type={VideoType.Trick}
           video={selectedVideo}
           thumbnailUri={thumbnailUri}
           userId={user.id}

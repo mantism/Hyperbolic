@@ -32,7 +32,7 @@ import {
 
 // Mock the Supabase client BEFORE importing the service
 jest.mock("@/lib/supabase/supabase", () =>
-  require("@/lib/testing/mocks/supabase")
+  require("@/lib/testing/mocks/supabase"),
 );
 
 // Type assertions for cleaner test code
@@ -150,7 +150,7 @@ describe("videoService", () => {
       });
 
       await expect(getTrickVideos(trickId)).rejects.toThrow(
-        "Failed to fetch user tricks"
+        "Failed to fetch user tricks",
       );
 
       consoleErrorSpy.mockRestore();
@@ -180,7 +180,7 @@ describe("videoService", () => {
       });
 
       await expect(getTrickVideos(trickId)).rejects.toThrow(
-        "Failed to fetch trick media"
+        "Failed to fetch trick media",
       );
 
       consoleErrorSpy.mockRestore();
@@ -246,7 +246,7 @@ describe("videoService", () => {
       });
 
       await expect(getComboVideos(comboId)).rejects.toThrow(
-        "Failed to fetch combo media"
+        "Failed to fetch combo media",
       );
     });
   });
@@ -393,7 +393,7 @@ describe("videoService", () => {
           headers: {
             Authorization: "Bearer valid-token",
           },
-        }
+        },
       );
     });
 
@@ -412,7 +412,7 @@ describe("videoService", () => {
           headers: {
             Authorization: "Bearer valid-token",
           },
-        }
+        },
       );
     });
 
@@ -420,7 +420,7 @@ describe("videoService", () => {
       mockNoAuthSession();
 
       await expect(deleteVideo(videoId, VideoType.Trick)).rejects.toThrow(
-        "Not authenticated"
+        "Not authenticated",
       );
     });
 
@@ -429,7 +429,7 @@ describe("videoService", () => {
       mockFetchResponse(createMockErrorResponse("Video not found", 404));
 
       await expect(deleteVideo(videoId, VideoType.Trick)).rejects.toThrow(
-        "Video not found"
+        "Video not found",
       );
     });
 
@@ -438,7 +438,7 @@ describe("videoService", () => {
       mockFetchError(new Error("Network error"));
 
       await expect(deleteVideo(videoId, VideoType.Trick)).rejects.toThrow(
-        "Network error"
+        "Network error",
       );
     });
   });
@@ -452,7 +452,7 @@ describe("videoService", () => {
       mockFetchResponse(
         createMockFetchResponse({
           thumbnailUrl: "https://test.r2.dev/thumbnail.jpg",
-        })
+        }),
       );
 
       const result = await uploadThumbnail(videoId, imageUri, VideoType.Trick);
@@ -465,7 +465,7 @@ describe("videoService", () => {
           headers: expect.objectContaining({
             Authorization: "Bearer valid-token",
           }),
-        })
+        }),
       );
     });
 
@@ -474,7 +474,7 @@ describe("videoService", () => {
       mockFetchResponse(
         createMockFetchResponse({
           thumbnailUrl: "https://test.r2.dev/thumbnail.jpg",
-        })
+        }),
       );
 
       const result = await uploadThumbnail(videoId, imageUri, VideoType.Combo);
@@ -484,7 +484,7 @@ describe("videoService", () => {
         `http://localhost:8080/api/v1/videos/${videoId}/thumbnail?type=combo`,
         expect.objectContaining({
           method: "POST",
-        })
+        }),
       );
     });
 
@@ -492,7 +492,7 @@ describe("videoService", () => {
       mockNoAuthSession();
 
       await expect(
-        uploadThumbnail(videoId, imageUri, VideoType.Trick)
+        uploadThumbnail(videoId, imageUri, VideoType.Trick),
       ).rejects.toThrow("Not authenticated");
     });
 
@@ -501,7 +501,7 @@ describe("videoService", () => {
       mockFetchResponse(createMockErrorResponse("Upload failed", 500));
 
       await expect(
-        uploadThumbnail(videoId, imageUri, VideoType.Trick)
+        uploadThumbnail(videoId, imageUri, VideoType.Trick),
       ).rejects.toThrow("Upload failed");
     });
   });
@@ -512,14 +512,14 @@ describe("videoService", () => {
       mockFetchResponse(
         createMockFetchResponse({
           thumbnailUrl: "https://test.r2.dev/thumbnail.jpg",
-        })
+        }),
       );
 
       await uploadTrickThumbnail("video-123", "file:///image.jpg");
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/api/v1/videos/video-123/thumbnail?type=trick",
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({ method: "POST" }),
       );
     });
   });
@@ -530,14 +530,14 @@ describe("videoService", () => {
       mockFetchResponse(
         createMockFetchResponse({
           thumbnailUrl: "https://test.r2.dev/thumbnail.jpg",
-        })
+        }),
       );
 
       await uploadComboThumbnail("video-123", "file:///image.jpg");
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/api/v1/videos/video-123/thumbnail?type=combo",
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({ method: "POST" }),
       );
     });
   });
@@ -545,7 +545,7 @@ describe("videoService", () => {
   describe("uploadVideo", () => {
     const mockTrickRequest = {
       type: VideoType.Trick as const,
-      trickId: "trick-123",
+      parentId: "trick-123",
       userId: "user-456",
       fileName: "video.mp4",
       fileSize: 1024000,
@@ -555,7 +555,7 @@ describe("videoService", () => {
 
     const mockComboRequest = {
       type: VideoType.Combo as const,
-      comboId: "combo-123",
+      parentId: "combo-123",
       userId: "user-456",
       fileName: "video.mp4",
       fileSize: 1024000,
@@ -575,7 +575,7 @@ describe("videoService", () => {
           uploadUrl: "https://r2.dev/presigned-url",
           videoId: "new-video-id",
           expiresAt: new Date(Date.now() + 900000).toISOString(),
-        })
+        }),
       );
 
       // Mock R2 upload response
@@ -588,7 +588,7 @@ describe("videoService", () => {
       const videoId = await uploadVideo(
         "file:///path/to/video.mp4",
         mockTrickRequest,
-        onProgress
+        onProgress,
       );
 
       // Assert
@@ -606,11 +606,11 @@ describe("videoService", () => {
       // Verify correct endpoints were called
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/api/v1/videos/upload/request",
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({ method: "POST" }),
       );
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/api/v1/videos/upload/complete",
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({ method: "POST" }),
       );
     });
 
@@ -623,7 +623,7 @@ describe("videoService", () => {
           uploadUrl: "https://r2.dev/presigned-url",
           videoId: "new-video-id",
           expiresAt: new Date(Date.now() + 900000).toISOString(),
-        })
+        }),
       );
 
       // Mock R2 upload response
@@ -635,7 +635,7 @@ describe("videoService", () => {
       // Execute
       const videoId = await uploadVideo(
         "file:///path/to/video.mp4",
-        mockComboRequest
+        mockComboRequest,
       );
 
       // Assert
@@ -644,11 +644,11 @@ describe("videoService", () => {
       // Verify correct endpoints were called
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/api/v1/videos/upload/request",
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({ method: "POST" }),
       );
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8080/api/v1/videos/upload/complete",
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({ method: "POST" }),
       );
     });
 
@@ -659,7 +659,7 @@ describe("videoService", () => {
       mockFetchResponse(createMockErrorResponse("Invalid request", 400));
 
       await expect(
-        uploadVideo("file:///path/to/video.mp4", mockTrickRequest)
+        uploadVideo("file:///path/to/video.mp4", mockTrickRequest),
       ).rejects.toThrow();
 
       consoleErrorSpy.mockRestore();
@@ -676,14 +676,14 @@ describe("videoService", () => {
           uploadUrl: "https://r2.dev/presigned-url",
           videoId: "new-video-id",
           expiresAt: new Date(Date.now() + 900000).toISOString(),
-        })
+        }),
       );
 
       // Second call fails (R2 upload)
       mockFetchResponse(createMockErrorResponse("R2 error", 500));
 
       await expect(
-        uploadVideo("file:///path/to/video.mp4", mockTrickRequest)
+        uploadVideo("file:///path/to/video.mp4", mockTrickRequest),
       ).rejects.toThrow();
 
       consoleErrorSpy.mockRestore();
@@ -697,7 +697,7 @@ describe("videoService", () => {
           uploadUrl: "https://r2.dev/presigned-url",
           videoId: "new-video-id",
           expiresAt: new Date(Date.now() + 900000).toISOString(),
-        })
+        }),
       );
 
       mockFetchResponse(createMockFetchResponse({}));
@@ -706,7 +706,7 @@ describe("videoService", () => {
       // Should not throw even without progress callback
       const videoId = await uploadVideo(
         "file:///path/to/video.mp4",
-        mockTrickRequest
+        mockTrickRequest,
       );
 
       expect(videoId).toBe("new-video-id");

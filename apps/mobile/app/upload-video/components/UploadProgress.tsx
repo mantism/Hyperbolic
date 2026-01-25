@@ -2,11 +2,16 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { File } from "expo-file-system";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Trick, VideoType, SelectedVideo } from "@hyperbolic/shared-types";
-import { uploadVideo, uploadTrickThumbnail } from "@/lib/services/videoService";
+import { VideoType, SelectedVideo } from "@hyperbolic/shared-types";
+import { uploadVideo, uploadThumbnail } from "@/lib/services/videoService";
 
 interface UploadProgressProps {
-  trick: Trick;
+  /** The ID of the parent entity (trick or combo) */
+  parentId: string;
+  /** Display name shown during upload */
+  name: string;
+  /** Type of video being uploaded */
+  type: VideoType;
   video: SelectedVideo;
   thumbnailUri: string;
   userId: string;
@@ -14,7 +19,9 @@ interface UploadProgressProps {
 }
 
 export default function UploadProgress({
-  trick,
+  parentId,
+  name,
+  type,
   video,
   thumbnailUri,
   userId,
@@ -44,10 +51,10 @@ export default function UploadProgress({
           fileName: video.filename,
           fileSize,
           mimeType: "video/mp4",
-          parentId: trick.id,
+          parentId,
           userId,
           duration: video.duration,
-          type: VideoType.Trick,
+          type,
         },
         (progress) => {
           setUploadProgress(Math.round(progress));
@@ -58,7 +65,7 @@ export default function UploadProgress({
       setUploadProgress(0);
 
       // Upload thumbnail
-      await uploadTrickThumbnail(videoId, thumbnailUri);
+      await uploadThumbnail(videoId, thumbnailUri, type);
 
       setUploadStatus("complete");
       setUploadProgress(100);
@@ -128,10 +135,10 @@ export default function UploadProgress({
           </View>
         )}
 
-        {/* Trick Info */}
-        <View style={styles.trickInfo}>
-          <Text style={styles.trickName}>{trick.name}</Text>
-          <Text style={styles.trickDescription}>
+        {/* Info */}
+        <View style={styles.info}>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.description}>
             {uploadStatus === "complete"
               ? "Your video has been uploaded successfully!"
               : "Please wait while we upload your video"}
@@ -182,17 +189,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
-  trickInfo: {
+  info: {
     alignItems: "center",
   },
-  trickName: {
+  name: {
     fontSize: 24,
     fontWeight: "300",
     color: "#000",
     marginBottom: 8,
     textAlign: "center",
   },
-  trickDescription: {
+  description: {
     fontSize: 14,
     color: "#666",
     textAlign: "center",
