@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   Animated,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ComboVideo, UserCombo } from "@hyperbolic/shared-types";
@@ -16,6 +17,7 @@ import VideoHero from "./VideoHero";
 import SurfaceBadges from "./SurfaceBadges";
 import { useTricks } from "@/contexts/TricksContext";
 import { useRouter } from "expo-router";
+import VideoGallery from "./VideoGallery";
 
 interface ComboDetailPageProps {
   combo: UserCombo;
@@ -37,6 +39,8 @@ export default function ComboDetailPage({
   const [videos, setVideos] = useState<ComboVideo[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<ComboVideo | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [videoTab, setVideoTab] = useState<"my" | "community">("my");
+  const [loadingVideos, setLoadingVideos] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // TODO: Add handler for toggling edit mode
@@ -74,6 +78,11 @@ export default function ComboDetailPage({
       router.push(`/trick/${trickId}`);
     }
   };
+
+  const fetchVideos = useCallback(async () => {
+    setLoadingVideos(true);
+    // TODO: Implement storage and fetching combo videos
+  }, [user, videoTab, combo.id]);
 
   const featuredVideo = videos.length > 0 ? videos[0] : null;
 
@@ -254,6 +263,56 @@ export default function ComboDetailPage({
             interactive
             emptyMessage="Log the combo in detail to earn a surface badge for this combo."
           />
+          <View style={styles.videoSection}>
+            <View style={styles.videoTabs}>
+              <TouchableOpacity
+                style={[
+                  styles.videoTab,
+                  videoTab === "my" && styles.videoTabActive,
+                ]}
+                onPress={() => setVideoTab("my")}
+              >
+                <Text
+                  style={[
+                    styles.videoTabText,
+                    videoTab === "my" && styles.videoTabTextActive,
+                  ]}
+                >
+                  My Videos
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.videoTab,
+                  videoTab === "community" && styles.videoTabActive,
+                ]}
+                onPress={() => setVideoTab("community")}
+              >
+                <Text
+                  style={[
+                    styles.videoTabText,
+                    videoTab === "community" && styles.videoTabTextActive,
+                  ]}
+                >
+                  Community
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Video Gallery */}
+          {loadingVideos ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#999" />
+            </View>
+          ) : (
+            <VideoGallery
+              videos={videos}
+              onVideoPress={handlePlayVideo}
+              onVideoDeleted={fetchVideos}
+              showDeleteOption={videoTab === "my"}
+            />
+          )}
 
           {/* TODO: Action buttons (STOMP / ATTEMPT) */}
           {/*
@@ -443,6 +502,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 3,
     borderColor: "#FFF",
+  },
+  videoSection: {
+    marginTop: 24,
+  },
+  videoTabs: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 12,
+  },
+  videoTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "#F5F5F5",
+  },
+  videoTabActive: {
+    backgroundColor: "#000",
+  },
+  videoTabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+  },
+  videoTabTextActive: {
+    color: "#FFF",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   // TODO: Add styles for action buttons
   // actionsRow: {},
