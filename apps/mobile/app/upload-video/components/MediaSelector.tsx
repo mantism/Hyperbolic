@@ -15,12 +15,11 @@ import * as VideoThumbnails from "expo-video-thumbnails";
 import VideoTrim, { isValidFile, showEditor } from "react-native-video-trim";
 import type { Spec } from "react-native-video-trim";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Trick, SelectedVideo } from "@hyperbolic/shared-types";
+import { SelectedVideo } from "@hyperbolic/shared-types";
 
 const MAX_VIDEO_DURATION_SECONDS = 10;
 
 interface MediaSelectorProps {
-  trick: Trick;
   onVideoSelected: (video: SelectedVideo) => void;
   onCancel: () => void;
 }
@@ -35,7 +34,6 @@ interface VideoWithThumbnail extends MediaLibrary.Asset {
 }
 
 export default function MediaSelector({
-  trick,
   onVideoSelected,
   onCancel,
 }: MediaSelectorProps) {
@@ -271,12 +269,6 @@ export default function MediaSelector({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.trickName}>{trick.name}</Text>
-        <Text style={styles.subtitle}>Select a video to upload</Text>
-      </View>
-
       {/* Video Grid */}
       <FlatList
         data={videos}
@@ -303,22 +295,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 14,
-    color: "#666",
-  },
-  header: {
-    padding: 16,
-    backgroundColor: "#FFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
-  },
-  trickName: {
-    fontSize: 24,
-    fontWeight: "300",
-    color: "#000",
-    marginBottom: 4,
-  },
-  subtitle: {
     fontSize: 14,
     color: "#666",
   },

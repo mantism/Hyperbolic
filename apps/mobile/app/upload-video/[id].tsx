@@ -1,13 +1,7 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useLayoutEffect,
-} from "react";
-import { View, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import React, { useState, useEffect, useLayoutEffect } from "react";
+import { View, StyleSheet, Alert } from "react-native";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
-import { supabase } from "@/lib/supabase/supabase";
-import { Trick, SelectedVideo, VideoType } from "@hyperbolic/shared-types";
+import { SelectedVideo, VideoType } from "@hyperbolic/shared-types";
 import { useAuth } from "@/contexts/AuthContext";
 import MediaSelector from "./components/MediaSelector";
 import VideoDetails from "./components/VideoDetails";
@@ -16,56 +10,36 @@ import UploadProgress from "./components/UploadProgress";
 type UploadStep = "select" | "details" | "upload";
 
 export default function VideoUploadScreen() {
-  const { trickId } = useLocalSearchParams<{ trickId: string }>();
+  const {
+    id,
+    name,
+    type: typeParam,
+  } = useLocalSearchParams<{
+    id: string;
+    name: string;
+    type: string;
+  }>();
   const router = useRouter();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const [trick, setTrick] = useState<Trick | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const type = typeParam === "combo" ? VideoType.Combo : VideoType.Trick;
 
   // Upload flow state
   const [currentStep, setCurrentStep] = useState<UploadStep>("select");
   const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(
-    null
+    null,
   );
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
 
   // Configure header dynamically based on current step
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: trick ? `${trick.name} - ${getHeaderTitle()}` : getHeaderTitle(),
+      title: name ? `${name} - ${getHeaderTitle()}` : getHeaderTitle(),
     });
-  }, [currentStep, trick, navigation]);
-
-  // Fetch trick data
-  const fetchTrick = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("Tricks")
-        .select("*")
-        .eq("id", trickId)
-        .single();
-
-      if (error) throw error;
-      setTrick(data);
-    } catch (error) {
-      console.error("Error fetching trick:", error);
-      Alert.alert("Error", "Failed to load trick", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, [trickId]);
+  }, [currentStep, name, navigation]);
 
   useEffect(() => {
-    console.log(
-      "[VideoUploadScreen] useEffect fired - trickId:",
-      trickId,
-      "user:",
-      !!user
-    );
-    // Check authentication
     if (!user) {
       Alert.alert("Sign In Required", "Please sign in to upload videos", [
         { text: "OK", onPress: () => router.back() },
@@ -73,11 +47,12 @@ export default function VideoUploadScreen() {
       return;
     }
 
-    if (trickId) {
-      console.log("[VideoUploadScreen] Calling fetchTrick");
-      fetchTrick();
+    if (!id || !name) {
+      Alert.alert("Error", "Missing required parameters", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     }
-  }, [trickId, user, fetchTrick]);
+  }, [id, name, user]);
 
   // Step navigation handlers
   const handleVideoSelected = (video: SelectedVideo) => {
@@ -86,7 +61,6 @@ export default function VideoUploadScreen() {
   };
 
   const handleBackToSelect = () => {
-    // TODO: Consider saving draft state before discarding
     setCurrentStep("select");
     setSelectedVideo(null);
     setThumbnailUri(null);
@@ -98,12 +72,10 @@ export default function VideoUploadScreen() {
   };
 
   const handleUploadComplete = () => {
-    // Navigate back to trick page
     router.back();
   };
 
   const handleCancel = () => {
-    // TODO: Consider saving draft state before discarding
     if (currentStep === "select") {
       router.back();
     } else {
@@ -117,12 +89,11 @@ export default function VideoUploadScreen() {
             style: "destructive",
             onPress: () => router.back(),
           },
-        ]
+        ],
       );
     }
   };
 
-  // Configure header based on current step
   const getHeaderTitle = () => {
     switch (currentStep) {
       case "select":
@@ -136,15 +107,7 @@ export default function VideoUploadScreen() {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000" />
-      </View>
-    );
-  }
-
-  if (!trick || !user) {
+  if (!id || !name || !user) {
     return null;
   }
 
@@ -152,7 +115,6 @@ export default function VideoUploadScreen() {
     <View style={styles.container}>
       {currentStep === "select" && (
         <MediaSelector
-          trick={trick}
           onVideoSelected={handleVideoSelected}
           onCancel={handleCancel}
         />
@@ -160,18 +122,17 @@ export default function VideoUploadScreen() {
 
       {currentStep === "details" && selectedVideo && (
         <VideoDetails
-          trick={trick}
           video={selectedVideo}
           onBack={handleBackToSelect}
           onProceedToUpload={handleProceedToUpload}
         />
       )}
 
-      {currentStep === "upload" && selectedVideo && thumbnailUri && user && (
+      {currentStep === "upload" && selectedVideo && thumbnailUri && (
         <UploadProgress
-          parentId={trick.id}
-          name={trick.name}
-          type={VideoType.Trick}
+          parentId={id}
+          name={name}
+          type={type}
           video={selectedVideo}
           thumbnailUri={thumbnailUri}
           userId={user.id}
@@ -185,12 +146,6 @@ export default function VideoUploadScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#FAFAFA",
   },
 });

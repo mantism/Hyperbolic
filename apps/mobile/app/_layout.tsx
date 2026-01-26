@@ -60,7 +60,7 @@ function InitialLayout() {
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
-        name="upload-video/[trickId]"
+        name="upload-video/[id]"
         options={{
           headerShown: true,
           presentation: "card",

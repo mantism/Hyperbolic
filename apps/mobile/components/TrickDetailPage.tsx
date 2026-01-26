@@ -182,7 +182,7 @@ export default function TrickDetailPage({
             setUserRating(0);
             setIsGoal(false);
           }
-        }
+        },
       )
       .subscribe();
 
@@ -197,7 +197,7 @@ export default function TrickDetailPage({
       newAttempts: number,
       newStomps: number,
       newRating: number,
-      newIsGoal: boolean
+      newIsGoal: boolean,
     ) => {
       if (!user) return;
 
@@ -221,7 +221,7 @@ export default function TrickDetailPage({
         Alert.alert("Sync Error", "Failed to save changes. Please try again.");
       }
     },
-    [user, trick.id]
+    [user, trick.id],
   );
 
   // Debounced increment functions to prevent rapid clicks creating duplicates
@@ -229,7 +229,7 @@ export default function TrickDetailPage({
     typeof setTimeout
   > | null>(null);
   const incrementStompsDebounced = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   );
 
   const incrementAttempts = () => {
@@ -294,7 +294,7 @@ export default function TrickDetailPage({
     if (!userTrick) {
       Alert.alert(
         "Mark as Landed",
-        "Log this trick as landed first by recording an attempt or stomp"
+        "Log this trick as landed first by recording an attempt or stomp",
       );
       return;
     }
@@ -306,7 +306,10 @@ export default function TrickDetailPage({
       Alert.alert("Sign In Required", "Please sign in to upload videos");
       return;
     }
-    router.push(`/upload-video/${trick.id}`);
+    router.push({
+      pathname: "/upload-video/[id]",
+      params: { id: trick.id, name: trick.name, type: "trick" },
+    });
   };
 
   const handlePlayVideo = (video: TrickVideo) => {
@@ -348,7 +351,7 @@ export default function TrickDetailPage({
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -512,7 +515,7 @@ export default function TrickDetailPage({
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
       >
@@ -603,7 +606,7 @@ export default function TrickDetailPage({
                   onPress={() => {
                     if (Platform.OS === "ios") {
                       LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut
+                        LayoutAnimation.Presets.easeInEaseOut,
                       );
                     }
                     setShowDescription(!showDescription);

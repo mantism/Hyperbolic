@@ -11,17 +11,15 @@ import {
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Trick, SelectedVideo } from "@hyperbolic/shared-types";
+import { SelectedVideo } from "@hyperbolic/shared-types";
 
 interface VideoDetailsProps {
-  trick: Trick;
   video: SelectedVideo;
   onBack: () => void;
   onProceedToUpload: (thumbnailUri: string) => void;
 }
 
 export default function VideoDetails({
-  trick,
   video,
   onBack,
   onProceedToUpload,
@@ -81,14 +79,6 @@ export default function VideoDetails({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Trick Info */}
-        <View style={styles.trickInfo}>
-          <Text style={styles.trickName}>{trick.name}</Text>
-          <Text style={styles.trickDescription}>
-            Share your execution of this trick
-          </Text>
-        </View>
-
         {/* Video Preview */}
         <View style={styles.videoPreview}>
           <VideoView
@@ -162,19 +152,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 100,
-  },
-  trickInfo: {
-    marginBottom: 24,
-  },
-  trickName: {
-    fontSize: 28,
-    fontWeight: "300",
-    color: "#000",
-    marginBottom: 4,
-  },
-  trickDescription: {
-    fontSize: 14,
-    color: "#666",
   },
   videoPreview: {
     backgroundColor: "#000",

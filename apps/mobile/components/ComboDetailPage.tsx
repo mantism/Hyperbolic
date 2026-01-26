@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import SurfaceBadges from "./SurfaceBadges";
 import { useTricks } from "@/contexts/TricksContext";
 import { useRouter } from "expo-router";
 import VideoGallery from "./VideoGallery";
+import { getComboVideos } from "@/lib/services/videoService";
 
 interface ComboDetailPageProps {
   combo: UserCombo;
@@ -64,7 +65,10 @@ export default function ComboDetailPage({
   };
 
   const handleUploadVideo = () => {
-    Alert.alert("Upload Video", "Video upload functionality coming soon!");
+    router.push({
+      pathname: "/upload-video/[id]",
+      params: { id: combo.id, name: combo.name, type: "combo" },
+    });
   };
 
   const handlePlayVideo = (video: ComboVideo) => {
@@ -81,8 +85,23 @@ export default function ComboDetailPage({
 
   const fetchVideos = useCallback(async () => {
     setLoadingVideos(true);
-    // TODO: Implement storage and fetching combo videos
+    try {
+      const fetchedVideos = await getComboVideos(combo.id);
+      setVideos(fetchedVideos);
+    } catch (error) {
+      console.error("Error fetching combo videos:", error);
+    } finally {
+      setLoadingVideos(false);
+    }
   }, [user, videoTab, combo.id]);
+
+  useEffect(() => {
+    if (user) {
+      fetchVideos();
+    } else {
+      setLoadingVideos(false);
+    }
+  }, [user, combo.id, fetchVideos]);
 
   const featuredVideo = videos.length > 0 ? videos[0] : null;
 
@@ -214,7 +233,7 @@ export default function ComboDetailPage({
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
       >

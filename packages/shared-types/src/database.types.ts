@@ -77,6 +77,7 @@ export type Database = {
           media_type: Database["public"]["Enums"]["media_type"];
           metadata: Json | null;
           mime_type: string | null;
+          public: boolean;
           thumbnail_url: string | null;
           updated_at: string | null;
           upload_status: Database["public"]["Enums"]["upload_status"];
@@ -92,6 +93,7 @@ export type Database = {
           media_type?: Database["public"]["Enums"]["media_type"];
           metadata?: Json | null;
           mime_type?: string | null;
+          public?: boolean;
           thumbnail_url?: string | null;
           updated_at?: string | null;
           upload_status?: Database["public"]["Enums"]["upload_status"];
@@ -107,6 +109,7 @@ export type Database = {
           media_type?: Database["public"]["Enums"]["media_type"];
           metadata?: Json | null;
           mime_type?: string | null;
+          public?: boolean;
           thumbnail_url?: string | null;
           updated_at?: string | null;
           upload_status?: Database["public"]["Enums"]["upload_status"];
