@@ -9,11 +9,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { TrickVideo } from "@hyperbolic/shared-types";
+import { UserVideo } from "@hyperbolic/shared-types";
 
 interface VideoPlayerModalProps {
   visible: boolean;
-  video: TrickVideo | null;
+  video: UserVideo | null;
   onClose: () => void;
 }
 

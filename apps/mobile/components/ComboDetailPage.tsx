@@ -29,6 +29,7 @@ import {
   comboGraphToSequence,
   sequenceToComboGraph,
 } from "@/lib/utils/comboRendering";
+import VideoPlayerModal from "./VideoPlayerModal";
 
 interface ComboDetailPageProps {
   combo: UserCombo;
@@ -141,6 +142,11 @@ export default function ComboDetailPage({
   const handlePlayVideo = (video: ComboVideo) => {
     setSelectedVideo(video);
     setShowVideoPlayer(true);
+  };
+
+  const handleCloseVideoPlayer = () => {
+    setShowVideoPlayer(false);
+    setSelectedVideo(null);
   };
 
   const handleTrickPress = (trickId: string) => {
@@ -484,6 +490,13 @@ export default function ComboDetailPage({
           {/* TODO: Delete combo button */}
         </View>
       </AnimatedScrollView>
+
+      {/* Video Player Modal */}
+      <VideoPlayerModal
+        visible={showVideoPlayer}
+        video={selectedVideo}
+        onClose={handleCloseVideoPlayer}
+      />
     </View>
   );
 }
