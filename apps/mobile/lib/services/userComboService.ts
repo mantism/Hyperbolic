@@ -5,6 +5,11 @@ import {
   marshalComboGraph,
   unmarshalComboGraph,
 } from "./validation/comboValidation";
+import {
+  getUserTrick,
+  upsertUserTrick,
+  addLandedSurface as addTrickLandedSurface,
+} from "./userTrickService";
 
 /**
  * Centralized service for UserCombo CRUD operations.
@@ -275,4 +280,66 @@ export async function addLandedSurface(
     ...data,
     comboGraph: unmarshalComboGraph(data.combo_graph),
   };
+}
+
+/**
+ * Increment combo stats AND propagate to individual tricks (only when landed)
+ * This is the main function to use when logging a combo attempt/stomp
+ *
+ * NOTE: Individual trick stats are only updated when the combo is landed.
+ * For failed attempts, we can't determine which tricks were landed vs failed.
+ * TODO: In the future, add more granular tracking to allow users to specify
+ * which tricks in a combo were landed during a failed attempt.
+ */
+export async function incrementComboAndTrickStats(
+  userId: string,
+  comboId: string,
+  { landed, surfaceType }: { landed: boolean; surfaceType?: string }
+): Promise<UserCombo> {
+  // 1. Fetch the combo to get the comboGraph
+  const combo = await getUserCombo(comboId);
+  if (!combo) {
+    throw new Error(`Combo ${comboId} not found`);
+  }
+
+  // 2. Update combo stats
+  const updatedCombo = await incrementComboStats(comboId, { landed });
+
+  // 3. Add surface to combo if provided and landed
+  let finalCombo = updatedCombo;
+  if (surfaceType && landed) {
+    finalCombo = await addLandedSurface(comboId, surfaceType);
+  }
+
+  // 4. Only update individual trick stats if combo was landed
+  if (landed) {
+    const trickIds = combo.comboGraph.tricks.map((node) => node.trick_id);
+    // Use Set to deduplicate trick_ids (same trick might appear multiple times in combo)
+    const uniqueTrickIds = [...new Set(trickIds)];
+
+    for (const trickId of uniqueTrickIds) {
+      // Get existing UserTrick stats (or use defaults if doesn't exist)
+      const existingTrick = await getUserTrick(userId, trickId);
+      const currentAttempts = existingTrick?.attempts ?? 0;
+      const currentStomps = existingTrick?.stomps ?? 0;
+
+      // Increment stats
+      const updatedTrick = await upsertUserTrick(userId, trickId, {
+        attempts: currentAttempts + 1,
+        stomps: currentStomps + 1,
+        landed: true,
+      });
+
+      // Add surface to trick if provided
+      if (surfaceType) {
+        try {
+          await addTrickLandedSurface(updatedTrick.id, surfaceType);
+        } catch (error) {
+          console.error(`Error adding surface to trick ${trickId}:`, error);
+        }
+      }
+    }
+  }
+
+  return finalCombo;
 }

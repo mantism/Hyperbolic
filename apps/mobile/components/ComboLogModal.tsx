@@ -2,10 +2,7 @@ import React from "react";
 import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase/supabase";
 import { UserCombo } from "@hyperbolic/shared-types";
-import {
-  updateUserComboStats,
-  addLandedSurface,
-} from "@/lib/services/userComboService";
+import { incrementComboAndTrickStats } from "@/lib/services/userComboService";
 import BaseLogModal, { LogFormData } from "./BaseLogModal";
 
 interface ComboLogModalProps {
@@ -27,30 +24,11 @@ export default function ComboLogModal({
 }: ComboLogModalProps) {
   const handleSubmit = async (formData: LogFormData) => {
     try {
-      // Update UserCombo stats
-      const currentAttempts = userCombo.attempts || 0;
-      const currentStomps = userCombo.stomps || 0;
-
-      const newAttempts = currentAttempts + 1;
-      const newStomps = formData.landed ? currentStomps + 1 : currentStomps;
-
-      let updatedCombo = await updateUserComboStats(userCombo.id, {
-        attempts: newAttempts,
-        stomps: newStomps,
-        landed: newStomps > 0,
+      // Update combo and trick stats (handles surfaces too)
+      await incrementComboAndTrickStats(userId, userCombo.id, {
+        landed: formData.landed,
+        surfaceType: formData.surface_type || undefined,
       });
-
-      // Update landedSurfaces if surface was provided and combo was landed
-      if (formData.surface_type && formData.landed) {
-        try {
-          updatedCombo = await addLandedSurface(
-            userCombo.id,
-            formData.surface_type
-          );
-        } catch (error) {
-          console.error("Error updating landed surfaces:", error);
-        }
-      }
 
       // Insert the log
       const { error: logError } = await supabase.from("ComboLogs").insert({

@@ -26,8 +26,8 @@ import { getComboVideos } from "@/lib/services/videoService";
 import {
   renameUserCombo,
   updateUserComboGraph,
-  updateUserComboStats,
   getUserCombo,
+  incrementComboAndTrickStats,
 } from "@/lib/services/userComboService";
 import {
   comboGraphToSequence,
@@ -154,11 +154,12 @@ export default function ComboDetailPage({
     }
   };
 
-  // Quick log actions
+  // Quick log actions - also updates individual trick stats
   const incrementAttempts = async () => {
+    if (!user) return;
     try {
-      const updatedCombo = await updateUserComboStats(combo.id, {
-        attempts: (combo.attempts ?? 0) + 1,
+      const updatedCombo = await incrementComboAndTrickStats(user.id, combo.id, {
+        landed: false,
       });
       onComboUpdated?.(updatedCombo);
     } catch (error) {
@@ -167,10 +168,9 @@ export default function ComboDetailPage({
   };
 
   const incrementStomps = async () => {
+    if (!user) return;
     try {
-      const updatedCombo = await updateUserComboStats(combo.id, {
-        attempts: (combo.attempts ?? 0) + 1,
-        stomps: (combo.stomps ?? 0) + 1,
+      const updatedCombo = await incrementComboAndTrickStats(user.id, combo.id, {
         landed: true,
       });
       onComboUpdated?.(updatedCombo);
