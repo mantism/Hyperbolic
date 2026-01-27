@@ -102,20 +102,20 @@ export default function AddLogModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.option, styles.disabledOption]}
-              onPress={handleComingSoon}
+              style={styles.option}
+              onPress={onSelectCombo}
               activeOpacity={0.7}
             >
               <View style={styles.optionIcon}>
-                <Ionicons name="link" size={28} color="#999" />
+                <Ionicons name="link" size={28} color="#007AFF" />
               </View>
               <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, styles.disabledText]}>
-                  Log Combo
+                <Text style={styles.optionTitle}>Log Combo</Text>
+                <Text style={styles.optionSubtitle}>
+                  Record a combo attempt or stomp
                 </Text>
-                <Text style={styles.optionSubtitle}>Coming soon</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#DDD" />
+              <Ionicons name="chevron-forward" size={20} color="#999" />
             </TouchableOpacity>
 
             <TouchableOpacity

@@ -44,6 +44,8 @@ interface ComboComposerProps {
   saving?: boolean;
   /** Button text (defaults to "Save") */
   saveButtonText?: string;
+  /** Hide the action buttons (Save/Cancel) - useful when embedding in other forms */
+  hideButtons?: boolean;
 }
 
 interface Bounds {
@@ -78,6 +80,7 @@ export default function ComboComposer({
   onCancel,
   saving = false,
   saveButtonText = "Save",
+  hideButtons = false,
 }: ComboComposerProps) {
   const [searchText, setSearchText] = useState("");
   const [sequence, setSequence] = useState<SequenceItem[]>(
@@ -907,23 +910,25 @@ export default function ComboComposer({
           />
 
           {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                (sequence.length === 0 || saving) && styles.saveButtonDisabled,
-              ]}
-              onPress={handleSave}
-              disabled={sequence.length === 0 || saving}
-            >
-              <Text style={styles.saveButtonText}>
-                {saving ? "Saving..." : saveButtonText}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {!hideButtons && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  (sequence.length === 0 || saving) && styles.saveButtonDisabled,
+                ]}
+                onPress={handleSave}
+                disabled={sequence.length === 0 || saving}
+              >
+                <Text style={styles.saveButtonText}>
+                  {saving ? "Saving..." : saveButtonText}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Trash Zone - only shown for reorder drags, not insert drags */}

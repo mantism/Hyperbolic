@@ -72,10 +72,7 @@ export default function MediaSelector({
     );
 
     // Handle user cancel
-    listenersRef.current.onCancel = NativeVideoTrim.onCancel(() => {
-      // User cancelled trimming, stay on selection screen
-      console.log("User cancelled video trimming");
-    });
+    listenersRef.current.onCancel = NativeVideoTrim.onCancel(() => {});
 
     return () => {
       // Cleanup listeners

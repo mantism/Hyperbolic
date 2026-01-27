@@ -358,6 +358,7 @@ export type Database = {
           prereqs: string[] | null;
           progressions: string[] | null;
           rating: number | null;
+          verified: boolean;
         };
         Insert: {
           aliases?: string[] | null;
@@ -371,6 +372,7 @@ export type Database = {
           prereqs?: string[] | null;
           progressions?: string[] | null;
           rating?: number | null;
+          verified?: boolean;
         };
         Update: {
           aliases?: string[] | null;
@@ -384,6 +386,7 @@ export type Database = {
           prereqs?: string[] | null;
           progressions?: string[] | null;
           rating?: number | null;
+          verified?: boolean;
         };
         Relationships: [
           {

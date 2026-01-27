@@ -3,24 +3,27 @@ import { Trick } from "@hyperbolic/shared-types";
 import AddLogModal from "./AddLogModal";
 import TrickSelectionModal from "./TrickSelectionModal";
 import TrickLogModal from "./TrickLogModal";
+import QuickComboLogger from "./QuickComboLogger";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface QuickLogFlowProps {
   onClose: () => void;
 }
 
+type FlowStep =
+  | "select-type"
+  | "select-trick"
+  | "log-trick"
+  | "log-combo";
+
 export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
   const { user } = useAuth();
-  const [step, setStep] = useState<
-    "select-type" | "select-trick" | "log-trick" | "log-combo"
-  >("select-type");
+  const [step, setStep] = useState<FlowStep>("select-type");
   const [selectedTrick, setSelectedTrick] = useState<Trick | null>(null);
-  const [userTrickId, setUserTrickId] = useState<string | null>(null);
 
   const handleClose = () => {
     setStep("select-type");
     setSelectedTrick(null);
-    setUserTrickId(null);
     onClose();
   };
 
@@ -34,7 +37,6 @@ export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
 
   const handleTrickSelected = (trick: Trick) => {
     setSelectedTrick(trick);
-    // Add a small delay to ensure TrickSelectionModal closes before TrickLogs opens
     setTimeout(() => {
       setStep("log-trick");
     }, 100);
@@ -72,6 +74,15 @@ export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
           trickName={selectedTrick.name}
           onClose={handleClose}
           onLogAdded={handleLogAdded}
+        />
+      ) : null;
+    case "log-combo":
+      return user ? (
+        <QuickComboLogger
+          visible={true}
+          userId={user.id}
+          onClose={handleClose}
+          onSuccess={handleLogAdded}
         />
       ) : null;
     default:

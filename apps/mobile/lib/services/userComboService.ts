@@ -10,6 +10,7 @@ import {
   upsertUserTrick,
   addLandedSurface as addTrickLandedSurface,
 } from "./userTrickService";
+import { ensureTrickExists } from "./trickService";
 
 /**
  * Centralized service for UserCombo CRUD operations.
@@ -317,28 +318,39 @@ export async function incrementComboAndTrickStats(
     // Use Set to deduplicate trick_ids (same trick might appear multiple times in combo)
     const uniqueTrickIds = [...new Set(trickIds)];
 
-    for (const trickId of uniqueTrickIds) {
-      // Get existing UserTrick stats (or use defaults if doesn't exist)
-      const existingTrick = await getUserTrick(userId, trickId);
-      const currentAttempts = existingTrick?.attempts ?? 0;
-      const currentStomps = existingTrick?.stomps ?? 0;
-
-      // Increment stats
-      const updatedTrick = await upsertUserTrick(userId, trickId, {
-        attempts: currentAttempts + 1,
-        stomps: currentStomps + 1,
-        landed: true,
-      });
-
-      // Add surface to trick if provided
-      if (surfaceType) {
+    // Process all tricks in parallel for better performance
+    await Promise.all(
+      uniqueTrickIds.map(async (trickId) => {
         try {
-          await addTrickLandedSurface(updatedTrick.id, surfaceType);
+          // Ensure trick exists in Tricks table (creates unverified if needed)
+          await ensureTrickExists(trickId);
+
+          // Get existing UserTrick stats (or use defaults if doesn't exist)
+          const existingTrick = await getUserTrick(userId, trickId);
+          const currentAttempts = existingTrick?.attempts ?? 0;
+          const currentStomps = existingTrick?.stomps ?? 0;
+
+          // Increment stats
+          const updatedTrick = await upsertUserTrick(userId, trickId, {
+            attempts: currentAttempts + 1,
+            stomps: currentStomps + 1,
+            landed: true,
+          });
+
+          // Add surface to trick if provided
+          if (surfaceType) {
+            try {
+              await addTrickLandedSurface(updatedTrick.id, surfaceType);
+            } catch (error) {
+              console.error(`Error adding surface to trick ${trickId}:`, error);
+            }
+          }
         } catch (error) {
-          console.error(`Error adding surface to trick ${trickId}:`, error);
+          // Log error but continue with other tricks
+          console.error(`Error updating stats for trick ${trickId}:`, error);
         }
-      }
-    }
+      })
+    );
   }
 
   return finalCombo;

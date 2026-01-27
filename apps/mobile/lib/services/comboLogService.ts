@@ -3,7 +3,7 @@ import { ComboGraph, ComboLog } from "@hyperbolic/shared-types";
 import { Database } from "@hyperbolic/shared-types";
 import { marshalComboGraph } from "./validation/comboValidation";
 import {
-  incrementComboStats,
+  incrementComboAndTrickStats,
   createUserCombo,
   getUserCombos,
 } from "./userComboService";
@@ -35,7 +35,7 @@ interface CreateComboLogParams {
  * Auto-creates UserCombo if it doesn't exist, then logs the session
  */
 export async function createComboLog(
-  params: CreateComboLogParams
+  params: CreateComboLogParams,
 ): Promise<ComboLog> {
   const {
     userId,
@@ -63,7 +63,7 @@ export async function createComboLog(
     // Auto-create combo: Try to find existing combo with same graph
     const existingCombos = await getUserCombos(userId);
     const matchingCombo = existingCombos.find((combo) =>
-      areGraphsEqual(combo.comboGraph, comboGraph)
+      areGraphsEqual(combo.comboGraph, comboGraph),
     );
 
     if (matchingCombo) {
@@ -102,8 +102,11 @@ export async function createComboLog(
     throw error;
   }
 
-  // Update combo stats
-  await incrementComboStats(comboId, { landed });
+  // Update combo stats and propagate to individual tricks
+  await incrementComboAndTrickStats(userId, comboId, {
+    landed,
+    surfaceType: surfaceType ?? undefined,
+  });
 
   return data;
 }
@@ -117,7 +120,7 @@ function areGraphsEqual(graph1: ComboGraph, graph2: ComboGraph): boolean {
   const nodesEqual = graph1.tricks.every(
     (node, i) =>
       node.trick_id === graph2.tricks[i].trick_id &&
-      node.landing_stance === graph2.tricks[i].landing_stance
+      node.landing_stance === graph2.tricks[i].landing_stance,
   );
   if (!nodesEqual) {
     return false;
@@ -129,7 +132,7 @@ function areGraphsEqual(graph1: ComboGraph, graph2: ComboGraph): boolean {
     (edge, i) =>
       edge.from_index === graph2.transitions[i].from_index &&
       edge.to_index === graph2.transitions[i].to_index &&
-      edge.transition_id === graph2.transitions[i].transition_id
+      edge.transition_id === graph2.transitions[i].transition_id,
   );
 }
 
@@ -153,7 +156,7 @@ function generateComboName(graph: ComboGraph): string {
  */
 export async function getComboLogs(
   userId: string,
-  limit = 20
+  limit = 20,
 ): Promise<ComboLog[]> {
   const { data, error } = await supabase
     .from("ComboLogs")
@@ -161,7 +164,7 @@ export async function getComboLogs(
       `
       *,
       user_combo:UserCombos!inner(user_id)
-    `
+    `,
     )
     .eq("user_combo.user_id", userId)
     .order("logged_at", { ascending: false })
@@ -180,7 +183,7 @@ export async function getComboLogs(
  */
 export async function getComboLogsByComboId(
   comboId: string,
-  limit = 20
+  limit = 20,
 ): Promise<ComboLog[]> {
   const { data, error } = await supabase
     .from("ComboLogs")
@@ -235,7 +238,7 @@ interface UpdateComboLogParams {
  */
 export async function updateComboLog(
   logId: string,
-  updates: UpdateComboLogParams
+  updates: UpdateComboLogParams,
 ): Promise<ComboLog> {
   const updateData: Database["public"]["Tables"]["ComboLogs"]["Update"] = {};
 
