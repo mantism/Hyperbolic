@@ -233,3 +233,46 @@ export async function deleteUserCombo(comboId: string): Promise<void> {
     throw error;
   }
 }
+
+/**
+ * Add a surface type to the landedSurfaces array
+ * Only adds if not already present
+ */
+export async function addLandedSurface(
+  comboId: string,
+  surfaceType: string
+): Promise<UserCombo> {
+  // First, fetch current landedSurfaces
+  const { data: currentData, error: fetchError } = await supabase
+    .from("UserCombos")
+    .select("landedSurfaces")
+    .eq("id", comboId)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching landedSurfaces:", fetchError);
+    throw fetchError;
+  }
+
+  // Add the new surface to the set (prevents duplicates)
+  const surfaces = new Set(currentData.landedSurfaces || []);
+  surfaces.add(surfaceType);
+
+  // Update the record
+  const { data, error } = await supabase
+    .from("UserCombos")
+    .update({ landedSurfaces: Array.from(surfaces) })
+    .eq("id", comboId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating landedSurfaces:", error);
+    throw error;
+  }
+
+  return {
+    ...data,
+    comboGraph: unmarshalComboGraph(data.combo_graph),
+  };
+}

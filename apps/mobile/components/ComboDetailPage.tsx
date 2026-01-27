@@ -17,6 +17,8 @@ import ComboRenderer from "./ComboRenderer";
 import ComboComposer from "./ComboComposer";
 import VideoHero from "./VideoHero";
 import SurfaceBadges from "./SurfaceBadges";
+import ComboLogs from "./ComboLogs";
+import ComboLogModal from "./ComboLogModal";
 import { useTricks } from "@/contexts/TricksContext";
 import { useRouter } from "expo-router";
 import VideoGallery from "./VideoGallery";
@@ -129,7 +131,16 @@ export default function ComboDetailPage({
   };
 
   const handleLogPress = () => {
+    if (!user) {
+      Alert.alert("Sign In Required", "Please sign in to log combos");
+      return;
+    }
     setShowLogModal(true);
+  };
+
+  const handleLogAdded = () => {
+    // Refresh combo data after logging
+    onComboUpdated?.(combo);
   };
 
   const handleUploadVideo = () => {
@@ -473,21 +484,10 @@ export default function ComboDetailPage({
             />
           )}
 
-          {/* TODO: Action buttons (STOMP / ATTEMPT) */}
-          {/*
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.stompButton}>
-              <Text style={styles.stompButtonText}>STOMP</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.attemptButton}>
-              <Text style={styles.attemptButtonText}>ATTEMPT</Text>
-            </TouchableOpacity>
-          </View>
-          */}
-
-          {/* TODO: Combo logs section (similar to TrickLogs) */}
-
-          {/* TODO: Delete combo button */}
+          {/* Combo Logs */}
+          {user && (
+            <ComboLogs userCombo={combo} onAddPress={handleLogPress} />
+          )}
         </View>
       </AnimatedScrollView>
 
@@ -497,6 +497,18 @@ export default function ComboDetailPage({
         video={selectedVideo}
         onClose={handleCloseVideoPlayer}
       />
+
+      {/* Combo Log Modal */}
+      {user && (
+        <ComboLogModal
+          visible={showLogModal}
+          userCombo={combo}
+          userId={user.id}
+          comboName={combo.name}
+          onClose={() => setShowLogModal(false)}
+          onLogAdded={handleLogAdded}
+        />
+      )}
     </View>
   );
 }

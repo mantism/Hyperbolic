@@ -1,10 +1,7 @@
 import { supabase } from "@/lib/supabase/supabase";
 import { ComboGraph, ComboLog } from "@hyperbolic/shared-types";
 import { Database } from "@hyperbolic/shared-types";
-import {
-  marshalComboGraph,
-  unmarshalComboGraph,
-} from "./validation/comboValidation";
+import { marshalComboGraph } from "./validation/comboValidation";
 import {
   incrementComboStats,
   createUserCombo,
@@ -108,10 +105,7 @@ export async function createComboLog(
   // Update combo stats
   await incrementComboStats(comboId, { landed });
 
-  return {
-    ...data,
-    comboGraph: unmarshalComboGraph(data.combo_graph),
-  };
+  return data;
 }
 
 /**
@@ -178,12 +172,7 @@ export async function getComboLogs(
     throw error;
   }
 
-  return (
-    data?.map((log) => ({
-      ...log,
-      combo_graph: unmarshalComboGraph(log.combo_graph),
-    })) || []
-  );
+  return data || [];
 }
 
 /**
@@ -205,12 +194,7 @@ export async function getComboLogsByComboId(
     throw error;
   }
 
-  return (
-    data?.map((log) => ({
-      ...log,
-      combo_graph: unmarshalComboGraph(log.combo_graph),
-    })) || []
-  );
+  return data || [];
 }
 
 /**
@@ -232,10 +216,7 @@ export async function getComboLog(logId: string): Promise<ComboLog | null> {
     throw error;
   }
 
-  return {
-    ...data,
-    comboGraph: unmarshalComboGraph(data.combo_graph),
-  };
+  return data;
 }
 
 interface UpdateComboLogParams {
@@ -295,10 +276,7 @@ export async function updateComboLog(
     throw error;
   }
 
-  return {
-    ...data,
-    comboGraph: unmarshalComboGraph(data.combo_graph),
-  };
+  return data;
 }
 
 /**
@@ -329,10 +307,5 @@ export async function getPublicComboLogs(limit = 50): Promise<ComboLog[]> {
     throw error;
   }
 
-  return (
-    data?.map((log) => ({
-      ...log,
-      combo_graph: unmarshalComboGraph(log.combo_graph),
-    })) || []
-  );
+  return data || [];
 }
