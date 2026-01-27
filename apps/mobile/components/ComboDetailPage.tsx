@@ -26,6 +26,7 @@ import { getComboVideos } from "@/lib/services/videoService";
 import {
   renameUserCombo,
   updateUserComboGraph,
+  updateUserComboStats,
   getUserCombo,
 } from "@/lib/services/userComboService";
 import {
@@ -150,6 +151,31 @@ export default function ComboDetailPage({
       }
     } catch (error) {
       console.error("Error refreshing combo data:", error);
+    }
+  };
+
+  // Quick log actions
+  const incrementAttempts = async () => {
+    try {
+      const updatedCombo = await updateUserComboStats(combo.id, {
+        attempts: (combo.attempts ?? 0) + 1,
+      });
+      onComboUpdated?.(updatedCombo);
+    } catch (error) {
+      console.error("Error incrementing attempts:", error);
+    }
+  };
+
+  const incrementStomps = async () => {
+    try {
+      const updatedCombo = await updateUserComboStats(combo.id, {
+        attempts: (combo.attempts ?? 0) + 1,
+        stomps: (combo.stomps ?? 0) + 1,
+        landed: true,
+      });
+      onComboUpdated?.(updatedCombo);
+    } catch (error) {
+      console.error("Error incrementing stomps:", error);
     }
   };
 
@@ -440,6 +466,25 @@ export default function ComboDetailPage({
             interactive
             emptyMessage="Log the combo in detail to earn a surface badge for this combo."
           />
+
+          {/* Quick Actions */}
+          {user && (
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                style={styles.stompButton}
+                onPress={incrementStomps}
+              >
+                <Text style={styles.stompButtonText}>STOMP</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.attemptButton}
+                onPress={incrementAttempts}
+              >
+                <Text style={styles.attemptButtonText}>ATTEMPT</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.videoSection}>
             <View style={styles.videoTabs}>
               <TouchableOpacity
@@ -760,10 +805,40 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // TODO: Add styles for action buttons
-  // actionsRow: {},
-  // stompButton: {},
-  // stompButtonText: {},
-  // attemptButton: {},
-  // attemptButtonText: {},
+  actionsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 24,
+    marginTop: 16,
+  },
+  stompButton: {
+    backgroundColor: "#333",
+    borderRadius: 0,
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  stompButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+  },
+  attemptButton: {
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: "#333",
+    paddingVertical: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  attemptButtonText: {
+    color: "#333",
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+  },
 });
