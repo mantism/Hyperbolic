@@ -8,21 +8,32 @@ import {
   Animated,
   ScrollView,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ComboVideo, UserCombo } from "@hyperbolic/shared-types";
+import { ComboVideo, SequenceItem, UserCombo } from "@hyperbolic/shared-types";
 import { useAuth } from "@/contexts/AuthContext";
 import ComboRenderer from "./ComboRenderer";
+import ComboComposer from "./ComboComposer";
 import VideoHero from "./VideoHero";
 import SurfaceBadges from "./SurfaceBadges";
 import { useTricks } from "@/contexts/TricksContext";
 import { useRouter } from "expo-router";
 import VideoGallery from "./VideoGallery";
 import { getComboVideos } from "@/lib/services/videoService";
+import {
+  renameUserCombo,
+  updateUserComboGraph,
+} from "@/lib/services/userComboService";
+import {
+  comboGraphToSequence,
+  sequenceToComboGraph,
+} from "@/lib/utils/comboRendering";
 
 interface ComboDetailPageProps {
   combo: UserCombo;
   onClose: () => void;
+  onComboUpdated?: (updatedCombo: UserCombo) => void;
 }
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
@@ -30,12 +41,19 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 export default function ComboDetailPage({
   combo,
   onClose,
+  onComboUpdated,
 }: ComboDetailPageProps) {
   const { user } = useAuth();
   const { allTricks } = useTricks();
   const router = useRouter();
 
+  // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(combo.name);
+  const [isSaving, setIsSaving] = useState(false);
+  const nameInputRef = useRef<TextInput>(null);
+
   const [showLogModal, setShowLogModal] = useState(false);
   const [videos, setVideos] = useState<ComboVideo[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<ComboVideo | null>(null);
@@ -44,12 +62,61 @@ export default function ComboDetailPage({
   const [loadingVideos, setLoadingVideos] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // TODO: Add handler for toggling edit mode
-  // const handleEditPress = () => setIsEditing(true);
+  // Edit handlers
+  const handleEditNamePress = () => {
+    setIsEditingName(true);
+    setTimeout(() => nameInputRef.current?.focus(), 100);
+  };
 
-  // TODO: Add handler for saving edits (will need to call updateUserComboGraph)
+  const handleSaveName = async () => {
+    if (!editedName.trim()) {
+      Alert.alert("Error", "Combo name cannot be empty");
+      return;
+    }
+    if (editedName === combo.name) {
+      setIsEditingName(false);
+      return;
+    }
+    try {
+      setIsSaving(true);
+      const updatedCombo = await renameUserCombo(combo.id, editedName.trim());
+      onComboUpdated?.(updatedCombo);
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Error renaming combo:", error);
+      Alert.alert("Error", "Failed to rename combo");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  // TODO: Add handler for canceling edits
+  const handleCancelNameEdit = () => {
+    setEditedName(combo.name);
+    setIsEditingName(false);
+  };
+
+  const handleEditComboPress = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveComboEdit = async (sequence: SequenceItem[]) => {
+    try {
+      setIsSaving(true);
+      const comboGraph = sequenceToComboGraph(sequence);
+      const updatedCombo = await updateUserComboGraph(combo.id, comboGraph);
+      onComboUpdated?.(updatedCombo);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating combo:", error);
+      Alert.alert("Error", "Failed to update combo");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelComboEdit = () => {
+    setIsEditing(false);
+  };
 
   // TODO: Add handler for deleting combo
 
@@ -242,13 +309,80 @@ export default function ComboDetailPage({
 
         <View style={styles.content}>
           <View style={styles.comboInfo}>
-            <Text style={styles.comboName}>{combo.name}</Text>
-            <View style={styles.comboRendererContainer}>
-              {/* TODO: When isEditing, render ComboComposer instead */}
-              <ComboRenderer
-                combo={combo.comboGraph}
-                onTrickPress={handleTrickPress}
-              />
+            {/* Editable combo name */}
+            <View style={styles.comboNameRow}>
+              {isEditingName ? (
+                <View style={styles.nameEditContainer}>
+                  <TextInput
+                    ref={nameInputRef}
+                    style={styles.nameInput}
+                    value={editedName}
+                    onChangeText={setEditedName}
+                    onSubmitEditing={handleSaveName}
+                    onBlur={handleCancelNameEdit}
+                    autoFocus
+                    selectTextOnFocus
+                  />
+                  <TouchableOpacity
+                    onPress={handleSaveName}
+                    disabled={isSaving}
+                    style={styles.nameEditButton}
+                  >
+                    <Ionicons
+                      name="checkmark"
+                      size={20}
+                      color={isSaving ? "#999" : "#10B981"}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleCancelNameEdit}
+                    style={styles.nameEditButton}
+                  >
+                    <Ionicons name="close" size={20} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.comboName}>{combo.name}</Text>
+                  <TouchableOpacity
+                    onPress={handleEditNamePress}
+                    style={styles.editNameButton}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="pencil-outline" size={18} color="#999" />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
+            {/* Combo renderer with edit button */}
+            <View style={styles.comboRendererWrapper}>
+              {isEditing ? (
+                <ComboComposer
+                  initialSequence={comboGraphToSequence(combo.comboGraph)}
+                  onSave={handleSaveComboEdit}
+                  onCancel={handleCancelComboEdit}
+                  saving={isSaving}
+                  saveButtonText="Update Combo"
+                />
+              ) : (
+                <>
+                  <View style={styles.comboRendererContainer}>
+                    <ComboRenderer
+                      combo={combo.comboGraph}
+                      onTrickPress={handleTrickPress}
+                    />
+                  </View>
+                  {user && (
+                    <TouchableOpacity
+                      onPress={handleEditComboPress}
+                      style={styles.editComboButton}
+                    >
+                      <Ionicons name="pencil" size={14} color="#666" />
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
             </View>
           </View>
           {/* Stats section */}
@@ -424,17 +558,58 @@ const styles = StyleSheet.create({
   comboInfo: {
     paddingBottom: 16,
   },
+  comboNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    gap: 8,
+  },
   comboName: {
     fontSize: 28,
     fontWeight: "300",
     color: "#000",
     letterSpacing: -0.5,
-    marginBottom: 24,
+    flexShrink: 1,
+  },
+  editNameButton: {
+    padding: 8,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 16,
+  },
+  nameEditContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  nameInput: {
+    flex: 1,
+    fontSize: 28,
+    fontWeight: "300",
+    color: "#000",
+    letterSpacing: -0.5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#007AFF",
+    paddingVertical: 4,
+  },
+  nameEditButton: {
+    padding: 4,
+  },
+  comboRendererWrapper: {
+    position: "relative",
   },
   comboRendererContainer: {
     backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
+    paddingVertical: 8,
     elevation: 1,
+  },
+  editComboButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    padding: 8,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 16,
   },
   statsRow: {
     flexDirection: "row",

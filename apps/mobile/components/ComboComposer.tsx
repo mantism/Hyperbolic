@@ -22,10 +22,8 @@ import {
 } from "@hyperbolic/shared-types";
 import {
   removeSequenceItem,
-  sequenceToComboGraph,
   moveTrickToPosition,
 } from "@/lib/utils/comboRendering";
-import { createUserCombo } from "@/lib/services/userComboService";
 import { createTrick } from "@/lib/utils/createTrick";
 import ComboChip from "./ComboChip";
 import TappableTransitionChip from "./TappableTransitionChip";
@@ -34,9 +32,18 @@ import ComboModifierButtons from "./ComboModifierButtons";
 import TrashZone from "./TrashZone";
 
 interface ComboComposerProps {
-  userId: string;
-  onSave: () => void;
+  /** Initial sequence for editing an existing combo */
+  initialSequence?: SequenceItem[];
+  /** Called when sequence changes */
+  onSequenceChange?: (sequence: SequenceItem[]) => void;
+  /** Called when save button is pressed with the current sequence */
+  onSave: (sequence: SequenceItem[]) => void;
+  /** Called when cancel is pressed */
   onCancel: () => void;
+  /** Whether save is in progress (disables button) */
+  saving?: boolean;
+  /** Button text (defaults to "Save") */
+  saveButtonText?: string;
 }
 
 interface Bounds {
@@ -65,14 +72,17 @@ interface DragState {
  * Allows typing trick names with autocomplete and inserting transitions/stances
  */
 export default function ComboComposer({
-  userId,
+  initialSequence,
+  onSequenceChange,
   onSave,
   onCancel,
+  saving = false,
+  saveButtonText = "Save",
 }: ComboComposerProps) {
   const [searchText, setSearchText] = useState("");
-  const [sequence, setSequence] = useState<SequenceItem[]>([]);
-  const [customName, setCustomName] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [sequence, setSequence] = useState<SequenceItem[]>(
+    initialSequence ?? [],
+  );
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [trashZoneBounds, setTrashZoneBounds] = useState<Bounds | null>(null);
   const [sequenceContainerBounds, setSequenceContainerBounds] =
@@ -144,24 +154,19 @@ export default function ComboComposer({
       sequenceContainerRef.current.measure(
         (x, y, width, height, pageX, pageY) => {
           setSequenceContainerBounds({ x: pageX, y: pageY, width, height });
-        }
+        },
       );
     }
   }, []);
 
-  // Auto-generate combo name from first and last tricks
-  const generatedName = useMemo(() => {
-    const tricks = sequence
-      .filter((item): item is TrickItem => item.type === "trick")
-      .map((item) => item.data.trick_id);
-
-    if (tricks.length === 0) return "";
-    if (tricks.length === 1) return `${tricks[0]} Combo`;
-    return `${tricks[0]} to ${tricks[tricks.length - 1]} Combo`;
-  }, [sequence]);
-
-  // Use custom name if user has typed one, otherwise use generated name
-  const comboName = customName ?? generatedName;
+  // Notify parent when sequence changes
+  const prevSequenceRef = useRef<SequenceItem[]>(sequence);
+  React.useEffect(() => {
+    if (sequence !== prevSequenceRef.current) {
+      prevSequenceRef.current = sequence;
+      onSequenceChange?.(sequence);
+    }
+  }, [sequence, onSequenceChange]);
 
   const handleSelectTrick = (trick: Trick) => {
     const newItem: SequenceItem = {
@@ -288,7 +293,7 @@ export default function ComboComposer({
       }
       return null;
     },
-    [measureAllChips]
+    [measureAllChips],
   );
 
   // Handle drag from suggestion chips - insert trick and start dragging it
@@ -340,7 +345,7 @@ export default function ComboComposer({
         measureAllChips();
       });
     },
-    [measureAllChips]
+    [measureAllChips],
   );
 
   // Handle drag from transition buttons - floating chip, previews in empty arrow slots
@@ -372,7 +377,7 @@ export default function ComboComposer({
         });
       });
     },
-    [measureAllChips]
+    [measureAllChips],
   );
 
   // Drag handlers for reordering
@@ -381,7 +386,7 @@ export default function ComboComposer({
       index: number,
       absoluteX: number,
       absoluteY: number,
-      isInsertDrag: boolean = false
+      isInsertDrag: boolean = false,
     ) => {
       const item = sequenceRef.current[index];
       if (!item) {
@@ -410,7 +415,7 @@ export default function ComboComposer({
         isInsertDrag,
       });
     },
-    [getLabelForItem]
+    [getLabelForItem],
   );
 
   // Find which trick position the finger is hovering over
@@ -420,7 +425,7 @@ export default function ComboComposer({
       absoluteX: number,
       absoluteY: number,
       currentSequence: SequenceItem[],
-      draggingIndex: number
+      draggingIndex: number,
     ): number | null => {
       // Get all tricks with their indices
       const tricks = currentSequence
@@ -449,7 +454,7 @@ export default function ComboComposer({
       }
       return null;
     },
-    []
+    [],
   );
 
   // Find the nearest empty arrow slot based on trick positions
@@ -458,7 +463,7 @@ export default function ComboComposer({
     (
       absoluteX: number,
       absoluteY: number,
-      currentSequence: SequenceItem[]
+      currentSequence: SequenceItem[],
     ): number | null => {
       // Get all tricks with their indices and measurements
       const tricks = currentSequence
@@ -509,7 +514,7 @@ export default function ComboComposer({
 
         // Calculate distance from finger to midpoint
         const distance = Math.sqrt(
-          Math.pow(absoluteX - midX, 2) + Math.pow(absoluteY - midY, 2)
+          Math.pow(absoluteX - midX, 2) + Math.pow(absoluteY - midY, 2),
         );
 
         // Only consider if within a reasonable range
@@ -521,7 +526,7 @@ export default function ComboComposer({
 
       return nearestArrowIndex;
     },
-    []
+    [],
   );
 
   const handleDragMove = useCallback(
@@ -537,7 +542,7 @@ export default function ComboComposer({
         const nearestSlot = findNearestEmptyArrowSlot(
           absoluteX,
           absoluteY,
-          currentSequence
+          currentSequence,
         );
         const previousSlot = previewSlotIndexRef.current;
 
@@ -577,7 +582,7 @@ export default function ComboComposer({
 
         // Update drag position
         setDragState((prev) =>
-          prev ? { ...prev, currentX: absoluteX, currentY: absoluteY } : null
+          prev ? { ...prev, currentX: absoluteX, currentY: absoluteY } : null,
         );
         return;
       }
@@ -591,14 +596,14 @@ export default function ComboComposer({
         absoluteX,
         absoluteY,
         currentSequence,
-        currentDragIndex
+        currentDragIndex,
       );
 
       if (hoverTrickPosition !== null) {
         const result = moveTrickToPosition(
           currentSequence,
           currentDragIndex,
-          hoverTrickPosition
+          hoverTrickPosition,
         );
 
         if (result.newIndex !== currentDragIndex) {
@@ -613,7 +618,7 @@ export default function ComboComposer({
                   currentY: absoluteY,
                   index: result.newIndex,
                 }
-              : null
+              : null,
           );
           return;
         }
@@ -621,10 +626,10 @@ export default function ComboComposer({
 
       // Just update position if no reorder happened
       setDragState((prev) =>
-        prev ? { ...prev, currentX: absoluteX, currentY: absoluteY } : null
+        prev ? { ...prev, currentX: absoluteX, currentY: absoluteY } : null,
       );
     },
-    [findHoverTrickPosition, findNearestEmptyArrowSlot, dragState]
+    [findHoverTrickPosition, findNearestEmptyArrowSlot, dragState],
   );
 
   const handleDragEnd = useCallback(
@@ -706,7 +711,7 @@ export default function ComboComposer({
       isInsertDragRef.current = false;
       setDragState(null);
     },
-    [trashZoneBounds, sequenceContainerBounds]
+    [trashZoneBounds, sequenceContainerBounds],
   );
 
   // Store handlers in refs so they can be called from worklet via scheduleOnRN
@@ -717,7 +722,7 @@ export default function ComboComposer({
         handleDragStart(tappedIndex, absoluteX, absoluteY);
       }
     },
-    [findTappedChipIndex, handleDragStart]
+    [findTappedChipIndex, handleDragStart],
   );
 
   const handleGestureStartRef = useRef(handleGestureStart);
@@ -762,34 +767,11 @@ export default function ComboComposer({
       scheduleOnRN(onGestureEnd, x, y);
     });
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (sequence.length === 0) {
       return;
     }
-
-    try {
-      setSaving(true);
-
-      // Convert sequence to ComboGraph
-      const comboGraph = sequenceToComboGraph(sequence);
-
-      await createUserCombo({
-        userId,
-        name: comboName || generatedName,
-        comboGraph,
-      });
-
-      // Reset and notify parent
-      setSequence([]);
-      setSearchText("");
-      setCustomName("");
-      onSave();
-    } catch (error) {
-      console.error("Error saving combo:", error);
-      alert("Failed to save combo. Please try again.");
-    } finally {
-      setSaving(false);
-    }
+    onSave(sequence);
   };
 
   const renderSequenceItem = (item: SequenceItem, index: number) => {
@@ -867,24 +849,7 @@ export default function ComboComposer({
       onLayout={handleContainerLayout}
     >
       <GestureHandlerRootView style={styles.gestureContainer}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Create Combo</Text>
-            <TouchableOpacity onPress={onCancel} hitSlop={8}>
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Combo Name Input */}
-          <View style={styles.nameInputContainer}>
-            <TextInput
-              style={styles.nameInput}
-              placeholder="Combo name (optional)"
-              value={comboName}
-              onChangeText={(text) => setCustomName(text || null)}
-            />
-          </View>
-
+        <View>
           {/* Sequence Display - wrapped in gesture detector for drag reordering */}
           {sequence.length > 0 && (
             <GestureDetector gesture={sequencePanGesture}>
@@ -941,19 +906,24 @@ export default function ComboComposer({
             onDragEnd={onGestureEnd}
           />
 
-          {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              (sequence.length === 0 || saving) && styles.saveButtonDisabled,
-            ]}
-            onPress={handleSave}
-            disabled={sequence.length === 0 || saving}
-          >
-            <Text style={styles.saveButtonText}>
-              {saving ? "Saving..." : "Save Combo"}
-            </Text>
-          </TouchableOpacity>
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                (sequence.length === 0 || saving) && styles.saveButtonDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={sequence.length === 0 || saving}
+            >
+              <Text style={styles.saveButtonText}>
+                {saving ? "Saving..." : saveButtonText}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Trash Zone - only shown for reorder drags, not insert drags */}
@@ -987,38 +957,10 @@ export default function ComboComposer({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
   },
   gestureContainer: {
     flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  nameInputContainer: {
-    marginBottom: 12,
-  },
-  nameInput: {
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    backgroundColor: "#F9F9F9",
   },
   sequenceContainer: {
     flexDirection: "row",
@@ -1026,7 +968,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingVertical: 8,
-    paddingHorizontal: 4,
     marginBottom: 12,
   },
   inputContainer: {
@@ -1040,12 +981,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: "#fff",
   },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+  },
+  cancelButtonText: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   saveButton: {
+    flex: 2,
     backgroundColor: "#007AFF",
     padding: 14,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 16,
   },
   saveButtonDisabled: {
     backgroundColor: "#CCC",

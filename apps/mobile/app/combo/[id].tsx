@@ -3,11 +3,13 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { UserCombo } from "@hyperbolic/shared-types";
 import { getUserCombo } from "@/lib/services/userComboService";
+import { useCombos } from "@/contexts/CombosContext";
 import ComboDetailPage from "@/components/ComboDetailPage";
 
 export default function ComboScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { refetchUserCombos } = useCombos();
   const [combo, setCombo] = useState<UserCombo | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +55,14 @@ export default function ComboScreen() {
           animationDuration: 200,
         }}
       />
-      <ComboDetailPage combo={combo} onClose={() => router.back()} />
+      <ComboDetailPage
+        combo={combo}
+        onClose={() => router.back()}
+        onComboUpdated={(updatedCombo) => {
+          setCombo(updatedCombo);
+          refetchUserCombos();
+        }}
+      />
     </>
   );
 }

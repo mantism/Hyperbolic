@@ -13,7 +13,7 @@ import { useCombos } from "@/contexts/CombosContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import PageHeader from "@/components/PageHeader";
 import SearchBar from "@/components/SearchBar";
-import ComboComposer from "@/components/ComboComposer";
+import NewComboComposer from "@/components/NewComboComposer";
 import ComboRenderer from "@/components/ComboRenderer";
 
 export default function CombosScreen() {
@@ -57,7 +57,7 @@ export default function CombosScreen() {
           // Render composer
           if ("isComposer" in item && item.isComposer && user) {
             return (
-              <ComboComposer
+              <NewComboComposer
                 userId={user.id}
                 onSave={handleSaveCombo}
                 onCancel={handleCancelComposer}
