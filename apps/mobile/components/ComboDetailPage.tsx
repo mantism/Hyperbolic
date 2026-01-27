@@ -278,7 +278,6 @@ export default function ComboDetailPage({
       >
         <Text style={styles.stickyHeaderTitle}>{combo.name}</Text>
         <View style={styles.comboRendererContainer}>
-          {/* TODO: When isEditing, render ComboComposer instead */}
           <ComboRenderer
             combo={combo.comboGraph}
             onTrickPress={handleTrickPress}
@@ -384,12 +383,10 @@ export default function ComboDetailPage({
                 />
               ) : (
                 <>
-                  <View style={styles.comboRendererContainer}>
-                    <ComboRenderer
-                      combo={combo.comboGraph}
-                      onTrickPress={handleTrickPress}
-                    />
-                  </View>
+                  <ComboRenderer
+                    combo={combo.comboGraph}
+                    onTrickPress={handleTrickPress}
+                  />
                   {user && (
                     <TouchableOpacity
                       onPress={handleEditComboPress}
@@ -485,9 +482,7 @@ export default function ComboDetailPage({
           )}
 
           {/* Combo Logs */}
-          {user && (
-            <ComboLogs userCombo={combo} onAddPress={handleLogPress} />
-          )}
+          {user && <ComboLogs userCombo={combo} onAddPress={handleLogPress} />}
         </View>
       </AnimatedScrollView>
 
@@ -624,9 +619,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   comboRendererContainer: {
-    backgroundColor: "#FFFFFF",
     paddingVertical: 8,
-    elevation: 1,
   },
   editComboButton: {
     position: "absolute",
@@ -694,10 +687,9 @@ const styles = StyleSheet.create({
     zIndex: 999,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E5E5",
-    display: "flex",
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 8,
   },
   stickyHeaderTitle: {
     fontSize: 28,
