@@ -31,6 +31,7 @@ interface QuickComboLoggerProps {
 }
 
 interface LogFormData {
+  name: string;
   rating: string;
   notes: string;
   location_name: string;
@@ -39,6 +40,7 @@ interface LogFormData {
 }
 
 const initialFormData: LogFormData = {
+  name: "",
   rating: "",
   notes: "",
   location_name: "",
@@ -84,6 +86,7 @@ export default function QuickComboLogger({
       await createComboLog({
         userId,
         comboGraph,
+        comboName: formData.name || undefined,
         landed: formData.landed,
         rating: formData.rating ? parseInt(formData.rating) : undefined,
         notes: formData.notes || undefined,
@@ -155,6 +158,19 @@ export default function QuickComboLogger({
           {/* Log Details Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Log Details</Text>
+
+            {/* Combo Name */}
+            <View style={styles.formRow}>
+              <Text style={styles.label}>Combo Name (optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.name}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, name: text })
+                }
+                placeholder="Auto-generated if left blank"
+              />
+            </View>
 
             {/* Landed Toggle */}
             <View style={styles.formRow}>
