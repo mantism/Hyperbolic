@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { ComboLog, UserCombo } from "@hyperbolic/shared-types";
 import { getComboLogsByComboId } from "@/lib/services/comboLogService";
 import BaseLogs, { BaseLog } from "./BaseLogs";
@@ -8,16 +8,16 @@ interface ComboLogsProps {
   onAddPress?: () => void;
 }
 
-export default function ComboLogs({
-  userCombo,
-  onAddPress,
-}: ComboLogsProps) {
+export interface ComboLogsRef {
+  refresh: () => Promise<void>;
+}
+
+export default forwardRef<ComboLogsRef, ComboLogsProps>(function ComboLogs(
+  { userCombo, onAddPress },
+  ref
+) {
   const [logs, setLogs] = useState<ComboLog[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [userCombo?.id]);
 
   const fetchLogs = async () => {
     if (!userCombo?.id) {
@@ -36,6 +36,14 @@ export default function ComboLogs({
     }
   };
 
+  useEffect(() => {
+    fetchLogs();
+  }, [userCombo?.id]);
+
+  useImperativeHandle(ref, () => ({
+    refresh: fetchLogs,
+  }));
+
   return (
     <BaseLogs<ComboLog & BaseLog>
       logs={logs}
@@ -45,4 +53,4 @@ export default function ComboLogs({
       onAddPress={onAddPress}
     />
   );
-}
+});

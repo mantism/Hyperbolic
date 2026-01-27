@@ -17,7 +17,7 @@ import ComboRenderer from "./ComboRenderer";
 import ComboComposer from "./ComboComposer";
 import VideoHero from "./VideoHero";
 import SurfaceBadges from "./SurfaceBadges";
-import ComboLogs from "./ComboLogs";
+import ComboLogs, { ComboLogsRef } from "./ComboLogs";
 import ComboLogModal from "./ComboLogModal";
 import { useTricks } from "@/contexts/TricksContext";
 import { useRouter } from "expo-router";
@@ -26,6 +26,7 @@ import { getComboVideos } from "@/lib/services/videoService";
 import {
   renameUserCombo,
   updateUserComboGraph,
+  getUserCombo,
 } from "@/lib/services/userComboService";
 import {
   comboGraphToSequence,
@@ -64,6 +65,7 @@ export default function ComboDetailPage({
   const [videoTab, setVideoTab] = useState<"my" | "community">("my");
   const [loadingVideos, setLoadingVideos] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const comboLogsRef = useRef<ComboLogsRef>(null);
 
   // Edit handlers
   const handleEditNamePress = () => {
@@ -138,9 +140,17 @@ export default function ComboDetailPage({
     setShowLogModal(true);
   };
 
-  const handleLogAdded = () => {
-    // Refresh combo data after logging
-    onComboUpdated?.(combo);
+  const handleLogAdded = async () => {
+    comboLogsRef.current?.refresh();
+
+    try {
+      const updatedCombo = await getUserCombo(combo.id);
+      if (updatedCombo) {
+        onComboUpdated?.(updatedCombo);
+      }
+    } catch (error) {
+      console.error("Error refreshing combo data:", error);
+    }
   };
 
   const handleUploadVideo = () => {
@@ -482,7 +492,13 @@ export default function ComboDetailPage({
           )}
 
           {/* Combo Logs */}
-          {user && <ComboLogs userCombo={combo} onAddPress={handleLogPress} />}
+          {user && (
+            <ComboLogs
+              ref={comboLogsRef}
+              userCombo={combo}
+              onAddPress={handleLogPress}
+            />
+          )}
         </View>
       </AnimatedScrollView>
 
