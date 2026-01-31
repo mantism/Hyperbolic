@@ -19,13 +19,11 @@ interface CreateComboLogParams {
   comboName?: string; // Name for auto-created combo
   comboGraph: ComboGraph;
   landed?: boolean;
+  reps?: number;
   rating?: number;
   notes?: string;
   locationName?: string;
   surfaceType?: string;
-  videoUrls?: string[];
-  thumbnailUrl?: string;
-  weatherConditions?: string;
   isPublic?: boolean;
   loggedAt?: string; // ISO timestamp
   sessionId?: string; // Link to active session
@@ -44,13 +42,11 @@ export async function createComboLog(
     comboName,
     comboGraph,
     landed = false,
+    reps = 1,
     rating = null,
     notes = null,
     locationName = null,
     surfaceType = null,
-    videoUrls = null,
-    thumbnailUrl = null,
-    weatherConditions = null,
     isPublic = false,
     loggedAt = new Date().toISOString(),
     sessionId = null,
@@ -88,12 +84,11 @@ export async function createComboLog(
       user_combo_id: comboId,
       logged_at: loggedAt,
       landed,
+      reps,
       rating,
       notes,
       location_name: locationName,
       surface_type: surfaceType,
-      video_urls: videoUrls,
-      thumbnail_url: thumbnailUrl,
       is_public: isPublic,
       session_id: sessionId,
     })
@@ -227,12 +222,11 @@ export async function getComboLog(logId: string): Promise<ComboLog | null> {
 
 interface UpdateComboLogParams {
   landed?: boolean;
+  reps?: number;
   rating?: number;
   notes?: string;
   locationName?: string;
   surfaceType?: string;
-  videoUrls?: string[];
-  thumbnailUrl?: string;
   isPublic?: boolean;
 }
 
@@ -243,10 +237,14 @@ export async function updateComboLog(
   logId: string,
   updates: UpdateComboLogParams,
 ): Promise<ComboLog> {
-  const updateData: Database["public"]["Tables"]["ComboLogs"]["Update"] = {};
+  // Note: reps field requires migration 20260131000000_add_reps_to_combologs.sql
+  const updateData: Record<string, unknown> = {};
 
   if (updates.landed !== undefined) {
     updateData.landed = updates.landed;
+  }
+  if (updates.reps !== undefined) {
+    updateData.reps = updates.reps;
   }
   if (updates.rating !== undefined) {
     updateData.rating = updates.rating;
@@ -259,12 +257,6 @@ export async function updateComboLog(
   }
   if (updates.surfaceType !== undefined) {
     updateData.surface_type = updates.surfaceType;
-  }
-  if (updates.videoUrls !== undefined) {
-    updateData.video_urls = updates.videoUrls;
-  }
-  if (updates.thumbnailUrl !== undefined) {
-    updateData.thumbnail_url = updates.thumbnailUrl;
   }
   if (updates.isPublic !== undefined) {
     updateData.is_public = updates.isPublic;

@@ -331,10 +331,7 @@ export type Database = {
           reps: number | null;
           session_id: string | null;
           surface_type: string | null;
-          thumbnail_url: string | null;
           user_trick_id: string;
-          video_urls: string[] | null;
-          weather_conditions: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -348,10 +345,7 @@ export type Database = {
           reps?: number | null;
           session_id?: string | null;
           surface_type?: string | null;
-          thumbnail_url?: string | null;
           user_trick_id: string;
-          video_urls?: string[] | null;
-          weather_conditions?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -365,10 +359,7 @@ export type Database = {
           reps?: number | null;
           session_id?: string | null;
           surface_type?: string | null;
-          thumbnail_url?: string | null;
           user_trick_id?: string;
-          video_urls?: string[] | null;
-          weather_conditions?: string | null;
         };
         Relationships: [
           {

@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
-  Session,
   getSessionWithStats,
   getSessionLogs,
   getSessionDuration,
@@ -20,34 +19,66 @@ import {
   deleteSession,
   SessionWithStats,
 } from "@/lib/services/sessionService";
+import {
+  createTrickLog,
+  updateTrickLog,
+  deleteTrickLog,
+} from "@/lib/services/trickLogService";
+import {
+  createComboLog,
+  updateComboLog,
+  deleteComboLog,
+} from "@/lib/services/comboLogService";
+import {
+  createUserTrick,
+  getUserTrick,
+} from "@/lib/services/userTrickService";
 import { useSession } from "@/contexts/SessionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Trick, SequenceItem } from "@hyperbolic/shared-types";
+import { sequenceToComboGraph } from "@/lib/utils/comboRendering";
+import SessionTrickCard from "./SessionTrickCard";
+import SessionComboCard from "./SessionComboCard";
+import SessionTrickInput from "./SessionTrickInput";
+import ComboComposer from "./ComboComposer";
 
 interface SessionDetailPageProps {
   sessionId: string;
   onClose: () => void;
 }
 
-interface SessionLog {
+interface TrickLogItem {
   id: string;
-  type: "trick" | "combo";
   name: string;
+  reps: number;
   landed: boolean;
   logged_at: string;
-  surface_type?: string | null;
-  notes?: string | null;
-  reps?: number;
+}
+
+interface ComboLogItem {
+  id: string;
+  name: string;
+  reps: number;
+  landed: boolean;
+  logged_at: string;
 }
 
 export default function SessionDetailPage({
   sessionId,
   onClose,
 }: SessionDetailPageProps) {
+  const { user } = useAuth();
   const { endSession, activeSession } = useSession();
   const [session, setSession] = useState<SessionWithStats | null>(null);
-  const [logs, setLogs] = useState<SessionLog[]>([]);
+  const [trickLogs, setTrickLogs] = useState<TrickLogItem[]>([]);
+  const [comboLogs, setComboLogs] = useState<ComboLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [showTrickInput, setShowTrickInput] = useState(false);
+  const [showComboInput, setShowComboInput] = useState(false);
+  const [comboSequence, setComboSequence] = useState<SequenceItem[]>([]);
+  const [savingCombo, setSavingCombo] = useState(false);
 
   const isActive = activeSession?.id === sessionId;
 
@@ -60,33 +91,30 @@ export default function SessionDetailPage({
 
       setSession(sessionData);
 
-      // Combine and sort logs by time
-      const combinedLogs: SessionLog[] = [
-        ...logsData.trickLogs.map((log: any) => ({
+      // Map trick logs
+      const mappedTrickLogs: TrickLogItem[] = logsData.trickLogs.map(
+        (log: any) => ({
           id: log.id,
-          type: "trick" as const,
           name: log.user_trick?.trick?.name || "Unknown Trick",
-          landed: log.landed ?? false,
+          reps: log.reps || 1,
+          landed: log.landed ?? true,
           logged_at: log.logged_at,
-          surface_type: log.surface_type,
-          notes: log.notes,
-          reps: log.reps,
-        })),
-        ...logsData.comboLogs.map((log: any) => ({
-          id: log.id,
-          type: "combo" as const,
-          name: log.user_combo?.name || "Unknown Combo",
-          landed: log.landed ?? false,
-          logged_at: log.logged_at,
-          surface_type: log.surface_type,
-          notes: log.notes,
-        })),
-      ].sort(
-        (a, b) =>
-          new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()
+        })
       );
 
-      setLogs(combinedLogs);
+      // Map combo logs
+      const mappedComboLogs: ComboLogItem[] = logsData.comboLogs.map(
+        (log: any) => ({
+          id: log.id,
+          name: log.user_combo?.name || "Unknown Combo",
+          reps: log.reps || 1,
+          landed: log.landed ?? true,
+          logged_at: log.logged_at,
+        })
+      );
+
+      setTrickLogs(mappedTrickLogs);
+      setComboLogs(mappedComboLogs);
     } catch (error) {
       console.error("Error fetching session data:", error);
       Alert.alert("Error", "Failed to load session data");
@@ -118,7 +146,7 @@ export default function SessionDetailPage({
             setEnding(true);
             try {
               await endSession();
-              fetchSessionData(); // Refresh to show ended state
+              fetchSessionData();
             } catch (error) {
               console.error("Error ending session:", error);
               Alert.alert("Error", "Failed to end session");
@@ -152,6 +180,141 @@ export default function SessionDetailPage({
         },
       ]
     );
+  };
+
+  // Trick handlers
+  const handleAddTrick = async (trick: Trick) => {
+    if (!user) return;
+
+    try {
+      // Get or create UserTrick
+      let userTrick = await getUserTrick(user.id, trick.id);
+      if (!userTrick) {
+        userTrick = await createUserTrick({
+          userId: user.id,
+          trickId: trick.id,
+          landed: true,
+        });
+      }
+
+      // Create trick log
+      const log = await createTrickLog({
+        userTrickId: userTrick.id,
+        landed: true,
+        reps: 1,
+        sessionId,
+      });
+
+      // Add to local state
+      setTrickLogs((prev) => [
+        {
+          id: log.id,
+          name: trick.name,
+          reps: 1,
+          landed: true,
+          logged_at: log.logged_at,
+        },
+        ...prev,
+      ]);
+
+      // Refresh stats
+      fetchSessionData();
+    } catch (error) {
+      console.error("Error adding trick:", error);
+      Alert.alert("Error", "Failed to add trick");
+    }
+  };
+
+  const handleUpdateTrickReps = async (logId: string, reps: number) => {
+    try {
+      await updateTrickLog(logId, { reps });
+      setTrickLogs((prev) =>
+        prev.map((log) => (log.id === logId ? { ...log, reps } : log))
+      );
+    } catch (error) {
+      console.error("Error updating trick reps:", error);
+      Alert.alert("Error", "Failed to update reps");
+    }
+  };
+
+  const handleDeleteTrickLog = async (logId: string) => {
+    try {
+      await deleteTrickLog(logId);
+      setTrickLogs((prev) => prev.filter((log) => log.id !== logId));
+      fetchSessionData();
+    } catch (error) {
+      console.error("Error deleting trick log:", error);
+      Alert.alert("Error", "Failed to delete log");
+    }
+  };
+
+  // Combo handlers
+  const handleAddCombo = async (sequence: SequenceItem[]) => {
+    if (!user || sequence.length === 0) return;
+
+    setSavingCombo(true);
+    try {
+      const comboGraph = sequenceToComboGraph(sequence);
+
+      const log = await createComboLog({
+        userId: user.id,
+        comboGraph,
+        landed: true,
+        reps: 1,
+        sessionId,
+      });
+
+      // Generate combo name from sequence
+      const trickNames = sequence
+        .filter((item) => item.type === "trick")
+        .map((item) => item.data.trick_id)
+        .join(" → ");
+
+      // Add to local state
+      setComboLogs((prev) => [
+        {
+          id: log.id,
+          name: trickNames || "Combo",
+          reps: 1,
+          landed: true,
+          logged_at: log.logged_at,
+        },
+        ...prev,
+      ]);
+
+      // Clear composer and hide input
+      setComboSequence([]);
+      setShowComboInput(false);
+      fetchSessionData();
+    } catch (error) {
+      console.error("Error adding combo:", error);
+      Alert.alert("Error", "Failed to add combo");
+    } finally {
+      setSavingCombo(false);
+    }
+  };
+
+  const handleUpdateComboReps = async (logId: string, reps: number) => {
+    try {
+      await updateComboLog(logId, { reps });
+      setComboLogs((prev) =>
+        prev.map((log) => (log.id === logId ? { ...log, reps } : log))
+      );
+    } catch (error) {
+      console.error("Error updating combo reps:", error);
+      Alert.alert("Error", "Failed to update reps");
+    }
+  };
+
+  const handleDeleteComboLog = async (logId: string) => {
+    try {
+      await deleteComboLog(logId);
+      setComboLogs((prev) => prev.filter((log) => log.id !== logId));
+      fetchSessionData();
+    } catch (error) {
+      console.error("Error deleting combo log:", error);
+      Alert.alert("Error", "Failed to delete log");
+    }
   };
 
   if (loading) {
@@ -189,7 +352,8 @@ export default function SessionDetailPage({
   }
 
   const duration = getSessionDuration(session);
-  const durationText = duration !== null ? formatSessionDuration(duration) : "--";
+  const durationText =
+    duration !== null ? formatSessionDuration(duration) : "--";
 
   const startDate = new Date(session.started_at);
   const dateText = startDate.toLocaleDateString("en-US", {
@@ -212,7 +376,10 @@ export default function SessionDetailPage({
         </TouchableOpacity>
         <Text style={styles.title}>Session Details</Text>
         {!isActive && (
-          <TouchableOpacity onPress={handleDeleteSession} style={styles.deleteButton}>
+          <TouchableOpacity
+            onPress={handleDeleteSession}
+            style={styles.deleteButton}
+          >
             <Ionicons name="trash-outline" size={22} color="#FF3B30" />
           </TouchableOpacity>
         )}
@@ -224,6 +391,7 @@ export default function SessionDetailPage({
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
+        keyboardShouldPersistTaps="handled"
       >
         {/* Status Banner */}
         {isActive && (
@@ -264,26 +432,6 @@ export default function SessionDetailPage({
               <Text style={styles.statLabel}>Combos</Text>
             </View>
           </View>
-          <View style={[styles.statRow, styles.statRowSecond]}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{session.totalLands}</Text>
-              <Text style={styles.statLabel}>Lands</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{session.totalAttempts}</Text>
-              <Text style={styles.statLabel}>Attempts</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>
-                {session.totalAttempts > 0
-                  ? `${Math.round((session.totalLands / session.totalAttempts) * 100)}%`
-                  : "--"}
-              </Text>
-              <Text style={styles.statLabel}>Success Rate</Text>
-            </View>
-          </View>
         </View>
 
         {/* Notes */}
@@ -294,77 +442,103 @@ export default function SessionDetailPage({
           </View>
         )}
 
-        {/* Logs */}
-        <View style={styles.logsSection}>
-          <Text style={styles.sectionTitle}>
-            Activity ({logs.length} {logs.length === 1 ? "log" : "logs"})
-          </Text>
+        {/* Tricks Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              TRICKS ({trickLogs.length})
+            </Text>
+            {isActive && (
+              <TouchableOpacity
+                onPress={() => setShowTrickInput(!showTrickInput)}
+                style={styles.addButton}
+              >
+                <Ionicons
+                  name={showTrickInput ? "close" : "add"}
+                  size={24}
+                  color="#007AFF"
+                />
+              </TouchableOpacity>
+            )}
+          </View>
 
-          {logs.length === 0 ? (
-            <View style={styles.emptyLogs}>
-              <Ionicons name="document-text-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyLogsText}>No logs yet</Text>
-              <Text style={styles.emptyLogsSubtext}>
-                Start logging tricks and combos!
-              </Text>
+          {showTrickInput && (
+            <SessionTrickInput
+              onSelect={handleAddTrick}
+              onDismiss={() => setShowTrickInput(false)}
+            />
+          )}
+
+          {trickLogs.length === 0 && !showTrickInput ? (
+            <View style={styles.emptySection}>
+              <Text style={styles.emptySectionText}>No tricks logged yet</Text>
             </View>
           ) : (
-            logs.map((log) => (
-              <View key={log.id} style={styles.logItem}>
-                <View style={styles.logIcon}>
-                  <Ionicons
-                    name={log.type === "trick" ? "flash" : "list"}
-                    size={16}
-                    color="#666"
-                  />
-                </View>
-                <View style={styles.logContent}>
-                  <View style={styles.logHeader}>
-                    <Text style={styles.logName} numberOfLines={1}>
-                      {log.name}
-                    </Text>
-                    <View
-                      style={[
-                        styles.landedBadge,
-                        log.landed ? styles.landedSuccess : styles.landedFail,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.landedText,
-                          log.landed
-                            ? styles.landedTextSuccess
-                            : styles.landedTextFail,
-                        ]}
-                      >
-                        {log.landed ? "Landed" : "Missed"}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.logMeta}>
-                    <Text style={styles.logTime}>
-                      {new Date(log.logged_at).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                    {log.reps && log.reps > 1 && (
-                      <Text style={styles.logReps}>×{log.reps}</Text>
-                    )}
-                    {log.surface_type && (
-                      <Text style={styles.logSurface}>{log.surface_type}</Text>
-                    )}
-                  </View>
-                  {log.notes && (
-                    <Text style={styles.logNotes} numberOfLines={2}>
-                      {log.notes}
-                    </Text>
-                  )}
-                </View>
-              </View>
+            trickLogs.map((log) => (
+              <SessionTrickCard
+                key={log.id}
+                trickLog={log}
+                onRepsChange={(reps) => handleUpdateTrickReps(log.id, reps)}
+                onDelete={() => handleDeleteTrickLog(log.id)}
+              />
             ))
           )}
         </View>
+
+        {/* Combos Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              COMBOS ({comboLogs.length})
+            </Text>
+            {isActive && (
+              <TouchableOpacity
+                onPress={() => setShowComboInput(!showComboInput)}
+                style={styles.addButton}
+              >
+                <Ionicons
+                  name={showComboInput ? "close" : "add"}
+                  size={24}
+                  color="#007AFF"
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {showComboInput && (
+            <View style={styles.comboInputContainer}>
+              <ComboComposer
+                initialSequence={comboSequence}
+                onSequenceChange={setComboSequence}
+                onSave={handleAddCombo}
+                onCancel={() => {
+                  setComboSequence([]);
+                  setShowComboInput(false);
+                }}
+                saving={savingCombo}
+                saveButtonText="Add Combo"
+              />
+            </View>
+          )}
+
+          {comboLogs.length === 0 && !showComboInput ? (
+            <View style={styles.emptySection}>
+              <Text style={styles.emptySectionText}>No combos logged yet</Text>
+            </View>
+          ) : (
+            comboLogs.map((log) => (
+              <SessionComboCard
+                key={log.id}
+                comboLog={log}
+                onRepsChange={(reps) => handleUpdateComboReps(log.id, reps)}
+                onDelete={() => handleDeleteComboLog(log.id)}
+              />
+            ))
+          )}
+        </View>
+
+        {/* Bottom padding */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* End Session Button */}
@@ -489,10 +663,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  statRowSecond: {
-    borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-  },
   stat: {
     flex: 1,
     alignItems: "center",
@@ -518,112 +688,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 12,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
   notesText: {
     fontSize: 15,
     color: "#666",
     lineHeight: 22,
   },
-  logsSection: {
+  section: {
     padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
   },
-  emptyLogs: {
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 32,
+    marginBottom: 12,
   },
-  emptyLogsText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#666",
-    marginTop: 12,
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  emptyLogsSubtext: {
+  addButton: {
+    padding: 4,
+  },
+  emptySection: {
+    paddingVertical: 24,
+    alignItems: "center",
+  },
+  emptySectionText: {
     fontSize: 14,
     color: "#999",
-    marginTop: 4,
   },
-  logItem: {
-    flexDirection: "row",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  logIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  logContent: {
-    flex: 1,
-  },
-  logHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  logName: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#333",
-    flex: 1,
-    marginRight: 8,
-  },
-  landedBadge: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-  },
-  landedSuccess: {
-    backgroundColor: "#E8F5E9",
-  },
-  landedFail: {
-    backgroundColor: "#FFEBEE",
-  },
-  landedText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  landedTextSuccess: {
-    color: "#2E7D32",
-  },
-  landedTextFail: {
-    color: "#C62828",
-  },
-  logMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  logTime: {
-    fontSize: 12,
-    color: "#999",
-  },
-  logReps: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-  },
-  logSurface: {
-    fontSize: 12,
-    color: "#666",
-  },
-  logNotes: {
-    fontSize: 13,
-    color: "#666",
-    fontStyle: "italic",
-    marginTop: 6,
+  comboInputContainer: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: "#FAFAFA",
   },
   footer: {
     padding: 16,
