@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/supabase";
 import { UserTrick } from "@hyperbolic/shared-types";
+import { checkAndUpdateTrickGoals } from "./goalService";
 
 /**
  * Centralized service for all UserTrick CRUD operations.
@@ -30,7 +31,7 @@ interface UpdateUserTrickStatsParams {
  * Handles unique constraint violations by fetching existing record
  */
 export async function createUserTrick(
-  params: CreateUserTrickParams
+  params: CreateUserTrickParams,
 ): Promise<UserTrick> {
   const {
     userId,
@@ -63,7 +64,7 @@ export async function createUserTrick(
     // This means the record already exists - fetch and return it
     if (error.code === "23505") {
       console.warn(
-        `UserTrick already exists for userId=${userId}, trickId=${trickId}. Fetching existing record.`
+        `UserTrick already exists for userId=${userId}, trickId=${trickId}. Fetching existing record.`,
       );
       const existing = await getUserTrick(userId, trickId);
       if (existing) {
@@ -83,7 +84,7 @@ export async function createUserTrick(
  */
 export async function updateUserTrickStats(
   userTrickId: string,
-  updates: UpdateUserTrickStatsParams
+  updates: UpdateUserTrickStatsParams,
 ): Promise<UserTrick> {
   const { data, error } = await supabase
     .from("UserToTricks")
@@ -106,7 +107,7 @@ export async function updateUserTrickStats(
  */
 export async function addLandedSurface(
   userTrickId: string,
-  surfaceType: string
+  surfaceType: string,
 ): Promise<UserTrick> {
   // First, fetch current landedSurfaces
   const { data: currentData, error: fetchError } = await supabase
@@ -145,7 +146,7 @@ export async function addLandedSurface(
  */
 export async function getUserTrick(
   userId: string,
-  trickId: string
+  trickId: string,
 ): Promise<UserTrick | null> {
   const { data, error } = await supabase
     .from("UserToTricks")
@@ -172,10 +173,12 @@ export async function getUserTrick(
 export async function getUserTricks(userId: string): Promise<UserTrick[]> {
   const { data, error } = await supabase
     .from("UserToTricks")
-    .select(`
+    .select(
+      `
       *,
       trick:Tricks(*)
-    `)
+    `,
+    )
     .eq("userID", userId);
 
   if (error) {
@@ -205,11 +208,12 @@ export async function deleteUserTrick(userTrickId: string): Promise<void> {
  * Create or update a UserTrick in a single atomic operation
  * Uses Supabase upsert to prevent race conditions
  * Requires unique constraint on (userID, trickID)
+ * Also checks and updates any related goals
  */
 export async function upsertUserTrick(
   userId: string,
   trickId: string,
-  updates: UpdateUserTrickStatsParams
+  updates: UpdateUserTrickStatsParams,
 ): Promise<UserTrick> {
   const { data, error } = await supabase
     .from("UserToTricks")
@@ -226,7 +230,7 @@ export async function upsertUserTrick(
       {
         onConflict: "userID,trickID",
         ignoreDuplicates: false, // Update on conflict
-      }
+      },
     )
     .select()
     .single();
@@ -234,6 +238,18 @@ export async function upsertUserTrick(
   if (error) {
     console.error("Error upserting UserTrick:", error);
     throw error;
+  }
+
+  // Check and update any related goals
+  // TODO: Consider moving to golang service if this becomes unreliable
+  try {
+    await checkAndUpdateTrickGoals(userId, trickId, {
+      stomps: data.stomps ?? 0,
+      attempts: data.attempts ?? 0,
+    });
+  } catch (goalError) {
+    // Don't fail the upsert if goal update fails
+    console.error("Error updating trick goals:", goalError);
   }
 
   return data;

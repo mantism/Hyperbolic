@@ -24,6 +24,7 @@ export type Database = {
           logged_at: string;
           notes: string | null;
           rating: number | null;
+          session_id: string | null;
           surface_type: string | null;
           thumbnail_url: string | null;
           user_combo_id: string;
@@ -38,6 +39,7 @@ export type Database = {
           logged_at?: string;
           notes?: string | null;
           rating?: number | null;
+          session_id?: string | null;
           surface_type?: string | null;
           thumbnail_url?: string | null;
           user_combo_id: string;
@@ -52,12 +54,20 @@ export type Database = {
           logged_at?: string;
           notes?: string | null;
           rating?: number | null;
+          session_id?: string | null;
           surface_type?: string | null;
           thumbnail_url?: string | null;
           user_combo_id?: string;
           video_urls?: string[] | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "ComboLogs_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "Sessions";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "ComboLogs_user_combo_id_fkey";
             columns: ["user_combo_id"];
@@ -133,6 +143,50 @@ export type Database = {
           },
         ];
       };
+      Goals: {
+        Row: {
+          completed_at: string | null;
+          created_at: string | null;
+          current_value: number | null;
+          goal_type: string;
+          id: string;
+          target_id: string | null;
+          target_name: string | null;
+          target_value: number;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          current_value?: number | null;
+          goal_type: string;
+          id?: string;
+          target_id?: string | null;
+          target_name?: string | null;
+          target_value: number;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          current_value?: number | null;
+          goal_type?: string;
+          id?: string;
+          target_id?: string | null;
+          target_name?: string | null;
+          target_value?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "Goals_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "Users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       LandingStances: {
         Row: {
           aliases: string[] | null;
@@ -196,6 +250,47 @@ export type Database = {
           },
         ];
       };
+      Sessions: {
+        Row: {
+          created_at: string | null;
+          ended_at: string | null;
+          id: string;
+          is_public: boolean | null;
+          location_name: string | null;
+          notes: string | null;
+          started_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          is_public?: boolean | null;
+          location_name?: string | null;
+          notes?: string | null;
+          started_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          is_public?: boolean | null;
+          location_name?: string | null;
+          notes?: string | null;
+          started_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "Sessions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "Users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       Transitions: {
         Row: {
           aliases: string[] | null;
@@ -234,6 +329,7 @@ export type Database = {
           notes: string | null;
           rating: number | null;
           reps: number | null;
+          session_id: string | null;
           surface_type: string | null;
           thumbnail_url: string | null;
           user_trick_id: string;
@@ -250,6 +346,7 @@ export type Database = {
           notes?: string | null;
           rating?: number | null;
           reps?: number | null;
+          session_id?: string | null;
           surface_type?: string | null;
           thumbnail_url?: string | null;
           user_trick_id: string;
@@ -266,6 +363,7 @@ export type Database = {
           notes?: string | null;
           rating?: number | null;
           reps?: number | null;
+          session_id?: string | null;
           surface_type?: string | null;
           thumbnail_url?: string | null;
           user_trick_id?: string;
@@ -273,6 +371,13 @@ export type Database = {
           weather_conditions?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "TrickLogs_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "Sessions";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "tricklogs_user_trick_id_fkey";
             columns: ["user_trick_id"];

@@ -11,6 +11,7 @@ import {
   addLandedSurface as addTrickLandedSurface,
 } from "./userTrickService";
 import { ensureTrickExists } from "./trickService";
+import { checkAndUpdateComboGoals } from "./goalService";
 
 /**
  * Centralized service for UserCombo CRUD operations.
@@ -161,7 +162,20 @@ export async function incrementComboStats(
     landed: (landed || combo.landed) ?? false,
   };
 
-  return updateUserComboStats(comboId, updates);
+  const updatedCombo = await updateUserComboStats(comboId, updates);
+
+  // Check and update any related goals
+  try {
+    await checkAndUpdateComboGoals(combo.user_id, comboId, {
+      stomps: updatedCombo.stomps ?? 0,
+      attempts: updatedCombo.attempts ?? 0,
+    });
+  } catch (goalError) {
+    // Don't fail the stat update if goal update fails
+    console.error("Error updating combo goals:", goalError);
+  }
+
+  return updatedCombo;
 }
 
 /**
