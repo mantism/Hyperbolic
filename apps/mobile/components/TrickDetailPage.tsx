@@ -14,6 +14,7 @@ import {
 
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSession } from "@/contexts/SessionContext";
 import { supabase } from "@/lib/supabase/supabase";
 import { TrickVideo, Trick, UserTrick } from "@hyperbolic/shared-types";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
@@ -53,6 +54,7 @@ export default function TrickDetailPage({
   onClose,
 }: TrickDetailPageProps) {
   const { user } = useAuth();
+  const { activeSession } = useSession();
   const router = useRouter();
   const [userTrick, setUserTrick] = useState<UserTrick | null>(null);
   const [loading, setLoading] = useState(true);
@@ -757,6 +759,7 @@ export default function TrickDetailPage({
         trickId={trick.id}
         userId={user?.id || ""}
         trickName={trick.name}
+        sessionId={activeSession?.id}
         onClose={() => setShowLogModal(false)}
         onLogAdded={fetchUserTrick}
       />

@@ -15,6 +15,7 @@ interface TrickLogModalProps {
   trickId: string;
   userId: string;
   trickName?: string;
+  sessionId?: string | null;
   onClose: () => void;
   onLogAdded?: () => void;
 }
@@ -25,6 +26,7 @@ export default function TrickLogModal({
   trickId,
   userId,
   trickName,
+  sessionId,
   onClose,
   onLogAdded,
 }: TrickLogModalProps) {
@@ -97,6 +99,7 @@ export default function TrickLogModal({
         location_name: formData.location_name || null,
         surface_type: formData.surface_type || null,
         landed: formData.landed,
+        session_id: sessionId || null,
       });
 
       if (logError) {

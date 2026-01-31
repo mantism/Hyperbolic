@@ -6,6 +6,8 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TricksProvider } from "@/contexts/TricksContext";
 import { CombosProvider } from "@/contexts/CombosContext";
+import { GoalsProvider } from "@/contexts/GoalsContext";
+import { SessionProvider } from "@/contexts/SessionContext";
 
 function InitialLayout() {
   const { user, loading } = useAuth();
@@ -60,6 +62,10 @@ function InitialLayout() {
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
+        name="session/[id]"
+        options={{ headerShown: false, presentation: "card" }}
+      />
+      <Stack.Screen
         name="upload-video/[id]"
         options={{
           headerShown: true,
@@ -78,8 +84,12 @@ export default function RootLayout() {
       <AuthProvider>
         <TricksProvider>
           <CombosProvider>
-            <InitialLayout />
-            <StatusBar style="auto" />
+            <GoalsProvider>
+              <SessionProvider>
+                <InitialLayout />
+                <StatusBar style="auto" />
+              </SessionProvider>
+            </GoalsProvider>
           </CombosProvider>
         </TricksProvider>
       </AuthProvider>

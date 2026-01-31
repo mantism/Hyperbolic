@@ -28,6 +28,7 @@ interface CreateComboLogParams {
   weatherConditions?: string;
   isPublic?: boolean;
   loggedAt?: string; // ISO timestamp
+  sessionId?: string; // Link to active session
 }
 
 /**
@@ -52,6 +53,7 @@ export async function createComboLog(
     weatherConditions = null,
     isPublic = false,
     loggedAt = new Date().toISOString(),
+    sessionId = null,
   } = params;
 
   // Validate and marshal the combo graph
@@ -93,6 +95,7 @@ export async function createComboLog(
       video_urls: videoUrls,
       thumbnail_url: thumbnailUrl,
       is_public: isPublic,
+      session_id: sessionId,
     })
     .select()
     .single();

@@ -21,6 +21,7 @@ import {
   getSurfaceTypeLabel,
 } from "@/lib/surfaceTypes";
 import { useCombos } from "@/contexts/CombosContext";
+import { useSession } from "@/contexts/SessionContext";
 import ComboComposer from "./ComboComposer";
 
 interface QuickComboLoggerProps {
@@ -55,6 +56,7 @@ export default function QuickComboLogger({
   onSuccess,
 }: QuickComboLoggerProps) {
   const { refetchUserCombos } = useCombos();
+  const { activeSession } = useSession();
   const [sequence, setSequence] = useState<SequenceItem[]>([]);
   const [formData, setFormData] = useState<LogFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
@@ -92,6 +94,7 @@ export default function QuickComboLogger({
         notes: formData.notes || undefined,
         locationName: formData.location_name || undefined,
         surfaceType: formData.surface_type || undefined,
+        sessionId: activeSession?.id,
       });
 
       // Refresh combos list to show the new combo

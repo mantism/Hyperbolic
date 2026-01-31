@@ -5,6 +5,7 @@ import TrickSelectionModal from "./TrickSelectionModal";
 import TrickLogModal from "./TrickLogModal";
 import QuickComboLogger from "./QuickComboLogger";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSession } from "@/contexts/SessionContext";
 
 interface QuickLogFlowProps {
   onClose: () => void;
@@ -18,6 +19,7 @@ type FlowStep =
 
 export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
   const { user } = useAuth();
+  const { activeSession } = useSession();
   const [step, setStep] = useState<FlowStep>("select-type");
   const [selectedTrick, setSelectedTrick] = useState<Trick | null>(null);
 
@@ -72,6 +74,7 @@ export default function QuickLogFlow({ onClose }: QuickLogFlowProps) {
           trickId={selectedTrick.id}
           userId={user.id}
           trickName={selectedTrick.name}
+          sessionId={activeSession?.id}
           onClose={handleClose}
           onLogAdded={handleLogAdded}
         />

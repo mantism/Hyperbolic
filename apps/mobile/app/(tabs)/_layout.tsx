@@ -58,6 +58,34 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="goals"
+        options={{
+          title: "Goals",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "flag" : "flag-outline"}
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="sessions"
+        options={{
+          title: "Sessions",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "timer" : "timer-outline"}
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
