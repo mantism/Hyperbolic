@@ -17,6 +17,7 @@ import { getAllSurfaceTypes, getSurfaceTypeLabel } from "@/lib/surfaceTypes";
 import { SelectedVideo, TrickVideo } from "@hyperbolic/shared-types";
 import MediaSelector from "@/app/upload-video/components/MediaSelector";
 import VideoPlayerModal from "./VideoPlayerModal";
+import SessionModal from "./SessionModal";
 
 export interface TrickLogFormData {
   reps: number;
@@ -27,9 +28,15 @@ export interface TrickLogFormData {
   thumbnailUri?: string | null;
 }
 
+interface SessionInfo {
+  startedAt: string;
+  locationName?: string | null;
+}
+
 interface TrickLogDetailSheetProps {
   visible: boolean;
   trickName: string;
+  sessionInfo: SessionInfo;
   /** If provided, we're editing; otherwise creating */
   existingLog?: {
     id: string;
@@ -56,6 +63,7 @@ const initialFormData: TrickLogFormData = {
 export default function TrickLogDetailSheet({
   visible,
   trickName,
+  sessionInfo,
   existingLog,
   onClose,
   onSave,
@@ -201,278 +209,260 @@ export default function TrickLogDetailSheet({
   }
 
   return (
-    <Modal
+    <SessionModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={handleClose}
+      title={trickName}
+      sessionInfo={sessionInfo}
+      onClose={handleClose}
+      closeDisabled={submitting}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={handleClose}
-            disabled={submitting}
-            style={styles.closeButton}
-          >
-            <Ionicons name="close" size={28} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>
-            {isEditing ? "Edit Log" : "Add Log"}
-          </Text>
-          {isEditing && onDelete ? (
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Reps */}
+        <View style={styles.formRow}>
+          <Text style={styles.label}>Reps</Text>
+          <View style={styles.repsStepper}>
             <TouchableOpacity
-              onPress={handleDelete}
-              disabled={submitting}
-              style={styles.deleteHeaderButton}
+              onPress={() => handleRepsChange(-1)}
+              style={[
+                styles.repsButton,
+                formData.reps <= 1 && styles.repsButtonDisabled,
+              ]}
+              disabled={formData.reps <= 1}
             >
-              <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.placeholder} />
-          )}
-        </View>
-
-        <View style={styles.trickNameBanner}>
-          <Text style={styles.trickNameText}>{trickName}</Text>
-        </View>
-
-        <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-          {/* Reps */}
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Reps</Text>
-            <View style={styles.repsStepper}>
-              <TouchableOpacity
-                onPress={() => handleRepsChange(-1)}
-                style={[
-                  styles.repsButton,
-                  formData.reps <= 1 && styles.repsButtonDisabled,
-                ]}
-                disabled={formData.reps <= 1}
-              >
-                <Ionicons
-                  name="remove"
-                  size={24}
-                  color={formData.reps <= 1 ? "#ccc" : "#333"}
-                />
-              </TouchableOpacity>
-              <TextInput
-                style={styles.repsInput}
-                value={formData.reps.toString()}
-                onChangeText={(text) => {
-                  const num = parseInt(text, 10);
-                  if (!isNaN(num) && num >= 1) {
-                    setFormData({ ...formData, reps: num });
-                  } else if (text === "") {
-                    setFormData({ ...formData, reps: 1 });
-                  }
-                }}
-                keyboardType="number-pad"
-                selectTextOnFocus
+              <Ionicons
+                name="remove"
+                size={24}
+                color={formData.reps <= 1 ? "#ccc" : "#333"}
               />
-              <TouchableOpacity
-                onPress={() => handleRepsChange(1)}
-                style={styles.repsButton}
-              >
-                <Ionicons name="add" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Surface Type */}
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Surface Type</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.surfaceScroll}
-            >
-              {surfaceTypes.map((surface) => (
-                <TouchableOpacity
-                  key={surface}
-                  style={[
-                    styles.surfaceChip,
-                    formData.surfaceType === surface &&
-                      styles.surfaceChipActive,
-                  ]}
-                  onPress={() =>
-                    setFormData({
-                      ...formData,
-                      surfaceType:
-                        formData.surfaceType === surface ? "" : surface,
-                    })
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.surfaceChipText,
-                      formData.surfaceType === surface &&
-                        styles.surfaceChipTextActive,
-                    ]}
-                  >
-                    {getSurfaceTypeLabel(surface)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Rating */}
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Rating (1-10)</Text>
-            <View style={styles.ratingContainer}>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
-                <TouchableOpacity
-                  key={rating}
-                  style={[
-                    styles.ratingButton,
-                    formData.rating === rating && styles.ratingButtonActive,
-                  ]}
-                  onPress={() =>
-                    setFormData({
-                      ...formData,
-                      rating: formData.rating === rating ? null : rating,
-                    })
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.ratingText,
-                      formData.rating === rating && styles.ratingTextActive,
-                    ]}
-                  >
-                    {rating}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Notes */}
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Notes</Text>
+            </TouchableOpacity>
             <TextInput
-              style={[styles.input, styles.textArea]}
-              value={formData.notes}
-              onChangeText={(text) => setFormData({ ...formData, notes: text })}
-              placeholder="Any notes about this log..."
-              multiline
-              numberOfLines={3}
+              style={styles.repsInput}
+              value={formData.reps.toString()}
+              onChangeText={(text) => {
+                const num = parseInt(text, 10);
+                if (!isNaN(num) && num >= 1) {
+                  setFormData({ ...formData, reps: num });
+                } else if (text === "") {
+                  setFormData({ ...formData, reps: 1 });
+                }
+              }}
+              keyboardType="number-pad"
+              selectTextOnFocus
             />
+            <TouchableOpacity
+              onPress={() => handleRepsChange(1)}
+              style={styles.repsButton}
+            >
+              <Ionicons name="add" size={24} color="#333" />
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Video section */}
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Video</Text>
-
-            {/* Show existing video thumbnail if editing */}
-            {isEditing && existingLog?.media && !formData.video && (
+        {/* Surface Type */}
+        <View style={styles.formRow}>
+          <Text style={styles.label}>Surface Type</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.surfaceScroll}
+          >
+            {surfaceTypes.map((surface) => (
               <TouchableOpacity
-                style={styles.existingVideoThumbnail}
-                onPress={() => setShowVideoPlayer(true)}
-                activeOpacity={0.8}
+                key={surface}
+                style={[
+                  styles.surfaceChip,
+                  formData.surfaceType === surface && styles.surfaceChipActive,
+                ]}
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    surfaceType:
+                      formData.surfaceType === surface ? "" : surface,
+                  })
+                }
               >
-                {existingLog.media.thumbnail_url ? (
+                <Text
+                  style={[
+                    styles.surfaceChipText,
+                    formData.surfaceType === surface &&
+                      styles.surfaceChipTextActive,
+                  ]}
+                >
+                  {getSurfaceTypeLabel(surface)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Rating */}
+        <View style={styles.formRow}>
+          <Text style={styles.label}>Rating (1-10)</Text>
+          <View style={styles.ratingContainer}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+              <TouchableOpacity
+                key={rating}
+                style={[
+                  styles.ratingButton,
+                  formData.rating === rating && styles.ratingButtonActive,
+                ]}
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    rating: formData.rating === rating ? null : rating,
+                  })
+                }
+              >
+                <Text
+                  style={[
+                    styles.ratingText,
+                    formData.rating === rating && styles.ratingTextActive,
+                  ]}
+                >
+                  {rating}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Notes */}
+        <View style={styles.formRow}>
+          <Text style={styles.label}>Notes</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.notes}
+            onChangeText={(text) => setFormData({ ...formData, notes: text })}
+            placeholder="Any notes about this log..."
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        {/* Video section */}
+        <View style={styles.formRow}>
+          <Text style={styles.label}>Video</Text>
+
+          {/* Show existing video thumbnail if editing */}
+          {isEditing && existingLog?.media && !formData.video && (
+            <TouchableOpacity
+              style={styles.existingVideoThumbnail}
+              onPress={() => setShowVideoPlayer(true)}
+              activeOpacity={0.8}
+            >
+              {existingLog.media.thumbnail_url ? (
+                <Image
+                  source={{ uri: existingLog.media.thumbnail_url }}
+                  style={styles.existingThumbnailImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.existingThumbnailPlaceholder}>
+                  <Ionicons name="videocam-outline" size={32} color="#999" />
+                </View>
+              )}
+              {/* Play button overlay */}
+              <View style={styles.playOverlay}>
+                <View style={styles.playButtonCircle}>
+                  <Ionicons name="play" size={20} color="#FFF" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Show selected video thumbnail */}
+          {formData.video && (
+            <View style={styles.selectedVideoContainer}>
+              <View style={styles.thumbnailWrapper}>
+                {formData.thumbnailUri ? (
                   <Image
-                    source={{ uri: existingLog.media.thumbnail_url }}
-                    style={styles.existingThumbnailImage}
+                    source={{ uri: formData.thumbnailUri }}
+                    style={styles.videoThumbnail}
                     resizeMode="cover"
                   />
                 ) : (
-                  <View style={styles.existingThumbnailPlaceholder}>
-                    <Ionicons name="videocam-outline" size={32} color="#999" />
+                  <View style={styles.videoThumbnailPlaceholder}>
+                    <Ionicons name="videocam" size={32} color="#999" />
                   </View>
                 )}
-                {/* Play button overlay */}
-                <View style={styles.playOverlay}>
-                  <View style={styles.playButtonCircle}>
-                    <Ionicons name="play" size={20} color="#FFF" />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            {/* Show selected video thumbnail */}
-            {formData.video && (
-              <View style={styles.selectedVideoContainer}>
-                <View style={styles.thumbnailWrapper}>
-                  {formData.thumbnailUri ? (
-                    <Image
-                      source={{ uri: formData.thumbnailUri }}
-                      style={styles.videoThumbnail}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.videoThumbnailPlaceholder}>
-                      <Ionicons name="videocam" size={32} color="#999" />
-                    </View>
-                  )}
-                  <View style={styles.durationBadge}>
-                    <Text style={styles.durationText}>
-                      {Math.round(formData.video.duration)}s
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.removeVideoButton}
-                  onPress={handleRemoveVideo}
-                >
-                  <Ionicons name="close-circle" size={24} color="#FF3B30" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Add video button (only if no video selected) */}
-            {!formData.video && (
-              <TouchableOpacity
-                style={styles.addVideoButton}
-                onPress={() => setShowMediaSelector(true)}
-              >
-                <Ionicons name="videocam-outline" size={24} color="#007AFF" />
-                <Text style={styles.addVideoText}>
-                  {isEditing && existingLog?.media
-                    ? "Replace Video"
-                    : "Add Video"}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          {uploadProgress ? (
-            <View style={styles.uploadProgressContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
-              <Text style={styles.uploadProgressText}>{uploadProgress}</Text>
-            </View>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={handleClose}
-                disabled={submitting}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.saveButton,
-                  submitting && styles.disabledButton,
-                ]}
-                onPress={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.saveButtonText}>
-                    {isEditing ? "Save Changes" : "Add Log"}
+                <View style={styles.durationBadge}>
+                  <Text style={styles.durationText}>
+                    {Math.round(formData.video.duration)}s
                   </Text>
-                )}
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.removeVideoButton}
+                onPress={handleRemoveVideo}
+              >
+                <Ionicons name="close-circle" size={24} color="#FF3B30" />
               </TouchableOpacity>
-            </>
+            </View>
+          )}
+
+          {/* Add video button (only if no video selected) */}
+          {!formData.video && (
+            <TouchableOpacity
+              style={styles.addVideoButton}
+              onPress={() => setShowMediaSelector(true)}
+            >
+              <Ionicons name="videocam-outline" size={24} color="#007AFF" />
+              <Text style={styles.addVideoText}>
+                {isEditing && existingLog?.media
+                  ? "Replace Video"
+                  : "Add Video"}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
+
+        {/* Delete button (below the fold) */}
+        {isEditing && onDelete && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDelete}
+            disabled={submitting}
+          >
+            <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+            <Text style={styles.deleteButtonText}>Delete Log</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      <View style={styles.footer}>
+        {uploadProgress ? (
+          <View style={styles.uploadProgressContainer}>
+            <ActivityIndicator size="small" color="#007AFF" />
+            <Text style={styles.uploadProgressText}>{uploadProgress}</Text>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleClose}
+              disabled={submitting}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.saveButton,
+                submitting && styles.disabledButton,
+              ]}
+              onPress={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>
+                  {isEditing ? "Save Changes" : "Add Log"}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Video Player Modal */}
@@ -481,59 +471,20 @@ export default function TrickLogDetailSheet({
         video={existingLog?.media ?? null}
         onClose={() => setShowVideoPlayer(false)}
       />
-    </Modal>
+    </SessionModal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
+  // Used by MediaSelector modal
   closeButton: {
     width: 44,
     height: 44,
     justifyContent: "center",
     alignItems: "flex-start",
   },
-  title: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#000",
-    flex: 1,
-    textAlign: "center",
-  },
   placeholder: {
     width: 44,
-  },
-  deleteHeaderButton: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "flex-end",
-  },
-  trickNameBanner: {
-    backgroundColor: "#F5F5F5",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  trickNameText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#333",
-    textAlign: "center",
   },
   body: {
     flex: 1,
@@ -730,6 +681,20 @@ const styles = StyleSheet.create({
   addVideoText: {
     fontSize: 15,
     color: "#007AFF",
+    fontWeight: "500",
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    marginTop: 16,
+    marginBottom: 32,
+  },
+  deleteButtonText: {
+    fontSize: 15,
+    color: "#FF3B30",
     fontWeight: "500",
   },
   footer: {

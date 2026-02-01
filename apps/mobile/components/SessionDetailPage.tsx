@@ -798,6 +798,10 @@ export default function SessionDetailPage({
       <TrickLogDetailSheet
         visible={showLogSheet}
         trickName={logSheetContext?.trickName || ""}
+        sessionInfo={{
+          startedAt: session.started_at,
+          locationName: session.location_name,
+        }}
         existingLog={logSheetContext?.existingLog}
         onClose={() => {
           setShowLogSheet(false);
