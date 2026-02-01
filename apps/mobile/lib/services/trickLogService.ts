@@ -50,7 +50,7 @@ interface UpdateTrickLogParams {
  * Create a new trick log
  */
 export async function createTrickLog(
-  params: CreateTrickLogParams
+  params: CreateTrickLogParams,
 ): Promise<TrickLog> {
   const {
     userTrickId,
@@ -95,7 +95,7 @@ export async function createTrickLog(
  */
 export async function updateTrickLog(
   logId: string,
-  updates: UpdateTrickLogParams
+  updates: UpdateTrickLogParams,
 ): Promise<TrickLog> {
   const updateData: Record<string, unknown> = {};
 
@@ -148,12 +148,30 @@ export async function deleteTrickLog(logId: string): Promise<void> {
   }
 }
 
+export interface TrickLogWithMedia extends TrickLog {
+  user_trick?: {
+    id: string;
+    user_id: string;
+    trick_id: string;
+    trick?: {
+      id: string;
+      name: string;
+    };
+  };
+  media?: Array<{
+    id: string;
+    url: string;
+    thumbnail_url?: string | null;
+    media_type?: string | null;
+  }>;
+}
+
 /**
- * Get trick logs for a session
+ * Get trick logs for a session with related media
  */
 export async function getTrickLogsBySession(
-  sessionId: string
-): Promise<TrickLog[]> {
+  sessionId: string,
+): Promise<TrickLogWithMedia[]> {
   const { data, error } = await supabase
     .from("TrickLogs")
     .select(
@@ -162,8 +180,9 @@ export async function getTrickLogsBySession(
       user_trick:UserToTricks(
         *,
         trick:Tricks(*)
-      )
-    `
+      ),
+      media:TrickMedia(id, url, thumbnail_url, media_type)
+    `,
     )
     .eq("session_id", sessionId)
     .order("logged_at", { ascending: false });

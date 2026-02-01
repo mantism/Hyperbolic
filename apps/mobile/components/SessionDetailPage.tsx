@@ -29,30 +29,59 @@ import {
   updateComboLog,
   deleteComboLog,
 } from "@/lib/services/comboLogService";
-import {
-  createUserTrick,
-  getUserTrick,
-} from "@/lib/services/userTrickService";
+import { createUserTrick, getUserTrick } from "@/lib/services/userTrickService";
 import { useSession } from "@/contexts/SessionContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trick, SequenceItem } from "@hyperbolic/shared-types";
+import {
+  Trick,
+  SequenceItem,
+  VideoType,
+  TrickVideo,
+} from "@hyperbolic/shared-types";
+import { File } from "expo-file-system";
+import {
+  uploadVideo,
+  uploadThumbnail,
+  linkVideoToTrickLog,
+} from "@/lib/services/videoService";
 import { sequenceToComboGraph } from "@/lib/utils/comboRendering";
-import SessionTrickCard from "./SessionTrickCard";
+import SessionTrickCard, {
+  TrickWithLogs,
+  TrickLogItem,
+} from "./SessionTrickCard";
 import SessionComboCard from "./SessionComboCard";
 import SessionTrickInput from "./SessionTrickInput";
 import ComboComposer from "./ComboComposer";
+import TrickLogDetailSheet, { TrickLogFormData } from "./TrickLogDetailSheet";
+import VideoPlayerModal from "./VideoPlayerModal";
 
 interface SessionDetailPageProps {
   sessionId: string;
   onClose: () => void;
 }
 
-interface TrickLogItem {
+interface RawTrickLog {
   id: string;
-  name: string;
+  trickId: string;
+  trickName: string;
+  userTrickId: string;
   reps: number;
-  landed: boolean;
+  rating?: number | null;
+  notes?: string | null;
+  surfaceType?: string | null;
+  media?: TrickVideo | null;
   logged_at: string;
+}
+
+interface TrickLogSheetContext {
+  mode: "create" | "edit";
+  trickName: string;
+  userTrickId: string;
+  trickId: string;
+  existingLog?: TrickLogItem & {
+    rating?: number | null;
+    notes?: string | null;
+  };
 }
 
 interface ComboLogItem {
@@ -70,7 +99,7 @@ export default function SessionDetailPage({
   const { user } = useAuth();
   const { endSession, activeSession } = useSession();
   const [session, setSession] = useState<SessionWithStats | null>(null);
-  const [trickLogs, setTrickLogs] = useState<TrickLogItem[]>([]);
+  const [rawTrickLogs, setRawTrickLogs] = useState<RawTrickLog[]>([]);
   const [comboLogs, setComboLogs] = useState<ComboLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,6 +108,47 @@ export default function SessionDetailPage({
   const [showComboInput, setShowComboInput] = useState(false);
   const [comboSequence, setComboSequence] = useState<SequenceItem[]>([]);
   const [savingCombo, setSavingCombo] = useState(false);
+
+  // Trick log detail sheet state
+  const [showLogSheet, setShowLogSheet] = useState(false);
+  const [logSheetContext, setLogSheetContext] =
+    useState<TrickLogSheetContext | null>(null);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<string | null>(
+    null,
+  );
+
+  // Video player state
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [videoToPlay, setVideoToPlay] = useState<TrickVideo | null>(null);
+
+  // Group trick logs by trick for the expandable cards
+  const tricksWithLogs: TrickWithLogs[] = React.useMemo(() => {
+    const grouped = new Map<string, TrickWithLogs>();
+
+    for (const log of rawTrickLogs) {
+      const key = log.trickId;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          trickId: log.trickId,
+          trickName: log.trickName,
+          userTrickId: log.userTrickId,
+          logs: [],
+        });
+      }
+      grouped.get(key)!.logs.push({
+        id: log.id,
+        reps: log.reps,
+        surfaceType: log.surfaceType,
+        media: log.media,
+        logged_at: log.logged_at,
+      });
+    }
+
+    return Array.from(grouped.values());
+  }, [rawTrickLogs]);
+
+  // Get trick IDs for filtering autocomplete
+  const addedTrickIds = tricksWithLogs.map((t) => t.trickId);
 
   const isActive = activeSession?.id === sessionId;
 
@@ -91,15 +161,20 @@ export default function SessionDetailPage({
 
       setSession(sessionData);
 
-      // Map trick logs
-      const mappedTrickLogs: TrickLogItem[] = logsData.trickLogs.map(
+      // Map trick logs with full data for grouping
+      const mappedTrickLogs: RawTrickLog[] = logsData.trickLogs.map(
         (log: any) => ({
           id: log.id,
-          name: log.user_trick?.trick?.name || "Unknown Trick",
+          trickId: log.user_trick?.trick?.id || "",
+          trickName: log.user_trick?.trick?.name || "Unknown Trick",
+          userTrickId: log.user_trick_id || "",
           reps: log.reps || 1,
-          landed: log.landed ?? true,
+          rating: log.rating,
+          notes: log.notes,
+          surfaceType: log.surface_type,
+          media: log.media?.[0] || null,
           logged_at: log.logged_at,
-        })
+        }),
       );
 
       // Map combo logs
@@ -110,10 +185,10 @@ export default function SessionDetailPage({
           reps: log.reps || 1,
           landed: log.landed ?? true,
           logged_at: log.logged_at,
-        })
+        }),
       );
 
-      setTrickLogs(mappedTrickLogs);
+      setRawTrickLogs(mappedTrickLogs);
       setComboLogs(mappedComboLogs);
     } catch (error) {
       console.error("Error fetching session data:", error);
@@ -155,7 +230,7 @@ export default function SessionDetailPage({
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -178,11 +253,13 @@ export default function SessionDetailPage({
             }
           },
         },
-      ]
+      ],
     );
   };
 
   // Trick handlers
+
+  // When user selects a trick from autocomplete, open the sheet to create a log
   const handleAddTrick = async (trick: Trick) => {
     if (!user) return;
 
@@ -197,55 +274,203 @@ export default function SessionDetailPage({
         });
       }
 
-      // Create trick log
-      const log = await createTrickLog({
+      // Open sheet in create mode
+      setLogSheetContext({
+        mode: "create",
+        trickName: trick.name,
         userTrickId: userTrick.id,
-        landed: true,
-        reps: 1,
-        sessionId,
+        trickId: trick.id,
       });
-
-      // Add to local state
-      setTrickLogs((prev) => [
-        {
-          id: log.id,
-          name: trick.name,
-          reps: 1,
-          landed: true,
-          logged_at: log.logged_at,
-        },
-        ...prev,
-      ]);
-
-      // Refresh stats
-      fetchSessionData();
+      setShowLogSheet(true);
     } catch (error) {
-      console.error("Error adding trick:", error);
+      console.error("Error preparing trick:", error);
       Alert.alert("Error", "Failed to add trick");
     }
   };
 
-  const handleUpdateTrickReps = async (logId: string, reps: number) => {
+  // Open sheet to add another log for an existing trick
+  const handleAddLogToTrick = (
+    userTrickId: string,
+    trickId: string,
+    trickName: string,
+  ) => {
+    setLogSheetContext({
+      mode: "create",
+      trickName,
+      userTrickId,
+      trickId,
+    });
+    setShowLogSheet(true);
+  };
+
+  // Open sheet to edit an existing log
+  const handleLogPress = (trickWithLogs: TrickWithLogs, log: TrickLogItem) => {
+    // Find the raw log to get rating/notes
+    const rawLog = rawTrickLogs.find((l) => l.id === log.id);
+
+    setLogSheetContext({
+      mode: "edit",
+      trickName: trickWithLogs.trickName,
+      userTrickId: trickWithLogs.userTrickId,
+      trickId: trickWithLogs.trickId,
+      existingLog: {
+        ...log,
+        rating: rawLog?.rating,
+        notes: rawLog?.notes,
+      },
+    });
+    setShowLogSheet(true);
+  };
+
+  // Helper to upload video for a trick log
+  const uploadVideoForLog = async (
+    logId: string,
+    trickId: string,
+    formData: TrickLogFormData,
+  ): Promise<string | null> => {
+    if (!formData.video || !user) return null;
+
     try {
-      await updateTrickLog(logId, { reps });
-      setTrickLogs((prev) =>
-        prev.map((log) => (log.id === logId ? { ...log, reps } : log))
+      setVideoUploadProgress("Uploading video...");
+
+      const file = new File(formData.video.uri);
+      const fileSize = await file.size;
+
+      const videoId = await uploadVideo(
+        formData.video.uri,
+        {
+          fileName: formData.video.filename,
+          fileSize,
+          mimeType: "video/mp4",
+          parentId: trickId, // trick ID (slug), not userTrickId
+          userId: user.id,
+          duration: formData.video.duration,
+          type: VideoType.Trick,
+        },
+        (progress) => {
+          setVideoUploadProgress(`Uploading video... ${Math.round(progress)}%`);
+        },
       );
+
+      // Link the video to the trick log
+      setVideoUploadProgress("Linking video...");
+      await linkVideoToTrickLog(videoId, logId);
+
+      // Upload thumbnail if we have one
+      if (formData.thumbnailUri) {
+        setVideoUploadProgress("Uploading thumbnail...");
+        await uploadThumbnail(videoId, formData.thumbnailUri, VideoType.Trick);
+      }
+
+      setVideoUploadProgress(null);
+      return videoId;
     } catch (error) {
-      console.error("Error updating trick reps:", error);
-      Alert.alert("Error", "Failed to update reps");
+      console.error("Error uploading video:", error);
+      setVideoUploadProgress(null);
+      Alert.alert(
+        "Video Upload Failed",
+        "The log was saved but the video failed to upload.",
+      );
+      return null;
     }
+  };
+
+  // Save handler for the sheet (create or update)
+  const handleSaveLog = async (formData: TrickLogFormData) => {
+    if (!logSheetContext || !user) return;
+
+    if (logSheetContext.mode === "create") {
+      // Create new log
+      const log = await createTrickLog({
+        userTrickId: logSheetContext.userTrickId,
+        reps: formData.reps,
+        rating: formData.rating ?? undefined,
+        notes: formData.notes || undefined,
+        surfaceType: formData.surfaceType || undefined,
+        sessionId,
+      });
+
+      // Upload video if selected
+      if (formData.video) {
+        await uploadVideoForLog(log.id, logSheetContext.trickId, formData);
+      }
+
+      // Refetch to get fresh data (including video URL if uploaded)
+      fetchSessionData();
+    } else if (logSheetContext.mode === "edit" && logSheetContext.existingLog) {
+      // Update existing log
+      const logId = logSheetContext.existingLog.id;
+      await updateTrickLog(logId, {
+        reps: formData.reps,
+        rating: formData.rating ?? undefined,
+        notes: formData.notes || undefined,
+        surfaceType: formData.surfaceType || undefined,
+      });
+
+      // Upload video if newly selected
+      if (formData.video) {
+        await uploadVideoForLog(logId, logSheetContext.trickId, formData);
+        fetchSessionData();
+        return; // Don't do local state update - fetchSessionData handles it
+      }
+
+      // Only do local state update if no video was uploaded
+      setRawTrickLogs((prev) =>
+        prev.map((log) =>
+          log.id === logId
+            ? {
+                ...log,
+                reps: formData.reps,
+                rating: formData.rating,
+                notes: formData.notes,
+                surfaceType: formData.surfaceType || null,
+              }
+            : log,
+        ),
+      );
+    }
+  };
+
+  // Delete handler for the sheet
+  const handleDeleteLogFromSheet = async () => {
+    if (!logSheetContext?.existingLog) return;
+
+    const logId = logSheetContext.existingLog.id;
+    await deleteTrickLog(logId);
+    setRawTrickLogs((prev) => prev.filter((log) => log.id !== logId));
+    fetchSessionData();
   };
 
   const handleDeleteTrickLog = async (logId: string) => {
     try {
       await deleteTrickLog(logId);
-      setTrickLogs((prev) => prev.filter((log) => log.id !== logId));
+      setRawTrickLogs((prev) => prev.filter((log) => log.id !== logId));
       fetchSessionData();
     } catch (error) {
       console.error("Error deleting trick log:", error);
       Alert.alert("Error", "Failed to delete log");
     }
+  };
+
+  const handleDeleteAllTrickLogs = async (trickWithLogs: TrickWithLogs) => {
+    try {
+      // Delete all logs for this trick
+      await Promise.all(
+        trickWithLogs.logs.map((log) => deleteTrickLog(log.id)),
+      );
+      setRawTrickLogs((prev) =>
+        prev.filter((log) => log.trickId !== trickWithLogs.trickId),
+      );
+      fetchSessionData();
+    } catch (error) {
+      console.error("Error deleting trick logs:", error);
+      Alert.alert("Error", "Failed to delete logs");
+    }
+  };
+
+  const handlePlayVideo = (video: TrickVideo) => {
+    setVideoToPlay(video);
+    setShowVideoPlayer(true);
   };
 
   // Combo handlers
@@ -298,7 +523,7 @@ export default function SessionDetailPage({
     try {
       await updateComboLog(logId, { reps });
       setComboLogs((prev) =>
-        prev.map((log) => (log.id === logId ? { ...log, reps } : log))
+        prev.map((log) => (log.id === logId ? { ...log, reps } : log)),
       );
     } catch (error) {
       console.error("Error updating combo reps:", error);
@@ -446,7 +671,7 @@ export default function SessionDetailPage({
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              TRICKS ({trickLogs.length})
+              TRICKS ({tricksWithLogs.length})
             </Text>
             {isActive && (
               <TouchableOpacity
@@ -466,20 +691,30 @@ export default function SessionDetailPage({
             <SessionTrickInput
               onSelect={handleAddTrick}
               onDismiss={() => setShowTrickInput(false)}
+              excludeTrickIds={addedTrickIds}
             />
           )}
 
-          {trickLogs.length === 0 && !showTrickInput ? (
+          {tricksWithLogs.length === 0 && !showTrickInput ? (
             <View style={styles.emptySection}>
               <Text style={styles.emptySectionText}>No tricks logged yet</Text>
             </View>
           ) : (
-            trickLogs.map((log) => (
+            tricksWithLogs.map((twl) => (
               <SessionTrickCard
-                key={log.id}
-                trickLog={log}
-                onRepsChange={(reps) => handleUpdateTrickReps(log.id, reps)}
-                onDelete={() => handleDeleteTrickLog(log.id)}
+                key={twl.trickId}
+                trickWithLogs={twl}
+                onAddLog={() =>
+                  handleAddLogToTrick(
+                    twl.userTrickId,
+                    twl.trickId,
+                    twl.trickName,
+                  )
+                }
+                onLogPress={(log) => handleLogPress(twl, log)}
+                onDeleteLog={handleDeleteTrickLog}
+                onDeleteAllLogs={() => handleDeleteAllTrickLogs(twl)}
+                onPlayVideo={handlePlayVideo}
               />
             ))
           )}
@@ -488,9 +723,7 @@ export default function SessionDetailPage({
         {/* Combos Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              COMBOS ({comboLogs.length})
-            </Text>
+            <Text style={styles.sectionTitle}>COMBOS ({comboLogs.length})</Text>
             {isActive && (
               <TouchableOpacity
                 onPress={() => setShowComboInput(!showComboInput)}
@@ -560,6 +793,33 @@ export default function SessionDetailPage({
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Trick Log Detail Sheet */}
+      <TrickLogDetailSheet
+        visible={showLogSheet}
+        trickName={logSheetContext?.trickName || ""}
+        existingLog={logSheetContext?.existingLog}
+        onClose={() => {
+          setShowLogSheet(false);
+          setLogSheetContext(null);
+        }}
+        onSave={handleSaveLog}
+        onDelete={
+          logSheetContext?.mode === "edit"
+            ? handleDeleteLogFromSheet
+            : undefined
+        }
+      />
+
+      {/* Video Player Modal */}
+      <VideoPlayerModal
+        visible={showVideoPlayer}
+        video={videoToPlay}
+        onClose={() => {
+          setShowVideoPlayer(false);
+          setVideoToPlay(null);
+        }}
+      />
     </SafeAreaView>
   );
 }

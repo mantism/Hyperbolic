@@ -235,7 +235,7 @@ export async function getSessionLogs(sessionId: string): Promise<{
   trickLogs: any[];
   comboLogs: any[];
 }> {
-  // Fetch trick logs with trick info
+  // Fetch trick logs with trick info and media (all fields for TrickVideo type)
   const { data: trickLogs, error: trickError } = await supabase
     .from("TrickLogs")
     .select(`
@@ -243,7 +243,8 @@ export async function getSessionLogs(sessionId: string): Promise<{
       user_trick:UserToTricks(
         *,
         trick:Tricks(*)
-      )
+      ),
+      media:TrickMedia(*)
     `)
     .eq("session_id", sessionId)
     .order("logged_at", { ascending: false });

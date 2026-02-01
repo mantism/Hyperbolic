@@ -142,6 +142,24 @@ export async function getComboVideos(comboId: string): Promise<ComboVideo[]> {
   return comboMedia || [];
 }
 
+/**
+ * Link a TrickMedia record to a specific TrickLog
+ */
+export async function linkVideoToTrickLog(
+  videoId: string,
+  tricklogId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("TrickMedia")
+    .update({ tricklog_id: tricklogId })
+    .eq("id", videoId);
+
+  if (error) {
+    console.error("Error linking video to trick log:", error);
+    throw new Error(`Failed to link video to log: ${error.message}`);
+  }
+}
+
 export async function deleteVideo(videoId: string, type: VideoType) {
   const {
     data: { session },

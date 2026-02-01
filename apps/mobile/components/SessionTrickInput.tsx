@@ -15,6 +15,7 @@ import { Trick } from "@hyperbolic/shared-types";
 interface SessionTrickInputProps {
   onSelect: (trick: Trick) => void;
   onDismiss: () => void;
+  excludeTrickIds?: string[];
 }
 
 /**
@@ -24,6 +25,7 @@ interface SessionTrickInputProps {
 export default function SessionTrickInput({
   onSelect,
   onDismiss,
+  excludeTrickIds = [],
 }: SessionTrickInputProps) {
   const { filterAndSortTricks } = useTricks();
   const [searchText, setSearchText] = useState("");
@@ -44,9 +46,13 @@ export default function SessionTrickInput({
       }).slice(0, 8);
     }
     return results.filter(
-      (trick) => trick && trick.name != null && typeof trick.name === "string",
+      (trick) =>
+        trick &&
+        trick.name != null &&
+        typeof trick.name === "string" &&
+        !excludeTrickIds.includes(trick.id),
     );
-  }, [filterAndSortTricks, searchText]);
+  }, [filterAndSortTricks, searchText, excludeTrickIds]);
 
   // Clear for next entry (stays open for rapid entry)
   const handleSelect = (trick: Trick) => {
