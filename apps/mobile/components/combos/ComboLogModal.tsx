@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase/supabase";
 import { UserCombo } from "@hyperbolic/shared-types";
 import { incrementComboAndTrickStats } from "@/lib/services/userComboService";
-import BaseLogModal, { LogFormData } from "./BaseLogModal";
+import { BaseLogModal, LogFormData } from "@/components/ui";
 
 interface ComboLogModalProps {
   visible: boolean;

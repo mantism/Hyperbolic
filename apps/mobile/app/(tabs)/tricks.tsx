@@ -9,14 +9,15 @@ import {
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTricks, TrickFilterOptions } from "@/contexts/TricksContext";
-import TrickCard from "@/components/TrickCard";
-import FilterSheet from "@/components/FilterSheet";
-import FilterRow from "@/components/FilterRow";
-import FilterSwitch from "@/components/FilterSwitch";
-import TrickStatsHexagon from "@/components/TrickStatsHexagon";
+import { TrickCard, TrickStatsHexagon } from "@/components/tricks";
+import {
+  FilterSheet,
+  FilterRow,
+  FilterSwitch,
+  SearchBar,
+  PageHeader,
+} from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import SearchBar from "@/components/SearchBar";
-import PageHeader from "@/components/PageHeader";
 
 // Height of each TrickCard including margins for FlatList optimization
 const TRICK_CARD_HEIGHT = 140;

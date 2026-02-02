@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import GoalsList from "@/components/GoalsList";
-import CreateGoalModal from "@/components/CreateGoalModal";
+import { GoalsList, CreateGoalModal } from "@/components/goals";
 
 export default function GoalsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);

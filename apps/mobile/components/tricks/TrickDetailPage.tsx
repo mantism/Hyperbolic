@@ -35,11 +35,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import TrickProgressionGraph from "./TrickProgressionGraph";
 import TrickLogs from "./TrickLogs";
 import TrickLogModal from "./TrickLogModal";
-import CircularProgress from "./CircularProgress";
-import VideoHero from "./VideoHero";
-import VideoGallery from "./VideoGallery";
-import VideoPlayerModal from "./VideoPlayerModal";
-import SurfaceBadges from "./SurfaceBadges";
+import { CircularProgress, SurfaceBadges } from "@/components/ui";
+import { VideoHero, VideoGallery, VideoPlayerModal } from "@/components/video";
 import { getTrickVideos } from "@/lib/services/videoService";
 
 interface TrickDetailPageProps {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/supabase";
 import { Database, UserTrick } from "@hyperbolic/shared-types";
-import BaseLogs, { BaseLog } from "./BaseLogs";
+import { BaseLogs, BaseLog } from "@/components/ui";
 
 type TrickLog = Database["public"]["Tables"]["TrickLogs"]["Row"];
 
@@ -10,10 +10,7 @@ interface TrickLogsProps {
   onAddPress?: () => void;
 }
 
-export default function TrickLogs({
-  userTrick,
-  onAddPress,
-}: TrickLogsProps) {
+export default function TrickLogs({ userTrick, onAddPress }: TrickLogsProps) {
   const [logs, setLogs] = useState<TrickLog[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -13,15 +13,14 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ComboVideo, SequenceItem, UserCombo } from "@hyperbolic/shared-types";
 import { useAuth } from "@/contexts/AuthContext";
-import ComboRenderer from "./ComboRenderer";
-import ComboComposer from "./ComboComposer";
-import VideoHero from "./VideoHero";
-import SurfaceBadges from "./SurfaceBadges";
+import ComboRenderer from "../combo-composer/ComboRenderer";
+import { ComboComposer } from "@/components/combo-composer";
 import ComboLogs, { ComboLogsRef } from "./ComboLogs";
 import ComboLogModal from "./ComboLogModal";
+import { VideoHero, VideoGallery, VideoPlayerModal } from "@/components/video";
+import { SurfaceBadges } from "@/components/ui";
 import { useTricks } from "@/contexts/TricksContext";
 import { useRouter } from "expo-router";
-import VideoGallery from "./VideoGallery";
 import { getComboVideos } from "@/lib/services/videoService";
 import {
   renameUserCombo,
@@ -33,7 +32,6 @@ import {
   comboGraphToSequence,
   sequenceToComboGraph,
 } from "@/lib/utils/comboRendering";
-import VideoPlayerModal from "./VideoPlayerModal";
 
 interface ComboDetailPageProps {
   combo: UserCombo;
@@ -158,9 +156,13 @@ export default function ComboDetailPage({
   const incrementAttempts = async () => {
     if (!user) return;
     try {
-      const updatedCombo = await incrementComboAndTrickStats(user.id, combo.id, {
-        landed: false,
-      });
+      const updatedCombo = await incrementComboAndTrickStats(
+        user.id,
+        combo.id,
+        {
+          landed: false,
+        },
+      );
       onComboUpdated?.(updatedCombo);
     } catch (error) {
       console.error("Error incrementing attempts:", error);
@@ -170,9 +172,13 @@ export default function ComboDetailPage({
   const incrementStomps = async () => {
     if (!user) return;
     try {
-      const updatedCombo = await incrementComboAndTrickStats(user.id, combo.id, {
-        landed: true,
-      });
+      const updatedCombo = await incrementComboAndTrickStats(
+        user.id,
+        combo.id,
+        {
+          landed: true,
+        },
+      );
       onComboUpdated?.(updatedCombo);
     } catch (error) {
       console.error("Error incrementing stomps:", error);

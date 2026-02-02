@@ -1,7 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import CustomTabBar from "@/components/CustomTabBar";
+import { CustomTabBar } from "@/components/navigation";
 
 export default function TabLayout() {
   return (

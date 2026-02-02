@@ -3,7 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { supabase } from "@/lib/supabase/supabase";
 import { Trick } from "@hyperbolic/shared-types";
-import TrickDetailPage from "@/components/TrickDetailPage";
+import { TrickDetailPage } from "@/components/tricks";
 
 export default function TrickScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

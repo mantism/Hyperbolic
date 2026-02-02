@@ -38,8 +38,8 @@ import SessionTrickCard, {
 } from "./SessionTrickCard";
 import SessionComboCard from "./SessionComboCard";
 import SessionTrickInput from "./SessionTrickInput";
-import ComboComposer from "./ComboComposer";
-import VideoPlayerModal from "./VideoPlayerModal";
+import { ComboComposer } from "@/components/combo-composer";
+import { VideoPlayerModal } from "@/components/video";
 
 interface SessionDetailPageProps {
   sessionId: string;

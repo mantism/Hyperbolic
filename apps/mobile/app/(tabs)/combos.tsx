@@ -11,10 +11,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCombos } from "@/contexts/CombosContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import PageHeader from "@/components/PageHeader";
-import SearchBar from "@/components/SearchBar";
-import NewComboComposer from "@/components/NewComboComposer";
-import ComboRenderer from "@/components/ComboRenderer";
+import { PageHeader, SearchBar } from "@/components/ui";
+import { NewComboComposer, ComboRenderer } from "@/components/combos";
 
 export default function CombosScreen() {
   const router = useRouter();

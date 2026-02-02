@@ -16,7 +16,7 @@ import * as VideoThumbnails from "expo-video-thumbnails";
 import { getAllSurfaceTypes, getSurfaceTypeLabel } from "@/lib/surfaceTypes";
 import { SelectedVideo, TrickVideo } from "@hyperbolic/shared-types";
 import MediaSelector from "@/app/upload-video/components/MediaSelector";
-import VideoPlayerModal from "./VideoPlayerModal";
+import { VideoPlayerModal } from "@/components/video";
 import SessionModal from "./SessionModal";
 
 export interface TrickLogFormData {

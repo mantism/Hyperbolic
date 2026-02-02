@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import { ComboLog, UserCombo } from "@hyperbolic/shared-types";
 import { getComboLogsByComboId } from "@/lib/services/comboLogService";
-import BaseLogs, { BaseLog } from "./BaseLogs";
+import { BaseLogs, BaseLog } from "@/components/ui";
 
 interface ComboLogsProps {
   userCombo?: UserCombo | null;
@@ -14,7 +19,7 @@ export interface ComboLogsRef {
 
 export default forwardRef<ComboLogsRef, ComboLogsProps>(function ComboLogs(
   { userCombo, onAddPress },
-  ref
+  ref,
 ) {
   const [logs, setLogs] = useState<ComboLog[]>([]);
   const [loading, setLoading] = useState(true);

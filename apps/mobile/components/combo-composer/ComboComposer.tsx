@@ -27,9 +27,9 @@ import {
 import { createTrick } from "@/lib/utils/createTrick";
 import ComboChip from "./ComboChip";
 import TappableTransitionChip from "./TappableTransitionChip";
-import TrickSuggestionChips from "./TrickSuggestionChips";
 import ComboModifierButtons from "./ComboModifierButtons";
 import TrashZone from "./TrashZone";
+import TrickSuggestionChips from "./TrickSuggestionChips";
 
 interface ComboComposerProps {
   /** Initial sequence for editing an existing combo */

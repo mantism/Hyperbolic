@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { UserCombo } from "@hyperbolic/shared-types";
 import { getUserCombo } from "@/lib/services/userComboService";
 import { useCombos } from "@/contexts/CombosContext";
-import ComboDetailPage from "@/components/ComboDetailPage";
+import { ComboDetailPage } from "@/components/combos";
 
 export default function ComboScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -7,7 +7,7 @@ import {
   updateUserTrickStats,
   addLandedSurface,
 } from "@/lib/services/userTrickService";
-import BaseLogModal, { LogFormData } from "./BaseLogModal";
+import { BaseLogModal, LogFormData } from "@/components/ui";
 
 interface TrickLogModalProps {
   visible: boolean;
@@ -78,7 +78,7 @@ export default function TrickLogModal({
           try {
             currentUserTrick = await addLandedSurface(
               currentUserTrick.id,
-              formData.surface_type
+              formData.surface_type,
             );
           } catch (error) {
             console.error("Error updating landed surfaces:", error);

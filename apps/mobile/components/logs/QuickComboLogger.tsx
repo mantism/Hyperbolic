@@ -22,7 +22,7 @@ import {
 } from "@/lib/surfaceTypes";
 import { useCombos } from "@/contexts/CombosContext";
 import { useSession } from "@/contexts/SessionContext";
-import ComboComposer from "./ComboComposer";
+import { ComboComposer } from "@/components/combo-composer";
 
 interface QuickComboLoggerProps {
   visible: boolean;

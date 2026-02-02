@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { getCategoryColor, getCategoryColorLight } from "@/lib/categoryColors";
 import { Trick, UserTrick } from "@hyperbolic/shared-types";
-import SurfaceBadges from "./SurfaceBadges";
+import { SurfaceBadges } from "@/components/ui";
 
 interface TrickCardProps {
   trick: Trick;

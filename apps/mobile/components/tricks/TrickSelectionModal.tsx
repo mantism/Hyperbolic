@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { useTricks, TrickFilterOptions } from "@/contexts/TricksContext";
 import { Trick } from "@hyperbolic/shared-types";
-import TrickCard from "@/components/TrickCard";
-import FilterRow from "@/components/FilterRow";
+import TrickCard from "./TrickCard";
+import { FilterRow } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 interface TrickSelectionModalProps {

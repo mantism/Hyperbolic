@@ -12,8 +12,7 @@ import {
 import { TrickVideo } from "@hyperbolic/shared-types";
 
 import { useAuth } from "@/contexts/AuthContext";
-import VideoGallery from "@/components/VideoGallery";
-import VideoPlayerModal from "@/components/VideoPlayerModal";
+import { VideoGallery, VideoPlayerModal } from "@/components/video";
 import { getUserVideos } from "@/lib/services/videoService";
 import Ionicons from "@expo/vector-icons/Ionicons";
 

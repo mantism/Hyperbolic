@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import SessionsList from "@/components/SessionsList";
-import StartSessionModal from "@/components/StartSessionModal";
-import ActiveSessionBanner from "@/components/ActiveSessionBanner";
+import {
+  SessionsList,
+  StartSessionModal,
+  ActiveSessionBanner,
+} from "@/components/sessions";
 import { useSession } from "@/contexts/SessionContext";
 import { Session } from "@/lib/services/sessionService";
 

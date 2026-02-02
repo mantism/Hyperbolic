@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import QuickLogFlow from "./QuickLogFlow";
+import { QuickLogFlow } from "@/components/logs";
 
 export default function CustomTabBar({
   state,

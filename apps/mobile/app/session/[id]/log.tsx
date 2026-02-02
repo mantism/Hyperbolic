@@ -17,7 +17,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { File } from "expo-file-system";
 import { getAllSurfaceTypes, getSurfaceTypeLabel } from "@/lib/surfaceTypes";
 import { SelectedVideo, VideoType } from "@hyperbolic/shared-types";
-import VideoPlayerModal from "@/components/VideoPlayerModal";
+import { VideoPlayerModal } from "@/components/video";
 import {
   getSelectedVideo,
   clearSelectedVideo,

@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Trick } from "@hyperbolic/shared-types";
 import AddLogModal from "./AddLogModal";
-import TrickSelectionModal from "./TrickSelectionModal";
-import TrickLogModal from "./TrickLogModal";
 import QuickComboLogger from "./QuickComboLogger";
+import { TrickSelectionModal, TrickLogModal } from "@/components/tricks";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSession } from "@/contexts/SessionContext";
 
