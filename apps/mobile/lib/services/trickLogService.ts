@@ -196,12 +196,19 @@ export async function getTrickLogsBySession(
 }
 
 /**
- * Get a single trick log by ID
+ * Get a single trick log by ID with media
  */
-export async function getTrickLog(logId: string): Promise<TrickLog | null> {
+export async function getTrickLog(
+  logId: string,
+): Promise<TrickLogWithMedia | null> {
   const { data, error } = await supabase
     .from("TrickLogs")
-    .select("*")
+    .select(
+      `
+      *,
+      media:TrickMedia(*)
+    `,
+    )
     .eq("id", logId)
     .single();
 

@@ -62,7 +62,15 @@ function InitialLayout() {
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
-        name="session/[id]"
+        name="session/[id]/index"
+        options={{ headerShown: false, presentation: "card" }}
+      />
+      <Stack.Screen
+        name="session/[id]/log"
+        options={{ headerShown: false, presentation: "card" }}
+      />
+      <Stack.Screen
+        name="session/[id]/select-video"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
